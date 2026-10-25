@@ -106,7 +106,23 @@
     btnSaveApiSettings: document.getElementById('btnSaveApiSettings'),
     btnTestApiKey: document.getElementById('btnTestApiKey'),
     npApiKeyInput: document.getElementById('npApiKeyInput'),
-    apiTestStatus: document.getElementById('apiTestStatus')
+    apiTestStatus: document.getElementById('apiTestStatus'),
+
+    // Конструктор шаблонів копіювання
+    btnHeaderCopySettings: document.getElementById('btnHeaderCopySettings'),
+    copyPresetModal: document.getElementById('copyPresetModal'),
+    btnCloseCopyModal: document.getElementById('btnCloseCopyModal'),
+    btnResetCopyPreset: document.getElementById('btnResetCopyPreset'),
+    btnSaveCopyPreset: document.getElementById('btnSaveCopyPreset'),
+    btnPresetTestCopy: document.getElementById('btnPresetTestCopy'),
+    presetLivePreview: document.getElementById('presetLivePreview'),
+    presetQuickButtons: document.getElementById('presetQuickButtons'),
+    presetActiveChips: document.getElementById('presetActiveChips'),
+    presetChipPalette: document.getElementById('presetChipPalette'),
+    optSmtShort: document.getElementById('optSmtShort'),
+    optNoBranchWord: document.getElementById('optNoBranchWord'),
+    optShortRegion: document.getElementById('optShortRegion'),
+    optNoStreetPrefix: document.getElementById('optNoStreetPrefix')
   };
 
   // ==========================================================================
@@ -1004,10 +1020,157 @@
   }
 
 
-  // 1. Класичний формат копіювання (для звичайних клієнтів/накладних)
-  // Приклад: «місто Ужгород, Відділення №1: вул. Волонтерів, 16»
-  // Приклад: «село Городок, Вантажне відділення №1: вул. барона Штейнгеля, 2-А»
-  function formatClassicCopyString(branch) {
+  // ==========================================================================
+  // v1.4.6: КОНСТРУКТОР ШАБЛОНУ КОПІЮВАННЯ (CUSTOM COPY PRESET BUILDER)
+  // ==========================================================================
+  const COPY_PRESET_TAGS = [
+    { id: 'settlementType', label: '[Тип НП]', desc: 'м. / с. / смт' },
+    { id: 'city', label: '[Місто]', desc: 'Назва населеного пункту' },
+    { id: 'service', label: '[Служба]', desc: 'Нова Пошта / Укрпошта' },
+    { id: 'branchType', label: '[Тип точки]', desc: 'Відділення / Поштомат / Вантажне' },
+    { id: 'number', label: '[Номер]', desc: '№ відділення чи поштомату' },
+    { id: 'street', label: '[Вулиця]', desc: 'Назва вулиці' },
+    { id: 'house', label: '[Будинок]', desc: 'Номер будинку' },
+    { id: 'raion', label: '[Район]', desc: 'Назва району' },
+    { id: 'oblast', label: '[Область]', desc: 'Назва області' },
+    { id: 'postalCode', label: '[Індекс]', desc: 'Поштовий індекс' },
+    { id: 'weight', label: '[Вага/Габарити]', desc: 'до 30 кг / до 1100 кг' }
+  ];
+
+  const DEFAULT_COPY_PRESETS = {
+    short: {
+      presetName: 'default',
+      tags: ['settlementType', 'city', 'branchType', 'number', 'street'],
+      options: {
+        smtShort: false,
+        noBranchWord: false,
+        shortRegion: true,
+        noStreetPrefix: false
+      }
+    },
+    detailed: {
+      presetName: 'default',
+      tags: ['settlementType', 'city', 'raion', 'oblast', 'branchType', 'number', 'weight', 'street'],
+      options: {
+        smtShort: true,
+        noBranchWord: false,
+        shortRegion: true,
+        noStreetPrefix: false
+      }
+    }
+  };
+
+  const QUICK_PRESETS = {
+    short: {
+      default: {
+        tags: ['settlementType', 'city', 'branchType', 'number', 'street'],
+        options: { smtShort: false, noBranchWord: false, shortRegion: true, noStreetPrefix: false }
+      },
+      crm: {
+        tags: ['settlementType', 'city', 'branchType', 'number', 'street', 'raion', 'oblast'],
+        options: { smtShort: true, noBranchWord: true, shortRegion: true, noStreetPrefix: true }
+      },
+      short: {
+        tags: ['city', 'branchType', 'number'],
+        options: { smtShort: true, noBranchWord: true, shortRegion: true, noStreetPrefix: true }
+      }
+    },
+    detailed: {
+      default: {
+        tags: ['settlementType', 'city', 'raion', 'oblast', 'branchType', 'number', 'weight', 'street'],
+        options: { smtShort: true, noBranchWord: false, shortRegion: true, noStreetPrefix: false }
+      },
+      crm: {
+        tags: ['settlementType', 'city', 'branchType', 'number', 'street', 'raion', 'oblast', 'weight'],
+        options: { smtShort: true, noBranchWord: true, shortRegion: true, noStreetPrefix: true }
+      },
+      short: {
+        tags: ['city', 'branchType', 'number', 'street'],
+        options: { smtShort: true, noBranchWord: true, shortRegion: true, noStreetPrefix: true }
+      }
+    }
+  };
+
+  const STORAGE_KEY_PRESETS = 'np_custom_copy_presets';
+
+  function loadCopyPresets() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_PRESETS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            short: Object.assign({}, DEFAULT_COPY_PRESETS.short, parsed.short || {}, {
+              options: Object.assign({}, DEFAULT_COPY_PRESETS.short.options, (parsed.short && parsed.short.options) || {})
+            }),
+            detailed: Object.assign({}, DEFAULT_COPY_PRESETS.detailed, parsed.detailed || {}, {
+              options: Object.assign({}, DEFAULT_COPY_PRESETS.detailed.options, (parsed.detailed && parsed.detailed.options) || {})
+            })
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Error loading custom copy presets:', e);
+    }
+    return JSON.parse(JSON.stringify(DEFAULT_COPY_PRESETS));
+  }
+
+  let userCopyPresets = loadCopyPresets();
+
+  function saveCopyPresets(presets) {
+    try {
+      userCopyPresets = presets;
+      localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
+    } catch (e) {
+      console.warn('Error saving custom copy presets:', e);
+    }
+  }
+
+  function detectPresetType(tabKey, config) {
+    const quick = QUICK_PRESETS[tabKey];
+    for (const [name, preset] of Object.entries(quick)) {
+      const tagsMatch = preset.tags.length === config.tags.length &&
+        preset.tags.every((t, i) => t === config.tags[i]);
+      const optsMatch = Object.keys(preset.options).every(k => preset.options[k] === config.options[k]);
+      if (tagsMatch && optsMatch) {
+        return name;
+      }
+    }
+    return 'custom';
+  }
+
+  const BENCHMARK_SAMPLE_BRANCH = {
+    id: 'benchmark-sample',
+    service: 'novaposhta',
+    settlementType: 'смт',
+    city: 'Середнє',
+    number: '1',
+    postalCode: '89432',
+    type: 'cargo',
+    typeText: 'Вантажне (до 1100 кг)',
+    typeName: 'Вантажне відділення',
+    street: 'вул. Закарпатська, 75',
+    raion: 'Ужгородський',
+    oblast: 'Закарпатська',
+    totalMaxWeightAllowed: 1100,
+    maxWeight: 1100
+  };
+
+  function cleanOutputString(str) {
+    return (str || '')
+      .replace(/\(\s*,\s*\)/g, '')
+      .replace(/\(\s*\)/g, '')
+      .replace(/,\s*,+/g, ', ')
+      .replace(/:\s*,/g, ': ')
+      .replace(/,\s*:/g, ': ')
+      .replace(/\s+/g, ' ')
+      .replace(/^\s*[,:\-]\s*/, '')
+      .replace(/\s*[,:\-]\s*$/, '')
+      .trim();
+  }
+
+  // Дефолтний класичний формат копіювання
+  function formatClassicCopyStringDefault(branch) {
     let sType = branch.settlementType || '';
     const city = branch.city || '';
 
@@ -1039,10 +1202,8 @@
     return `${sTypeFull} ${city}, ${typeTitle} №${num}: ${street}`;
   }
 
-  // 2. Розширений детальний CRM-формат (з областю, районом у дужках та вагою)
-  // Приклад: «м. Ужгород (Ужгородський р-н, Закарпатська обл.), Вантажне відділення №1 (до 1100 кг): вул. Волонтерів, 16»
-  // Приклад: «с. Городок (Рівненський р-н, Рівненська обл.), Вантажне відділення №1 (до 1100 кг): вул. барона Штейнгеля, 2-А»
-  function formatDetailedCopyString(branch) {
+  // Дефолтний детальний CRM-формат
+  function formatDetailedCopyStringDefault(branch) {
     let sType = branch.settlementType || '';
     const city = branch.city || '';
 
@@ -1110,6 +1271,174 @@
     }
 
     return `${sTypePrefix} ${city}${geoBracket}, ${typeTitle} №${num}${weightText}: ${street}`;
+  }
+
+  // Генератор рядка на основі активного набору тегів та опцій
+  function assembleCopyStringFromPreset(branch, config) {
+    const tags = config.tags || [];
+    const options = config.options || {};
+
+    let sType = branch.settlementType || '';
+    const city = branch.city || '';
+    if (!sType && window.SmartSearchEngine && window.SmartSearchEngine.UKRAINE_SETTLEMENTS) {
+      const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === city.toLowerCase() || (s.cleanName && s.cleanName.toLowerCase() === city.toLowerCase()));
+      if (found) sType = found.type;
+    }
+    if (!sType) sType = 'місто';
+
+    let sTypeVal = sType.trim().toLowerCase();
+    if (options.smtShort) {
+      if (sTypeVal.includes('смт') || sTypeVal.includes('селище міського типу')) sTypeVal = 'смт';
+      else if (sTypeVal.includes('село') || sTypeVal === 'с' || sTypeVal === 'с.') sTypeVal = 'с.';
+      else if (sTypeVal.includes('міст') || sTypeVal === 'м' || sTypeVal === 'м.') sTypeVal = 'м.';
+      else if (sTypeVal.includes('сел')) sTypeVal = 'сел.';
+      else sTypeVal = sTypeVal.endsWith('.') ? sTypeVal : sTypeVal + '.';
+    } else {
+      if (sTypeVal.includes('смт') || sTypeVal.includes('селище міського типу')) sTypeVal = 'смт';
+      else if (sTypeVal.includes('село') || sTypeVal === 'с' || sTypeVal === 'с.') sTypeVal = 'село';
+      else if (sTypeVal.includes('міст') || sTypeVal === 'м' || sTypeVal === 'м.') sTypeVal = 'місто';
+      else if (sTypeVal.includes('сел')) sTypeVal = 'селище';
+    }
+
+    const cityVal = cleanSettlementName(city);
+    const isUp = branch.service === 'ukrposhta' || (branch.id && branch.id.startsWith('up-'));
+    const serviceVal = isUp ? 'Укрпошта' : 'Нова Пошта';
+
+    const isPost = isPostomatBranch(branch);
+    const isCarg = isCargoBranch(branch);
+    const numRaw = (branch.number || branch.Number || branch.postalCode || branch.PostalCode || '1').toString().trim();
+
+    let branchTypeVal = '';
+    if (isPost) {
+      branchTypeVal = 'Поштомат';
+    } else if (isCarg) {
+      branchTypeVal = options.noBranchWord ? 'Вантажне' : 'Вантажне відділення';
+    } else {
+      branchTypeVal = options.noBranchWord ? 'відд.' : 'Відділення';
+    }
+
+    let numberVal = '';
+    if (branchTypeVal) {
+      numberVal = options.noBranchWord ? `${numRaw}` : `№${numRaw}`;
+    } else {
+      numberVal = options.noBranchWord ? `${numRaw}` : `№${numRaw}`;
+    }
+
+    let rawStreet = getCleanStreet(branch);
+    if (options.noStreetPrefix) {
+      rawStreet = rawStreet.replace(/^(вул\.|вулиця|просп\.|проспект|пров\.|провулок|бульв\.|бульвар|площа|пл\.)\s*/i, '');
+    }
+
+    let streetVal = rawStreet;
+    let houseVal = '';
+    if (tags.includes('street') && tags.includes('house')) {
+      const hm = rawStreet.match(/^(.*?)(?:,\s*|\s+)(?:буд\.\s*|№\s*)?(\d+[а-яА-Яa-zA-Z0-9\/\-]*)$/);
+      if (hm) {
+        streetVal = hm[1].trim();
+        houseVal = hm[2].trim();
+      }
+    }
+
+    let oblast = branch.oblast || '';
+    let raion = branch.raion || '';
+    if (!raion && OBLAST_CENTER_RAIONS[cityVal]) {
+      raion = OBLAST_CENTER_RAIONS[cityVal];
+    }
+    if ((!oblast || !raion) && window.SmartSearchEngine && window.SmartSearchEngine.UKRAINE_SETTLEMENTS) {
+      const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === cityVal.toLowerCase());
+      if (found) {
+        if (!oblast) oblast = found.oblast;
+        if (!raion) raion = found.raion;
+      }
+    }
+
+    const raionClean = cleanRaionName(raion);
+    const oblClean = cleanOblastName(oblast);
+    const raionVal = raionClean ? (options.shortRegion ? `${raionClean} р-н` : `${raionClean} район`) : '';
+    const oblVal = oblClean ? (options.shortRegion ? `${oblClean} обл.` : `${oblClean} область`) : '';
+
+    const postalCodeVal = (branch.postalCode || branch.PostalCode || '').toString().trim();
+
+    let weightNum = branch.totalMaxWeightAllowed || branch.maxWeight;
+    if (!weightNum) {
+      if (isCarg) weightNum = 1100;
+      else if (isPost) weightNum = 20;
+      else weightNum = 30;
+    }
+    const weightVal = `до ${weightNum} кг`;
+
+    const tagValues = {
+      settlementType: sTypeVal,
+      city: cityVal,
+      service: serviceVal,
+      branchType: branchTypeVal,
+      number: numberVal,
+      street: streetVal,
+      house: houseVal,
+      raion: raionVal,
+      oblast: oblVal,
+      postalCode: postalCodeVal,
+      weight: weightVal
+    };
+
+    let result = '';
+    for (let i = 0; i < tags.length; i++) {
+      const t = tags[i];
+      const val = tagValues[t];
+      if (!val) continue;
+
+      if (!result) {
+        result = val;
+        continue;
+      }
+
+      const prevTag = tags[i - 1];
+
+      // Правила сполучення
+      if (prevTag === 'settlementType' && t === 'city') {
+        result += ' ' + val;
+      } else if (prevTag === 'branchType' && t === 'number') {
+        result += ' ' + val;
+      } else if (prevTag === 'city' && t === 'raion' && tags[i + 1] === 'oblast') {
+        const nextObl = tagValues['oblast'];
+        result += ` (${val}${nextObl ? ', ' + nextObl : ''})`;
+        i++; // пропускаємо наступну область
+      } else if (prevTag === 'number' && t === 'street') {
+        result += (options.noBranchWord ? ', ' : ': ') + val;
+      } else if (prevTag === 'number' && t === 'weight') {
+        result += ` (${val})`;
+      } else if (prevTag === 'street' && t === 'house') {
+        result += ', ' + val;
+      } else {
+        result += ', ' + val;
+      }
+    }
+
+    return cleanOutputString(result);
+  }
+
+  // Публічна функція форматування з урахуванням кастомного пресету
+  function formatBranchWithPreset(branch, targetTab = 'short') {
+    const config = (userCopyPresets && userCopyPresets[targetTab]) || DEFAULT_COPY_PRESETS[targetTab];
+    const detected = detectPresetType(targetTab, config);
+
+    if (detected === 'default') {
+      return targetTab === 'detailed'
+        ? formatDetailedCopyStringDefault(branch)
+        : formatClassicCopyStringDefault(branch);
+    }
+
+    return assembleCopyStringFromPreset(branch, config);
+  }
+
+  // 1. Класичний формат копіювання
+  function formatClassicCopyString(branch) {
+    return formatBranchWithPreset(branch, 'short');
+  }
+
+  // 2. Розширений детальний CRM-формат
+  function formatDetailedCopyString(branch) {
+    return formatBranchWithPreset(branch, 'detailed');
   }
 
   // Для зворотної сумісності: formatLpCrmCopyString повертає детальний формат
@@ -1289,6 +1618,9 @@
         <button class="btn-copy-action btn-copy-detailed" type="button" title="Скопіювати розширений CRM-формат (з областю, районом та вагою)">
           📋 Детально
         </button>
+        <button class="btn-copy-action btn-copy-settings" type="button" title="Налаштування шаблону копіювання" aria-label="Налаштування шаблону копіювання">
+          ⚙️
+        </button>
         <button class="btn-copy-action btn-reset-selection" type="button" title="Скинути вибір">
           ✕ Скинути вибір
         </button>
@@ -1310,6 +1642,14 @@
       btnCopyDetailed.addEventListener('click', (e) => {
         e.stopPropagation();
         copyTextToClipboard(detailedCopyText, btnCopyDetailed, 'Детально скопійовано!');
+      });
+    }
+
+    const btnCopySettings = card.querySelector('.btn-copy-settings');
+    if (btnCopySettings) {
+      btnCopySettings.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openCopyPresetModal();
       });
     }
 
@@ -3221,6 +3561,250 @@
         });
       }
     }
+
+    // Ініціалізація конструктора шаблонів копіювання
+    initCopyPresetBuilder();
+  }
+
+  // ==========================================================================
+  // КОНТРОЛЕР МОДАЛЬНОГО ВІКНА КОНСТРУКТОРА ШАБЛОНІВ КОПІЮВАННЯ
+  // ==========================================================================
+  let activePresetTab = 'short';
+  let draftCopyPresets = null;
+
+  function renderPresetModalUI() {
+    if (!draftCopyPresets) {
+      draftCopyPresets = JSON.parse(JSON.stringify(userCopyPresets));
+    }
+
+    const currentConfig = draftCopyPresets[activePresetTab];
+    const detectedName = detectPresetType(activePresetTab, currentConfig);
+    currentConfig.presetName = detectedName;
+
+    // 1. Оновлення табів
+    document.querySelectorAll('.copy-preset-tab').forEach(tab => {
+      const isCurrent = tab.dataset.tab === activePresetTab;
+      tab.classList.toggle('active', isCurrent);
+      tab.setAttribute('aria-selected', isCurrent ? 'true' : 'false');
+    });
+
+    // 2. Оновлення кнопок швидких пресетів
+    if (dom.presetQuickButtons) {
+      dom.presetQuickButtons.querySelectorAll('.btn-preset-quick').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.preset === detectedName);
+      });
+    }
+
+    // 3. Рендер активних чіпів
+    if (dom.presetActiveChips) {
+      dom.presetActiveChips.innerHTML = '';
+      const tags = currentConfig.tags || [];
+      tags.forEach((tagId, index) => {
+        const meta = COPY_PRESET_TAGS.find(t => t.id === tagId);
+        const chip = document.createElement('div');
+        chip.className = 'preset-chip';
+        chip.dataset.index = index;
+        chip.dataset.tag = tagId;
+        chip.innerHTML = `
+          <button type="button" class="chip-move-btn chip-move-left" data-index="${index}" title="Посунути ліворуч" aria-label="Посунути ліворуч" ${index === 0 ? 'disabled' : ''}>←</button>
+          <span class="chip-label">${escapeHtml(meta ? meta.label : tagId)}</span>
+          <button type="button" class="chip-move-btn chip-move-right" data-index="${index}" title="Посунути праворуч" aria-label="Посунути праворуч" ${index === tags.length - 1 ? 'disabled' : ''}>→</button>
+          <button type="button" class="chip-del-btn" data-index="${index}" title="Видалити елемент" aria-label="Видалити елемент">✕</button>
+        `;
+        dom.presetActiveChips.appendChild(chip);
+      });
+    }
+
+    // 4. Рендер палітри доступних чіпів
+    if (dom.presetChipPalette) {
+      dom.presetChipPalette.innerHTML = '';
+      COPY_PRESET_TAGS.forEach(meta => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'preset-palette-item';
+        item.dataset.tag = meta.id;
+        item.title = meta.desc;
+        item.innerHTML = `<span>+</span> <span>${escapeHtml(meta.label)}</span>`;
+        dom.presetChipPalette.appendChild(item);
+      });
+    }
+
+    // 5. Оновлення чекбоксів
+    if (dom.optSmtShort) dom.optSmtShort.checked = !!currentConfig.options.smtShort;
+    if (dom.optNoBranchWord) dom.optNoBranchWord.checked = !!currentConfig.options.noBranchWord;
+    if (dom.optShortRegion) dom.optShortRegion.checked = !!currentConfig.options.shortRegion;
+    if (dom.optNoStreetPrefix) dom.optNoStreetPrefix.checked = !!currentConfig.options.noStreetPrefix;
+
+    // 6. Оновлення Live Preview
+    const previewBranch = state.selectedBranch || BENCHMARK_SAMPLE_BRANCH;
+    let previewStr = '';
+    if (detectedName === 'default') {
+      previewStr = activePresetTab === 'detailed'
+        ? formatDetailedCopyStringDefault(previewBranch)
+        : formatClassicCopyStringDefault(previewBranch);
+    } else {
+      previewStr = assembleCopyStringFromPreset(previewBranch, currentConfig);
+    }
+    if (dom.presetLivePreview) {
+      dom.presetLivePreview.textContent = previewStr;
+    }
+  }
+
+  function openCopyPresetModal() {
+    draftCopyPresets = JSON.parse(JSON.stringify(userCopyPresets));
+    renderPresetModalUI();
+    if (dom.copyPresetModal && typeof dom.copyPresetModal.showModal === 'function') {
+      dom.copyPresetModal.showModal();
+    }
+  }
+
+  function initCopyPresetBuilder() {
+    if (dom.btnHeaderCopySettings) {
+      dom.btnHeaderCopySettings.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openCopyPresetModal();
+      });
+    }
+
+    if (dom.btnCloseCopyModal) {
+      dom.btnCloseCopyModal.addEventListener('click', () => {
+        if (dom.copyPresetModal) dom.copyPresetModal.close();
+      });
+    }
+
+    if (dom.copyPresetModal) {
+      dom.copyPresetModal.addEventListener('click', e => {
+        const rect = dom.copyPresetModal.getBoundingClientRect();
+        const isInDialog = (
+          rect.top <= e.clientY &&
+          e.clientY <= rect.bottom &&
+          rect.left <= e.clientX &&
+          e.clientX <= rect.right
+        );
+        if (!isInDialog || e.target === dom.copyPresetModal) {
+          dom.copyPresetModal.close();
+        }
+      });
+    }
+
+    // Таби: Скопіювати / Детально
+    document.querySelectorAll('.copy-preset-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activePresetTab = btn.dataset.tab;
+        renderPresetModalUI();
+      });
+    });
+
+    // Швидкі пресети
+    if (dom.presetQuickButtons) {
+      dom.presetQuickButtons.addEventListener('click', e => {
+        const btn = e.target.closest('.btn-preset-quick');
+        if (!btn) return;
+        const presetKey = btn.dataset.preset;
+        if (presetKey === 'custom') return;
+        const def = QUICK_PRESETS[activePresetTab] && QUICK_PRESETS[activePresetTab][presetKey];
+        if (def) {
+          draftCopyPresets[activePresetTab] = {
+            presetName: presetKey,
+            tags: def.tags.slice(),
+            options: Object.assign({}, def.options)
+          };
+          renderPresetModalUI();
+        }
+      });
+    }
+
+    // Переміщення та видалення активних чіпів
+    if (dom.presetActiveChips) {
+      dom.presetActiveChips.addEventListener('click', e => {
+        const leftBtn = e.target.closest('.chip-move-left');
+        const rightBtn = e.target.closest('.chip-move-right');
+        const delBtn = e.target.closest('.chip-del-btn');
+        const tags = draftCopyPresets[activePresetTab].tags;
+
+        if (leftBtn && !leftBtn.disabled) {
+          const idx = parseInt(leftBtn.dataset.index, 10);
+          if (idx > 0) {
+            const tmp = tags[idx];
+            tags[idx] = tags[idx - 1];
+            tags[idx - 1] = tmp;
+            renderPresetModalUI();
+          }
+        } else if (rightBtn && !rightBtn.disabled) {
+          const idx = parseInt(rightBtn.dataset.index, 10);
+          if (idx < tags.length - 1) {
+            const tmp = tags[idx];
+            tags[idx] = tags[idx + 1];
+            tags[idx + 1] = tmp;
+            renderPresetModalUI();
+          }
+        } else if (delBtn) {
+          const idx = parseInt(delBtn.dataset.index, 10);
+          tags.splice(idx, 1);
+          renderPresetModalUI();
+        }
+      });
+    }
+
+    // Додавання чіпів із палітри
+    if (dom.presetChipPalette) {
+      dom.presetChipPalette.addEventListener('click', e => {
+        const item = e.target.closest('.preset-palette-item');
+        if (!item) return;
+        const tagId = item.dataset.tag;
+        draftCopyPresets[activePresetTab].tags.push(tagId);
+        renderPresetModalUI();
+      });
+    }
+
+    // Зміна чекбоксів опцій
+    [dom.optSmtShort, dom.optNoBranchWord, dom.optShortRegion, dom.optNoStreetPrefix].forEach(cb => {
+      if (cb) {
+        cb.addEventListener('change', () => {
+          if (!draftCopyPresets) return;
+          const currentConfig = draftCopyPresets[activePresetTab];
+          if (dom.optSmtShort) currentConfig.options.smtShort = dom.optSmtShort.checked;
+          if (dom.optNoBranchWord) currentConfig.options.noBranchWord = dom.optNoBranchWord.checked;
+          if (dom.optShortRegion) currentConfig.options.shortRegion = dom.optShortRegion.checked;
+          if (dom.optNoStreetPrefix) currentConfig.options.noStreetPrefix = dom.optNoStreetPrefix.checked;
+          renderPresetModalUI();
+        });
+      }
+    });
+
+    // Тест копіювання зразка
+    if (dom.btnPresetTestCopy && dom.presetLivePreview) {
+      dom.btnPresetTestCopy.addEventListener('click', () => {
+        const text = dom.presetLivePreview.textContent.trim();
+        copyTextToClipboard(text, dom.btnPresetTestCopy, 'Скопійовано!');
+      });
+    }
+
+    // Скидання до стандартного
+    if (dom.btnResetCopyPreset) {
+      dom.btnResetCopyPreset.addEventListener('click', () => {
+        if (!draftCopyPresets) draftCopyPresets = JSON.parse(JSON.stringify(userCopyPresets));
+        draftCopyPresets[activePresetTab] = JSON.parse(JSON.stringify(DEFAULT_COPY_PRESETS[activePresetTab]));
+        renderPresetModalUI();
+        showToast('Скинуто до стандартного');
+      });
+    }
+
+    // Зберегти та закрити
+    if (dom.btnSaveCopyPreset) {
+      dom.btnSaveCopyPreset.addEventListener('click', () => {
+        if (draftCopyPresets) {
+          saveCopyPresets(draftCopyPresets);
+        }
+        if (dom.copyPresetModal) {
+          dom.copyPresetModal.close();
+        }
+        showToast('Налаштування шаблону збережено!');
+        if (state.selectedBranch) {
+          renderSelectedBranch(state.selectedBranch);
+        }
+      });
+    }
   }
 
   // Перевірка наявності захищеного ключа на бекенді (.env)
@@ -3249,7 +3833,7 @@
 
     if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
       navigator.serviceWorker
-        .register('./sw.js?v=1.4.2', { updateViaCache: 'none' })
+        .register('./sw.js?v=1.4.6', { updateViaCache: 'none' })
         .then((reg) => {
           // Примусова перевірка наявності оновлення
           reg.update();
@@ -3288,7 +3872,7 @@
     if ('caches' in window) {
       caches.keys().then((keys) => {
         keys.forEach((key) => {
-          if (key !== 'np-ukr-cache-v1.4.2') {
+          if (key !== 'np-ukr-cache-v1.4.6') {
             caches.delete(key);
           }
         });
@@ -3341,10 +3925,19 @@
   window.formatClassicCopyString = formatClassicCopyString;
   window.formatDetailedCopyString = formatDetailedCopyString;
   window.formatLpCrmCopyString = formatDetailedCopyString;
+  window.formatBranchWithPreset = formatBranchWithPreset;
+  window.loadCopyPresets = loadCopyPresets;
+  window.saveCopyPresets = saveCopyPresets;
+  window.openCopyPresetModal = openCopyPresetModal;
+  window.assembleCopyStringFromPreset = assembleCopyStringFromPreset;
+  window.DEFAULT_COPY_PRESETS = DEFAULT_COPY_PRESETS;
+  window.QUICK_PRESETS = QUICK_PRESETS;
+  window.COPY_PRESET_TAGS = COPY_PRESET_TAGS;
   if (window.SmartSearchEngine) {
     window.SmartSearchEngine.highlightMatch = highlightMatch;
     window.SmartSearchEngine.formatClassicCopyString = formatClassicCopyString;
     window.SmartSearchEngine.formatDetailedCopyString = formatDetailedCopyString;
+    window.SmartSearchEngine.formatBranchWithPreset = formatBranchWithPreset;
   }
 
 })();

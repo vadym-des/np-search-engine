@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.4.5">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.4.6">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -35,7 +35,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.4.5">
+  <link rel="stylesheet" href="styles.css?v=1.4.6">
 </head>
 <body data-service="novaposhta">
 
@@ -69,6 +69,14 @@
           <span class="feedback-icon">💬</span>
           <span class="feedback-text">Фідбек</span>
         </a>
+
+        <!-- Кнопка налаштувань шаблону копіювання -->
+        <button id="btnHeaderCopySettings" class="copy-preset-btn icon-tool-btn" type="button" aria-label="Налаштування шаблону копіювання" title="Налаштування шаблону копіювання">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
 
         <!-- Кнопка перемикання теми (Світла / Темна) -->
         <button id="btnThemeToggle" class="theme-toggle-btn icon-tool-btn" type="button" aria-label="Увімкнути темну тему" title="Увімкнути темну тему">
@@ -254,7 +262,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.4.5</span>
+          <span class="version-tag">v1.4.6</span>
           
         </button>
       </div>
@@ -283,8 +291,24 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.4.5 -->
+        <!-- Версія 1.4.6 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.4.6</span>
+            <span class="version-state">Custom Copy Preset Builder (Конструктор CRM-шаблонів)</span>
+            <span class="version-date">25 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Кастомний конструктор шаблонів копіювання:</strong> гнучке налаштування формату тексту для кнопок «Скопіювати» та «Детально» під будь-які вимоги LP-CRM та сторонніх систем обліку.</li>
+            <li><strong>Швидкі пресети в 1 клік:</strong> «Стандартний» (дефолтний надійний формат), «Для CRM / Швидкий» (без зайвих слів, компактний), «Короткий» (лише місто та номер) та «Кастомний».</li>
+            <li><strong>Інтерактивний Drag/Sort Chip Builder:</strong> візуальне додавання, видалення та зміна порядку полів (<code>[Місто]</code>, <code>[Номер]</code>, <code>[Вулиця]</code>, <code>[Будинок]</code>, <code>[Район]</code>, <code>[Область]</code>, <code>[Індекс]</code>, <code>[Вага]</code>) за допомогою стрілок <code>←</code> / <code>→</code>.</li>
+            <li><strong>Живий перегляд (Live Preview):</strong> миттєве відображення результату форматування в реальному часі на еталонному зразку або поточній вибраній картці.</li>
+            <li><strong>Опції нормалізації:</strong> скорочення «смт», очищення слова «відділення», скорочення «р-н» / «обл.», прибирання префікса «вул.», автоматичне очищення здвоєних ком та зайвих дужок.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.4.5 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.4.5</span>
             <span class="version-state">High-Contrast Geo Context & Typography Refinement</span>
@@ -594,19 +618,111 @@
     </div>
   </dialog>
 
+  <!-- МОДАЛЬНЕ ВІКНО: КОНСТРУКТОР ШАБЛОНУ КОПІЮВАННЯ (Native Dialog) -->
+  <dialog id="copyPresetModal" class="app-modal" aria-labelledby="modalCopyTitle">
+    <div class="modal-card preset-modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3 id="modalCopyTitle" class="modal-title">Конструктор шаблону копіювання</h3>
+          <span class="badge-accent">CRM-шаблони</span>
+        </div>
+        <button id="btnCloseCopyModal" class="btn-modal-close" type="button" aria-label="Закрити вікно">✕</button>
+      </div>
+
+      <div class="modal-body preset-modal-body">
+        <!-- Таби: Скопіювати / Детально -->
+        <div class="copy-preset-tabs" role="tablist" aria-label="Вибір кнопки для налаштування">
+          <button type="button" class="copy-preset-tab active" data-tab="short" role="tab" aria-selected="true">
+            📋 Кнопка «Скопіювати»
+          </button>
+          <button type="button" class="copy-preset-tab" data-tab="detailed" role="tab" aria-selected="false">
+            📋 Кнопка «Детально»
+          </button>
+        </div>
+
+        <!-- Live Preview -->
+        <div class="preset-preview-section">
+          <div class="preset-section-header">
+            <span class="preset-section-label">Живий перегляд (Live Preview):</span>
+            <button type="button" class="btn-preset-test-copy" id="btnPresetTestCopy" title="Скопіювати цей зразок у буфер">📋 Скопіювати зразок</button>
+          </div>
+          <div class="preset-preview-box" id="presetLivePreview">
+            <!-- Динамічний рядок -->
+          </div>
+          <div class="preset-preview-hint">Зразок: смт Середнє, Нова Пошта №1, вантажне відділення, вул. Закарпатська, 75, Ужгородський р-н, Закарпатська обл.</div>
+        </div>
+
+        <!-- Швидкі пресети -->
+        <div class="preset-quick-group">
+          <span class="preset-subheading">Швидкі пресети в 1 клік:</span>
+          <div class="preset-quick-buttons" id="presetQuickButtons">
+            <button type="button" class="btn-preset-quick active" data-preset="default">Стандартний</button>
+            <button type="button" class="btn-preset-quick" data-preset="crm">Для CRM / Швидкий</button>
+            <button type="button" class="btn-preset-quick" data-preset="short">Короткий</button>
+            <button type="button" class="btn-preset-quick" data-preset="custom">Кастомний</button>
+          </div>
+        </div>
+
+        <!-- Порядок елементів у рядку -->
+        <div class="preset-chips-section">
+          <span class="preset-subheading">Порядок елементів у рядку (переміщуйте або видаляйте):</span>
+          <div class="preset-active-chips" id="presetActiveChips">
+            <!-- Активні теги рендеряться динамічно -->
+          </div>
+        </div>
+
+        <!-- Палітра доступних елементів -->
+        <div class="preset-palette-section">
+          <span class="preset-subheading">Додати елемент до рядка:</span>
+          <div class="preset-chip-palette" id="presetChipPalette">
+            <!-- Доступні теги рендеряться динамічно -->
+          </div>
+        </div>
+
+        <!-- Опції форматування -->
+        <div class="preset-options-section">
+          <span class="preset-subheading">Додаткові налаштування:</span>
+          <div class="preset-options-grid">
+            <label class="preset-option-label">
+              <input type="checkbox" id="optSmtShort" class="preset-checkbox">
+              <span>Селище міського типу ➔ смт</span>
+            </label>
+            <label class="preset-option-label">
+              <input type="checkbox" id="optNoBranchWord" class="preset-checkbox">
+              <span>Прибирати службове слово «відділення»</span>
+            </label>
+            <label class="preset-option-label">
+              <input type="checkbox" id="optShortRegion" class="preset-checkbox">
+              <span>Скорочувати «район» ➔ «р-н», «область» ➔ «обл.»</span>
+            </label>
+            <label class="preset-option-label">
+              <input type="checkbox" id="optNoStreetPrefix" class="preset-checkbox">
+              <span>Прибирати префікс «вул.»</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer preset-modal-footer">
+        <button type="button" id="btnResetCopyPreset" class="btn-preset-reset">Скинути до стандартного</button>
+        <button type="button" id="btnSaveCopyPreset" class="btn-primary-action">Зберегти та закрити</button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Leaflet JS for Map -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.4.5"></script>
+  <script src="data/branches.js?v=1.4.6"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.4.5"></script>
+  <script src="data/all_settlements.js?v=1.4.6"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.4.5"></script>
+  <script src="data/fuzzySearch.js?v=1.4.6"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.4.5"></script>
+  <script src="app.js?v=1.4.6"></script>
 </body>
 </html>

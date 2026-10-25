@@ -2570,3 +2570,356 @@ mark.hl-match,
 .address-match-row {
   cursor: pointer;
 }
+
+/* ==========================================================================
+   v1.4.6: КОНСТРУКТОР ШАБЛОНУ КОПІЮВАННЯ (CUSTOM COPY PRESET BUILDER)
+   ========================================================================== */
+
+/* Кнопка налаштувань у хедері та картці результату */
+.copy-preset-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.copy-preset-btn svg {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.copy-preset-btn:hover svg {
+  transform: rotate(45deg);
+}
+
+.btn-copy-action.btn-copy-settings {
+  padding: 8px 12px;
+  font-size: 15px;
+  border-color: var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
+.btn-copy-action.btn-copy-settings:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-focus);
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+
+/* Модальне вікно конструктора */
+.preset-modal-card {
+  max-width: 660px;
+  width: 94%;
+}
+
+.preset-modal-body {
+  padding: 20px 24px;
+  max-height: 72vh;
+}
+
+/* Таби */
+.copy-preset-tabs {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.copy-preset-tab {
+  flex: 1;
+  padding: 10px 16px;
+  font-family: var(--font-main);
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+}
+
+.copy-preset-tab:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+}
+
+.copy-preset-tab.active {
+  background: var(--brand-color);
+  color: var(--brand-contrast-text);
+  border-color: var(--brand-color);
+  box-shadow: 0 2px 8px var(--brand-glow);
+}
+
+/* Попередній перегляд (Live Preview) */
+.preset-preview-section {
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.preset-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 10px;
+}
+
+.preset-section-label {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.btn-preset-test-copy {
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-preset-test-copy:hover {
+  background: var(--brand-color);
+  color: var(--brand-contrast-text);
+  border-color: var(--brand-color);
+}
+
+.preset-preview-box {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-main);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  word-break: break-word;
+  user-select: all;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.preset-preview-hint {
+  font-size: 11px;
+  color: var(--text-subtle);
+  margin-top: 6px;
+}
+
+/* Підзаголовки блоків */
+.preset-subheading {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* Швидкі пресети */
+.preset-quick-group {
+  margin-bottom: 18px;
+}
+
+.preset-quick-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn-preset-quick {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-chip);
+  color: var(--text-main);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-preset-quick:hover {
+  background: var(--bg-chip-hover);
+  border-color: var(--border-focus);
+}
+
+.btn-preset-quick.active {
+  background: var(--brand-color);
+  color: var(--brand-contrast-text);
+  border-color: var(--brand-color);
+  box-shadow: 0 2px 6px var(--brand-glow);
+}
+
+/* Порядок елементів у рядку (Активні чіпи) */
+.preset-chips-section {
+  margin-bottom: 18px;
+}
+
+.preset-active-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card-subtle);
+  border: 1px dashed var(--border-subtle);
+  align-items: center;
+}
+
+.preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  box-shadow: var(--shadow-sm);
+  user-select: none;
+  transition: transform 0.15s ease;
+}
+
+.preset-chip .chip-label {
+  padding: 0 4px;
+}
+
+.chip-move-btn,
+.chip-del-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  background: var(--bg-chip);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.chip-move-btn:hover:not(:disabled) {
+  background: var(--brand-color);
+  color: var(--brand-contrast-text);
+}
+
+.chip-move-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.chip-del-btn:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+/* Палітра доступних елементів */
+.preset-palette-section {
+  margin-bottom: 18px;
+}
+
+.preset-chip-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preset-palette-item {
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  background: var(--bg-chip);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.preset-palette-item:hover {
+  background: var(--bg-chip-hover);
+  border-color: var(--border-subtle);
+  transform: translateY(-1px);
+}
+
+/* Чекбокси опцій */
+.preset-options-section {
+  margin-bottom: 8px;
+}
+
+.preset-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+}
+
+@media (max-width: 600px) {
+  .preset-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.preset-option-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.preset-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--brand-color);
+}
+
+/* Футер модалки */
+.preset-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-preset-reset {
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-preset-reset:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.06);
+}
