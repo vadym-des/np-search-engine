@@ -1325,9 +1325,12 @@
     const all5Digits = corrected.match(/\b\d{5}\b/g);
     if (all5Digits) {
       for (let cand of all5Digits) {
-        const isKnownPostal = UKRAINE_SETTLEMENTS.some(s => s.postalCodes && s.postalCodes.includes(cand));
-        if (isKnownPostal && !isPostomat && cand !== targetBranchNumber) {
+        const isKnownPostal = UKRAINE_SETTLEMENTS.some(s => s.postalCodes && s.postalCodes.includes(cand)) ||
+          (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.ukrposhta) &&
+           window.BRANCHES_DATA.ukrposhta.some(b => String(b.postalCode || b.number || b.index) === cand));
+        if ((isKnownPostal || /^\s*\d{5}\s*$/.test(corrected)) && !isPostomat && cand !== targetBranchNumber) {
           postalCode = cand;
+          if (!targetBranchNumber) targetBranchNumber = cand;
           break;
         }
       }
@@ -1749,12 +1752,48 @@
     const hasCargoKeyword = isCargoKeyword(normalizedQuery);
 
     let pool = null;
-    if (Array.isArray(staticBranches) && staticBranches.length > 0) {
+    if (Array.isArray(staticBranches)) {
       pool = staticBranches;
     } else if (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA[currentService]) && window.BRANCHES_DATA[currentService].length > 0) {
       pool = window.BRANCHES_DATA[currentService];
     } else if (Array.isArray(liveCityBranches) && liveCityBranches.length > 0) {
       pool = liveCityBranches;
+    }
+
+    const isUkrposhtaActive = (currentService === 'ukrposhta') ||
+      (Array.isArray(pool) && pool.length > 0 && pool[0] && pool[0].id && String(pool[0].id).startsWith('up-'));
+
+    // Допоміжний метод: пошук поштового індексу населеного пункту для вкладки Укрпошта
+    function findPostalCodeForSettlement(s) {
+      if (s.postalCode) return String(s.postalCode);
+      if (Array.isArray(s.postalCodes) && s.postalCodes.length > 0) return String(s.postalCodes[0]);
+      if (s.index) return String(s.index);
+
+      const cName = canonCity(s.cleanName || s.name);
+      const sObl = (s.cleanOblast || s.oblast || '').toLowerCase();
+      const sRai = (s.cleanRaion || s.raion || '').toLowerCase();
+
+      const searchList = (Array.isArray(pool) && pool.length > 0 && isUkrposhtaActive)
+        ? pool
+        : ((typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.ukrposhta))
+            ? window.BRANCHES_DATA.ukrposhta
+            : null);
+
+      if (Array.isArray(searchList)) {
+        for (let i = 0; i < searchList.length; i++) {
+          const b = searchList[i];
+          if ((b._canonCity || canonCity(b.city)) === cName) {
+            const bObl = (b.oblast || '').toLowerCase();
+            const bRai = (b.raion || '').toLowerCase();
+            if (!sObl || !bObl || bObl.includes(sObl.slice(0, 4)) || sObl.includes(bObl.slice(0, 4))) {
+              if (!sRai || !bRai || areRaionsCompatible(sRai, bRai)) {
+                return String(b.postalCode || b.number || b.index || '');
+              }
+            }
+          }
+        }
+      }
+      return null;
     }
 
     // Допоміжний метод: опис населеного пункту у форматі LP-CRM:
@@ -1801,15 +1840,28 @@
       if (cleanOblast) parts.push(cleanOblast);
       const fullGeoText = parts.join(' ').replace(/[()]/g, '').replace(/\s+/g, ' ').trim() + ' ';
 
+      let postalCode = s.postalCode || (Array.isArray(s.postalCodes) && s.postalCodes.length > 0 ? s.postalCodes[0] : null) || s.index || null;
+      if (!postalCode) {
+        postalCode = findPostalCodeForSettlement(s);
+      }
+
+      const isUkr = isUkrposhtaActive;
+      const baseSub = formatSettlementSubtitle(normObj);
+      let displaySub = baseSub;
+      if (isUkr && postalCode) {
+        displaySub = baseSub ? `${baseSub} • 📮 ${postalCode}` : `📮 ${postalCode}`;
+      }
+
       suggestions.push({
         mode: 'city',
         type: badgeType,
         title: cleanName,
-        subtitle: formatSettlementSubtitle(normObj),
+        postalCode: postalCode || null,
+        subtitle: displaySub,
         value: cleanName,
         textToFill: fullGeoText,
         badge: badgeType,
-        icon: '📍',
+        icon: isUkr ? '📮' : '📍',
         settlementObj: normObj
       });
       return true;
@@ -1820,7 +1872,8 @@
     // Рядок 2 (вторинний сірий): вул. [Назва вулиці], [номер будинку] (Орієнтир/магазин, якщо є)
     function buildBranchSuggestion(b) {
       const cleanCity = (b.city || '').replace(/\\n|\r?\n/g, ' ').replace(/\s*\([^)]*\)\s*$/, '').trim();
-      const isPost = b.typeClass === 'poshtomat' || b.type === 'poshtomat' || /поштомат/i.test(b.name || '') || /поштомат/i.test(b.typeName || '');
+      const isUp = isUkrposhtaActive || (b.id && String(b.id).startsWith('up-'));
+      const isPost = !isUp && (b.typeClass === 'poshtomat' || b.type === 'poshtomat' || /поштомат/i.test(b.name || '') || /поштомат/i.test(b.typeName || ''));
       
       const totalWeight = parseFloat(b.totalMaxWeightAllowed || b.TotalMaxWeightAllowed) || 0;
       const placeWeight = parseFloat(b.placeMaxWeightAllowed || b.PlaceMaxWeightAllowed) || 0;
@@ -1833,7 +1886,7 @@
         /(?:до\s*(?:5|10|15|20|30)\s*кг|приймання-видачі)/i.test([b.name, b.typeText, b.typeName].filter(Boolean).join(' '));
 
       // Статус "Вантажне відділення" ТІЛЬКИ якщо (TotalMaxWeightAllowed >= 1000 || PlaceMaxWeightAllowed >= 1000 || CategoryOfWarehouse === "Cargo")
-      const isCargo = !isPost && !isUnder30 && (
+      const isCargo = !isPost && !isUnder30 && !isUp && (
         totalWeight >= 1000 ||
         placeWeight >= 1000 ||
         maxWeight >= 1000 ||
@@ -1867,6 +1920,33 @@
       ].filter(Boolean).join(', ');
 
       const bNum = b && b.number != null ? String(b.number).trim() : (b && b.postalCode ? String(b.postalCode).trim() : '');
+
+      if (isUp) {
+        let streetRow = '';
+        const isVpzStreet = !rawStreet || rawStreet.startsWith('ВПЗ') || rawStreet === b.address;
+        if (!isVpzStreet && rawStreet) {
+          streetRow = geo ? `${rawStreet} (${geo})` : rawStreet;
+        } else {
+          streetRow = geo ? `(${geo})` : '';
+        }
+
+        return {
+          mode: 'branch',
+          type: 'branch',
+          icon: '📮',
+          title: `📮 ${bNum} — ${cleanCity}`,
+          weightLabel: '',
+          street: streetRow,
+          displayLine: `📮 ${bNum} — ${cleanCity}`,
+          subtitle: streetRow,
+          value: cleanCity,
+          textToFill: `${cleanCity} ${bNum}`,
+          badge: 'ВПЗ',
+          isDirectBranch: true,
+          branchObj: b
+        };
+      }
+
       const displayLine = `${kind} №${bNum} • ${weightLabel}`;
       const isMajorCity = REGIONAL_CENTERS.has(canonText(cleanCity));
       const fillText = isMajorCity
@@ -1985,6 +2065,72 @@
         branchSuggestions.push(buildBranchSuggestion(found[i]));
       }
       return branchSuggestions;
+    }
+
+    // СЦЕНАРІЙ А: ПОШУК ЗА 5-ЗНАЧНИМ ІНДЕКСОМ (РЕЖИМ УКРПОШТИ)
+    // Коли в інпут введено 5 цифр (наприклад, 47501) або 3-5 цифр у режимі Укрпошти:
+    // Попап автокомпліту миттєво підказує: 📮 47501 — [Населений пункт] ([Район] р-н, [Область] обл.)
+    const indexDigitsMatch = normalizedQuery.match(/^\s*(\d{3,5})\s*$/);
+    if (indexDigitsMatch && isUkrposhtaActive) {
+      const targetCode = indexDigitsMatch[1];
+      const ukrPool = (Array.isArray(pool) && pool.length > 0)
+        ? pool
+        : ((typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.ukrposhta))
+            ? window.BRANCHES_DATA.ukrposhta
+            : []);
+      const exactList = [];
+      const prefixList = [];
+
+      for (let i = 0; i < ukrPool.length; i++) {
+        const b = ukrPool[i];
+        const bCode = String(b.postalCode || b.number || b.index || '');
+        if (bCode === targetCode) {
+          exactList.push(b);
+        } else if (targetCode.length >= 3 && bCode.startsWith(targetCode)) {
+          prefixList.push(b);
+        }
+        if (exactList.length >= 5 && prefixList.length >= 10) break;
+      }
+
+      const candidateBranches = exactList.concat(prefixList).slice(0, 10);
+      if (candidateBranches.length > 0) {
+        return candidateBranches.map(b => {
+          const bPostal = String(b.postalCode || b.number || b.index || '');
+          const bCityClean = cleanSettlementName(b.city);
+          const geoParts = [];
+          if (b.raion) {
+            const rClean = cleanRaionName(b.raion);
+            if (rClean) geoParts.push(`${rClean} р-н`);
+          }
+          if (b.oblast) {
+            const oClean = cleanOblastName(b.oblast);
+            if (oClean) geoParts.push(`${oClean} обл.`);
+          }
+          const geoStr = geoParts.length > 0 ? `(${geoParts.join(', ')})` : '';
+
+          let streetRow = '';
+          const isVpzStreet = !b.street || b.street.startsWith('ВПЗ') || b.street === b.address;
+          if (!isVpzStreet && b.street) {
+            streetRow = geoStr ? `${b.street} ${geoStr}` : b.street;
+          } else {
+            streetRow = geoStr;
+          }
+
+          return {
+            mode: 'branch',
+            type: 'branch',
+            icon: '📮',
+            title: `📮 ${bPostal} — ${bCityClean}`,
+            subtitle: streetRow || geoStr,
+            street: streetRow || geoStr,
+            value: bCityClean,
+            textToFill: `${bCityClean} ${bPostal}`,
+            badge: 'ВПЗ',
+            isDirectBranch: true,
+            branchObj: b
+          };
+        });
+      }
     }
 
     // КРОК 3: ДИНАМІЧНИЙ ПЕРЕХІД У РЕЖИМ ВІДДІЛЕНЬ (Branch Suggestion Mode)

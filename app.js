@@ -222,6 +222,13 @@
           }
         });
       }
+
+      // Динамічне ледаче завантаження повної бази Укрпошти (26 500+ індексів та відділень)
+      loadUkrposhtaBranchesIfNeeded().then(() => {
+        if (state.currentService === 'ukrposhta' && state.isMapVisible && state.leafletMap) {
+          updateVisibleMarkersFromViewport();
+        }
+      });
     }
 
     // Скидаємо пошук на чистий аркуш при перемиканні служби (виправлення багу збереження результатів іншої служби)
@@ -284,6 +291,97 @@
       return window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === low);
     }
     return null;
+  }
+
+  // Динамічне ледаче завантаження повної бази Укрпошти (data/ukrposhta_branches.json)
+  let _ukrposhtaLoadingPromise = null;
+  let _ukrposhtaLoaded = false;
+
+  async function loadUkrposhtaBranchesIfNeeded() {
+    if (!window.BRANCHES_DATA) window.BRANCHES_DATA = {};
+    if (_ukrposhtaLoaded || (Array.isArray(window.BRANCHES_DATA.ukrposhta) && window.BRANCHES_DATA.ukrposhta.length > 100)) {
+      _ukrposhtaLoaded = true;
+      return window.BRANCHES_DATA.ukrposhta;
+    }
+    if (_ukrposhtaLoadingPromise) {
+      return _ukrposhtaLoadingPromise;
+    }
+
+    _ukrposhtaLoadingPromise = (async () => {
+      _ukrposhtaLoaded = true;
+      try {
+        let rawList = null;
+        if (typeof window !== 'undefined' && window.location && typeof window.location.origin === 'string' && window.location.origin.startsWith('http')) {
+          try {
+            const resp = await fetch('data/ukrposhta_branches.json');
+            if (resp.ok) {
+              const parsed = await resp.json();
+              if (Array.isArray(parsed)) rawList = parsed;
+            }
+          } catch (_) {}
+        }
+        if (!Array.isArray(rawList) && typeof require === 'function') {
+          try {
+            const fs = require('fs');
+            const path = require('path');
+            const candidatePaths = [
+              path.join(typeof process !== 'undefined' && process.cwd ? process.cwd() : '.', 'data/ukrposhta_branches.json'),
+              typeof __dirname !== 'undefined' ? path.resolve(__dirname, 'data/ukrposhta_branches.json') : null,
+              typeof __dirname !== 'undefined' ? path.resolve(__dirname, '../data/ukrposhta_branches.json') : null,
+              './data/ukrposhta_branches.json'
+            ].filter(Boolean);
+
+            for (const cp of candidatePaths) {
+              if (fs.existsSync(cp)) {
+                rawList = JSON.parse(fs.readFileSync(cp, 'utf8'));
+                break;
+              }
+            }
+          } catch (_) {}
+        }
+
+        if (Array.isArray(rawList) && rawList.length > 0) {
+          const mapped = rawList.map(item => {
+            const idx = String(item.index || item.number || item.postalCode || '');
+            const obl = item.oblast || (item.region ? item.region.replace(/\s*обл\.?.*$/i, '').trim() : '');
+            const rai = item.raion || (item.district ? item.district.replace(/\s*район.*$/i, '').trim() : '');
+            const addr = item.address || item.street || `ВПЗ ${idx}`;
+            const isCentr = item.type === 'central' || idx.endsWith('000') || idx.endsWith('001') || idx.endsWith('00');
+            return {
+              id: item.id || `up-${idx}`,
+              index: idx,
+              number: idx,
+              postalCode: idx,
+              city: item.city,
+              type: item.type || (isCentr ? 'central' : 'standard'),
+              typeText: item.typeText || (isCentr ? 'Центральне відділення' : (item.name && item.name.includes('Міське') ? 'Міське відділення' : "Відділення зв'язку")),
+              name: item.name || `Відділення зв'язку (${idx})`,
+              street: addr,
+              address: addr,
+              oblast: obl,
+              raion: rai,
+              district: rai,
+              region: item.region || (obl ? `${obl} обл.` : ''),
+              lat: item.lat || 0,
+              lng: item.lng || 0,
+              isAccessible: item.isAccessible ?? true,
+              hasGenerator: item.hasGenerator ?? true
+            };
+          });
+
+          window.BRANCHES_DATA.ukrposhta = mapped;
+          if (window.SmartSearchEngine && typeof window.SmartSearchEngine.buildBranchIndex === 'function') {
+            window.SmartSearchEngine.buildBranchIndex(mapped);
+          }
+          return mapped;
+        }
+      } catch (e) {
+        console.error('Помилка завантаження бази Укрпошти:', e);
+      }
+      return window.BRANCHES_DATA.ukrposhta || [];
+    })();
+
+    return _ukrposhtaLoadingPromise;
   }
 
   // Попереднє розігрівання O(1) індексів пошуку при завантаженні (Zero Input Latency < 16ms)
@@ -560,6 +658,10 @@
     try {
       const rawQuery = (query || '').trim();
       if (!rawQuery) return;
+
+      if (state.currentService === 'ukrposhta' && !_ukrposhtaLoaded) {
+        await loadUkrposhtaBranchesIfNeeded();
+      }
 
       // Скасовуємо попередній незавершений запит для миттєвої швидкодії
       if (activeSearchAbortController) {
@@ -2014,7 +2116,7 @@
           </div>
         </div>
         <div class="address-match-right">
-          ${isUkrposhta && postalCode ? `<span class="ukrposhta-index-badge-sm">📮 ІНДЕКС: ${escapeHtml(postalCode)}</span>` : ''}
+          ${isUkrposhta && postalCode ? `<span class="ukrposhta-index-badge-sm">📮 ${escapeHtml(postalCode)}</span>` : ''}
           <span class="weight-pill ${typeInfo.cls}">${escapeHtml(typeInfo.label)}</span>
         </div>
       `;
@@ -3019,11 +3121,16 @@
 
       let iconHtml = item.icon || '📍';
       let badgeClass = 'badge-city';
+      if (!item.icon) {
+        if (item.type === 'postomat') {
+          iconHtml = '📦';
+        } else if (item.type === 'branch') {
+          iconHtml = '🏢';
+        }
+      }
       if (item.type === 'postomat') {
-        iconHtml = '📦';
         badgeClass = 'badge-postomat';
       } else if (item.type === 'branch') {
-        iconHtml = '🏢';
         badgeClass = item.isCargo ? 'badge-cargo' : 'badge-branch';
       } else if (item.type === 'смт' || item.type === 'селище') {
         badgeClass = 'badge-smt';
@@ -3035,6 +3142,10 @@
         // Компактна дворядкова структура відділення без дублюючих бейджів праворуч:
         // Рядок 1 (жирний): [Іконка] Відділення/Поштомат №X • (вага: до 30 кг / до 1100 кг)
         // Рядок 2 (вторинний сірий): вул. [Назва вулиці], [номер будинку] (Орієнтир/магазин, якщо є)
+        let branchIcon = item.icon || (item.type === 'postomat' ? '📦' : '🏢');
+        if (item.title && item.title.startsWith('📮')) {
+          branchIcon = '';
+        }
         const numOnlyQuery = (query.match(/\d+/g) || []).join(' ');
         const highlightedBranchTitle = highlightMatch(item.title, numOnlyQuery);
         const weightHtml = item.weightLabel
@@ -3043,11 +3154,12 @@
         const streetText = item.street || item.subtitle || '';
         const streetQuery = getBranchStreetHighlightQuery(query, item);
         const highlightedStreet = highlightMatch(streetText, streetQuery);
+        const iconSpan = branchIcon ? `<span class="autocomplete-inline-icon">${branchIcon}</span>` : '';
 
         el.innerHTML = `
           <div class="autocomplete-item-main">
             <div class="autocomplete-content autocomplete-content-branch">
-              <div class="autocomplete-title"><span class="autocomplete-inline-icon">${iconHtml}</span><strong class="autocomplete-branch-name">${highlightedBranchTitle}</strong>${weightHtml}</div>
+              <div class="autocomplete-title">${iconSpan}<strong class="autocomplete-branch-name">${highlightedBranchTitle}</strong>${weightHtml}</div>
               <div class="autocomplete-sub autocomplete-street">${highlightedStreet}</div>
             </div>
           </div>
@@ -3058,12 +3170,15 @@
         const highlightedTitle = highlightMatch(item.title, query);
         const subQuery = getCitySubtitleHighlightQuery(query, item.title);
         const highlightedSub = highlightMatch(item.subtitle, subQuery);
+        const postalBadgeHtml = (item.postalCode && (state.currentService === 'ukrposhta' || item.icon === '📮'))
+          ? `<span class="autocomplete-postal-badge" title="Поштовий індекс">📮 ${escapeHtml(item.postalCode)}</span>`
+          : '';
 
         el.innerHTML = `
           <div class="autocomplete-item-main">
             <div class="autocomplete-icon">${iconHtml}</div>
             <div class="autocomplete-content autocomplete-content-city">
-              <strong class="autocomplete-title">${highlightedTitle}</strong>
+              <strong class="autocomplete-title">${highlightedTitle}</strong>${postalBadgeHtml}
               <span class="autocomplete-sub">${highlightedSub}</span>
             </div>
           </div>
@@ -3307,6 +3422,14 @@
         closeAutocomplete();
         return;
       }
+
+      if (state.currentService === 'ukrposhta' && !_ukrposhtaLoaded) {
+        loadUkrposhtaBranchesIfNeeded().then(() => {
+          triggerAutocomplete(val);
+        });
+        return;
+      }
+
       let cityPool = null;
       let candidate = null;
       if (window.SmartSearchEngine) {
