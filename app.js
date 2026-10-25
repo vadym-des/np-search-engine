@@ -1349,14 +1349,19 @@
     return text
       .replace(/\(\s*,\s*\)/g, '')
       .replace(/\(\s*\)/g, '')
+      .replace(/(Вантажне|відділення|відд\.|Поштомат)(\d+)/gi, '$1 $2')
       .replace(/\s*:\s*/g, ': ')
       .replace(/:\s*/g, ': ')
+      .replace(/:\s*[-—–]\s*/g, ': ')
+      .replace(/,\s*[-—–:]\s*/g, ', ')
+      .replace(/\s*[-—–]\s*,/g, ', ')
       .replace(/(?:,\s*)+,/g, ',')
       .replace(/,\s*,/g, ', ')
       .replace(/\s*,\s*/g, ', ')
+      .replace(/,\s*[-—–:]\s*/g, ', ')
       .replace(/\s+/g, ' ')
-      .replace(/^\s*[,:\-\s]+/g, '')
-      .replace(/[,:\-\s]+$/g, '')
+      .replace(/^\s*[,:\-—–\s]+/g, '')
+      .replace(/[,:\-—–\s]+$/g, '')
       .trim();
   }
 
@@ -1516,6 +1521,7 @@
     if (options.noStreetPrefix) {
       rawStreet = rawStreet.replace(/^(?:вул\.|вулиця|просп\.|проспект|пров\.|провулок|бульв\.|бульвар|площа|пл\.)\s*/i, '').trim();
     }
+    rawStreet = rawStreet.replace(/^[-—–\s,:]+/, '').replace(/[-—–\s,:]+$/, '').trim();
 
     let streetVal = rawStreet;
     let houseVal = '';
@@ -1526,8 +1532,8 @@
         houseVal = hm[2].trim();
       }
     }
-    streetVal = streetVal.trim();
-    houseVal = houseVal.trim();
+    streetVal = streetVal.replace(/^[-—–\s,:]+/, '').replace(/[-—–\s,:]+$/, '').trim();
+    houseVal = houseVal.replace(/^[-—–\s,:]+/, '').replace(/[-—–\s,:]+$/, '').trim();
 
     let oblast = branch.oblast || '';
     let raion = branch.raion || '';

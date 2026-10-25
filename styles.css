@@ -2812,6 +2812,7 @@ mark.hl-match,
 /* Швидкі правила скорочення (Чіпи-перемикачі прямо під прев'ю) */
 .preset-rules-section {
   margin-bottom: 12px;
+  min-height: 54px;
 }
 
 .preset-rules-chips {
@@ -2821,6 +2822,7 @@ mark.hl-match,
   width: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
+  min-height: 38px;
 }
 
 .preset-rule-pill {
@@ -2918,19 +2920,21 @@ mark.hl-match,
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s ease;
+  outline: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .btn-preset-quick:hover {
   background: var(--bg-chip-hover);
-  border-color: var(--border-focus);
+  border-color: var(--border-subtle);
 }
 
 .btn-preset-quick.active {
   background: var(--brand-color);
   color: var(--brand-contrast-text);
   border-color: var(--brand-color);
-  box-shadow: 0 2px 6px var(--brand-glow);
+  box-shadow: none;
+  outline: none;
 }
 
 /* Порядок елементів у рядку (Активні чіпи з Drag & Drop) */

@@ -358,13 +358,37 @@ runTest('Фінальна нормалізація пробілів та ком 
     { input: 'Київ , , , 15 , , вул. Хрещатик', expected: 'Київ, 15, вул. Хрещатик' },
     { input: ', : Київ, відд. 1 : ,', expected: 'Київ, відд. 1' },
     { input: 'Середнє ( , ) , вул. Закарпатська', expected: 'Середнє, вул. Закарпатська' },
-    { input: 'Середнє () , вул. Закарпатська', expected: 'Середнє, вул. Закарпатська' }
+    { input: 'Середнє () , вул. Закарпатська', expected: 'Середнє, вул. Закарпатська' },
+    { input: 'смт Середнє, Вантажне 1, - Закарпатська, 75', expected: 'смт Середнє, Вантажне 1, Закарпатська, 75' },
+    { input: 'смт Середнє, Вантажне 1, — Закарпатська, 75', expected: 'смт Середнє, Вантажне 1, Закарпатська, 75' },
+    { input: 'смт Середнє, Вантажне 1, : Закарпатська, 75', expected: 'смт Середнє, Вантажне 1, Закарпатська, 75' }
   ];
 
   dirtySamples.forEach((sample, i) => {
     const cleaned = window.cleanOutputString(sample.input);
     assert.strictEqual(cleaned, sample.expected, `Зразок ${i}: очікувалось "${sample.expected}", отримано "${cleaned}"`);
   });
+});
+
+// 13. Комбінація скорочень для смт Середнє (smtShort, noBranchWord, noStreetPrefix)
+runTest('Комбінація скорочень для смт Середнє: "смт Середнє, Вантажне 1, Закарпатська, 75"', () => {
+  const config = {
+    tags: ['settlementType', 'city', 'branchType', 'number', 'street'],
+    options: {
+      smtShort: true,
+      noBranchWord: true,
+      noStreetPrefix: true,
+      shortRegion: true
+    }
+  };
+  const result = window.assembleCopyStringFromPreset(benchmarkBranch, config);
+  assert.strictEqual(
+    result,
+    'смт Середнє, Вантажне 1, Закарпатська, 75',
+    `Очікувалось "смт Середнє, Вантажне 1, Закарпатська, 75", отримано: "${result}"`
+  );
+  assert(!result.includes('Вантажне1'), 'Тип точки та номер не повинні злипатися (Вантажне1)');
+  assert(!result.includes('-'), 'Рядок не повинен містити паразитарного дефіса "-"');
 });
 
 console.log('===============================================================');
