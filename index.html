@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.5">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.6">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -35,7 +35,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.5">
+  <link rel="stylesheet" href="styles.css?v=1.6.6">
 </head>
 <body data-service="novaposhta">
 
@@ -262,7 +262,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.5</span>
+          <span class="version-tag">v1.6.6</span>
           
         </button>
       </div>
@@ -291,8 +291,23 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.5 -->
+        <!-- Версія 1.6.6 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.6</span>
+            <span class="version-state">City Aliases &amp; Address Token Decomposition</span>
+            <span class="version-date">26 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Підтримка перейменованих міст України (City Aliases):</strong> інтегровано довідник <code>data/settlement_aliases.json</code> із двостороннім маппінгом (Самар ➔ Новомосковськ, Шептицький ➔ Червоноград, Буялик ➔ Петрівка тощо). Пошук знаходить відділення за будь-якою назвою міста.</li>
+            <li><strong>Декомпозиція адресних токенів та номерів будинків:</strong> номери будинків з літерами та дробами (<code>9а</code>, <code>9-а</code>, <code>9/1</code>, <code>40а</code>, <code>22/1</code>) класифікуються як адреса, а точний збіг вулиці та будинку отримує найвищий пріоритет (кейс «Новомосковськ Спаська 9а 1»).</li>
+            <li><strong>Fallback Guard:</strong> введено строгий захист від хаотичного фолбеку — при визначенні міста алгоритм шукає виключно серед відділень цього міста, унеможливлюючи повернення чужих сіл та районів.</li>
+            <li><strong>Синхронізація районів:</strong> укрупнений Самарівський та ліквідований Новомосковський райони зіставлені у мапі сумісності районів КАТОТТГ.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.5 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.5</span>
             <span class="version-state">Administrative Reform 2020 &amp; Historical Toponyms</span>
@@ -885,15 +900,15 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.5"></script>
+  <script src="data/branches.js?v=1.6.6"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.5"></script>
+  <script src="data/all_settlements.js?v=1.6.6"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.5"></script>
+  <script src="data/fuzzySearch.js?v=1.6.6"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.5"></script>
+  <script src="app.js?v=1.6.6"></script>
 </body>
 </html>
