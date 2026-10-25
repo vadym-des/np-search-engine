@@ -302,19 +302,52 @@ runTest('Усунення злипання слів при будь-яких к�
 
   const testTags = ['settlementType', 'city', 'raion', 'oblast', 'branchType', 'number', 'street'];
 
-  configs.forEach((opts, idx) => {
-    const config = { tags: testTags, options: opts };
-    const str = window.assembleCopyStringFromPreset(benchmarkBranch, config);
+  const testBranches = [
+    benchmarkBranch,
+    standardBranch,
+    {
+      id: 'np-kyiv-cargo-1',
+      service: 'novaposhta',
+      settlementType: 'місто',
+      city: 'Київ',
+      number: '1',
+      postalCode: '03045',
+      type: 'cargo',
+      typeName: 'Вантажне відділення',
+      street: 'вул. Пирогівський шлях, 135',
+      raion: 'Голосіївський',
+      oblast: 'Київська',
+      totalMaxWeightAllowed: 1100,
+      maxWeight: 1100
+    }
+  ];
 
-    // Перевірка на відсутність злиплих слів типу "смтСереднє", "м.Київ", "відд.1"
-    assert(!/смт[А-Яа-яЇїІіЄєҐґ]/.test(str), `Конфіг ${idx}: виявлено злипання "смт": "${str}"`);
-    assert(!/м\.[А-Яа-яЇїІіЄєҐґ]/.test(str), `Конфіг ${idx}: виявлено злипання "м.": "${str}"`);
-    assert(!/с\.[А-Яа-яЇїІіЄєҐґ]/.test(str), `Конфіг ${idx}: виявлено злипання "с.": "${str}"`);
-    assert(!/відд\.\d/.test(str), `Конфіг ${idx}: виявлено злипання "відд.": "${str}"`);
-    assert(!/№\s*№/.test(str), `Конфіг ${idx}: подвійний знак №: "${str}"`);
-    assert(!/,\S/.test(str), `Конфіг ${idx}: кома без пробілу після неї: "${str}"`);
-    assert(!/\s,/.test(str), `Конфіг ${idx}: пробіл перед комою: "${str}"`);
-    assert(!/,\s*,/.test(str), `Конфіг ${idx}: подвійна кома: "${str}"`);
+  testBranches.forEach((branch, bIdx) => {
+    configs.forEach((opts, idx) => {
+      const config = { tags: testTags, options: opts };
+      const str = window.assembleCopyStringFromPreset(branch, config);
+
+      // 1. Обов'язкові перевірки за вимогами ТЗ: відсутність склейок літер з цифрами, ком без пробілу, двокрапок без пробілу
+      assert(!/[а-яА-ЯіїєґІЇЄҐ][0-9]/.test(str), `Гілка ${bIdx}, конфіг ${idx}: виявлено злипання літери з цифрою [а-яА-Я][0-9]: "${str}"`);
+      assert(!/,[^\s]/.test(str), `Гілка ${bIdx}, конфіг ${idx}: кома без пробілу після неї (,[^\\s]): "${str}"`);
+      assert(!/:[^\s]/.test(str), `Гілка ${bIdx}, конфіг ${idx}: двокрапка без пробілу після неї (:[^\\s]): "${str}"`);
+      assert(!/\s,/.test(str), `Гілка ${bIdx}, конфіг ${idx}: пробіл перед комою: "${str}"`);
+      assert(!/\s:/.test(str), `Гілка ${bIdx}, конфіг ${idx}: пробіл перед двокрапкою: "${str}"`);
+      assert(!/,\s*,/.test(str), `Гілка ${bIdx}, конфіг ${idx}: подвійна кома: "${str}"`);
+
+      // 2. Специфічні кейси: правильне відділення слів і збереження внутрішніх пробілів назви вулиці
+      assert(!/смт[А-Яа-яЇїІіЄєҐґ]/.test(str), `Гілка ${bIdx}, конфіг ${idx}: виявлено злипання "смт": "${str}"`);
+      assert(!/м\.[А-Яа-яЇїІіЄєҐґ]/.test(str), `Гілка ${bIdx}, конфіг ${idx}: виявлено злипання "м.": "${str}"`);
+      assert(!/с\.[А-Яа-яЇїІіЄєҐґ]/.test(str), `Гілка ${bIdx}, конфіг ${idx}: виявлено злипання "с.": "${str}"`);
+      assert(!/відд\.\d/.test(str), `Гілка ${bIdx}, конфіг ${idx}: виявлено злипання "відд.": "${str}"`);
+      assert(!/Вантажне\d/.test(str), `Гілка ${bIdx}, конфіг ${idx}: виявлено злипання "Вантажне": "${str}"`);
+      assert(!/Вантажневідділення/.test(str), `Гілка ${bIdx}, конфіг ${idx}: виявлено злипання "Вантажневідділення": "${str}"`);
+      assert(!/№\s*№/.test(str), `Гілка ${bIdx}, конфіг ${idx}: подвійний знак №: "${str}"`);
+
+      if (branch.street && branch.street.includes('Пирогівський шлях')) {
+        assert(str.includes('Пирогівський шлях'), `Гілка ${bIdx}, конфіг ${idx}: внутрішній пробіл вулиці втрачено: "${str}"`);
+      }
+    });
   });
 });
 

@@ -1346,21 +1346,18 @@
   function cleanOutputString(str) {
     if (!str) return '';
     let text = String(str);
-    text = text
+    return text
       .replace(/\(\s*,\s*\)/g, '')
       .replace(/\(\s*\)/g, '')
-      .replace(/:\s*,/g, ': ')
-      .replace(/,\s*:/g, ': ')
       .replace(/\s*:\s*/g, ': ')
+      .replace(/:\s*/g, ': ')
+      .replace(/(?:,\s*)+,/g, ',')
+      .replace(/,\s*,/g, ', ')
+      .replace(/\s*,\s*/g, ', ')
       .replace(/\s+/g, ' ')
-      .replace(/\s*,\s*/g, ', ')
-      .replace(/,\s*,+/g, ', ')
-      .replace(/,\s*,/g, ',')
-      .replace(/\s*,\s*/g, ', ')
-      .replace(/^\s*[,:\-]\s*/, '')
-      .replace(/\s*[,:\-]\s*$/, '')
+      .replace(/^\s*[,:\-\s]+/g, '')
+      .replace(/[,:\-\s]+$/g, '')
       .trim();
-    return text;
   }
 
   // Дефолтний класичний формат копіювання
@@ -1393,7 +1390,7 @@
     const num = branch.number || branch.postalCode || '1';
     const street = getCleanStreet(branch);
 
-    return `${sTypeFull} ${city}, ${typeTitle} №${num}: ${street}`;
+    return cleanOutputString(`${sTypeFull} ${city}, ${typeTitle} №${num}: ${street}`);
   }
 
   // Дефолтний детальний CRM-формат
@@ -1464,18 +1461,18 @@
       weightText = ` (до ${weight} кг)`;
     }
 
-    return `${sTypePrefix} ${city}${geoBracket}, ${typeTitle} №${num}${weightText}: ${street}`;
+    return cleanOutputString(`${sTypePrefix} ${city}${geoBracket}, ${typeTitle} №${num}${weightText}: ${street}`);
   }
 
-  // Генератор рядка на основі активного набору тегів та опцій
+  // Генератор рядка на основі активного набору тегів та опцій (Token-based sequential builder)
   function assembleCopyStringFromPreset(branch, config) {
     const tags = config.tags || [];
     const options = config.options || {};
 
     let sType = branch.settlementType || '';
-    const city = branch.city || '';
+    const rawCity = branch.city || '';
     if (!sType && window.SmartSearchEngine) {
-      const found = findSettlementInEngine(city);
+      const found = findSettlementInEngine(rawCity);
       if (found) sType = found.type;
     }
     if (!sType) sType = 'місто';
@@ -1493,9 +1490,10 @@
       else if (sTypeVal.includes('міст') || sTypeVal === 'м' || sTypeVal === 'м.') sTypeVal = 'місто';
       else if (sTypeVal.includes('сел')) sTypeVal = 'селище';
     }
+    sTypeVal = sTypeVal.trim();
 
-    const cityVal = cleanSettlementName(city);
-    const isUp = branch.service === 'ukrposhta' || (branch.id && branch.id.startsWith('up-'));
+    const cityVal = cleanSettlementName(rawCity).trim();
+    const isUp = branch.service === 'ukrposhta' || (branch.id && String(branch.id).startsWith('up-'));
     const serviceVal = isUp ? 'Укрпошта' : 'Нова Пошта';
 
     const isPost = isPostomatBranch(branch);
@@ -1510,17 +1508,13 @@
     } else {
       branchTypeVal = options.noBranchWord ? 'відд.' : 'Відділення';
     }
+    branchTypeVal = branchTypeVal.trim();
 
-    let numberVal = '';
-    if (branchTypeVal) {
-      numberVal = options.noBranchWord ? `${numRaw}` : `№${numRaw}`;
-    } else {
-      numberVal = options.noBranchWord ? `${numRaw}` : `№${numRaw}`;
-    }
+    const numberVal = (options.noBranchWord ? numRaw : `№${numRaw}`).trim();
 
-    let rawStreet = getCleanStreet(branch);
+    let rawStreet = getCleanStreet(branch).trim();
     if (options.noStreetPrefix) {
-      rawStreet = rawStreet.replace(/^(вул\.|вулиця|просп\.|проспект|пров\.|провулок|бульв\.|бульвар|площа|пл\.)\s*/i, '');
+      rawStreet = rawStreet.replace(/^(?:вул\.|вулиця|просп\.|проспект|пров\.|провулок|бульв\.|бульвар|площа|пл\.)\s*/i, '').trim();
     }
 
     let streetVal = rawStreet;
@@ -1532,6 +1526,8 @@
         houseVal = hm[2].trim();
       }
     }
+    streetVal = streetVal.trim();
+    houseVal = houseVal.trim();
 
     let oblast = branch.oblast || '';
     let raion = branch.raion || '';
@@ -1546,10 +1542,10 @@
       }
     }
 
-    const raionClean = cleanRaionName(raion);
-    const oblClean = cleanOblastName(oblast);
-    const raionVal = raionClean ? (options.shortRegion ? `${raionClean} р-н` : `${raionClean} район`) : '';
-    const oblVal = oblClean ? (options.shortRegion ? `${oblClean} обл.` : `${oblClean} область`) : '';
+    const raionClean = cleanRaionName(raion).trim();
+    const oblClean = cleanOblastName(oblast).trim();
+    const raionVal = raionClean ? (options.shortRegion ? `${raionClean} р-н` : `${raionClean} район`).trim() : '';
+    const oblVal = oblClean ? (options.shortRegion ? `${oblClean} обл.` : `${oblClean} область`).trim() : '';
 
     const postalCodeVal = (branch.postalCode || branch.PostalCode || '').toString().trim();
 
@@ -1559,58 +1555,124 @@
       else if (isPost) weightNum = 20;
       else weightNum = 30;
     }
-    const weightVal = `до ${weightNum} кг`;
+    const weightVal = `(до ${weightNum} кг)`;
 
-    const tagValues = {
-      settlementType: sTypeVal,
-      city: cityVal,
-      service: serviceVal,
-      branchType: branchTypeVal,
-      number: numberVal,
-      street: streetVal,
-      house: houseVal,
-      raion: raionVal,
-      oblast: oblVal,
-      postalCode: postalCodeVal,
-      weight: weightVal
-    };
-
-    let result = '';
-    let lastTag = null;
+    // Послідовне формування самостійних токенів у масив parts
+    const parts = [];
     for (let i = 0; i < tags.length; i++) {
-      const t = tags[i];
-      const val = tagValues[t];
-      if (!val) continue;
+      const tag = tags[i];
+      const nextTag = tags[i + 1];
 
-      if (!result) {
-        result = val;
-        lastTag = t;
+      // 1. [Тип населеного пункту] + [Місто]
+      if (tag === 'settlementType' && nextTag === 'city' && cityVal) {
+        const fullSettlement = (sTypeVal ? sTypeVal + ' ' : '') + cityVal;
+        if (fullSettlement.trim()) parts.push(fullSettlement.trim());
+        i++;
+        continue;
+      }
+      if (tag === 'settlementType') {
+        if (sTypeVal) parts.push(sTypeVal);
+        continue;
+      }
+      if (tag === 'city') {
+        if (cityVal) parts.push(cityVal);
         continue;
       }
 
-      // Правила сполучення
-      if (lastTag === 'settlementType' && t === 'city') {
-        result += ' ' + val;
-      } else if (lastTag === 'branchType' && t === 'number') {
-        result += ' ' + val;
-      } else if (lastTag === 'city' && t === 'raion' && tags[i + 1] === 'oblast') {
-        const nextObl = tagValues['oblast'];
-        result += ` (${val}${nextObl ? ', ' + nextObl : ''})`;
-        lastTag = nextObl ? 'oblast' : 'raion';
-        i++; // пропускаємо наступну область
+      // 2. [Тип точки] + [Номер]
+      if (tag === 'branchType' && nextTag === 'number' && numberVal) {
+        const branchFull = (branchTypeVal ? branchTypeVal + ' ' : '') + numberVal;
+        if (branchFull.trim()) parts.push(branchFull.trim());
+        i++;
         continue;
-      } else if (lastTag === 'city' && (t === 'raion' || t === 'oblast')) {
-        result += ` (${val})`;
-      } else if ((lastTag === 'number' || lastTag === 'weight' || lastTag === 'branchType') && t === 'street') {
-        result += (options.noBranchWord ? ', ' : ': ') + val;
-      } else if (lastTag === 'number' && t === 'weight') {
-        result += ` (${val})`;
-      } else if (lastTag === 'street' && t === 'house') {
-        result += ', ' + val;
+      }
+      if (tag === 'number' && nextTag === 'branchType' && branchTypeVal) {
+        const branchFull = numberVal + (branchTypeVal ? ' ' + branchTypeVal : '');
+        if (branchFull.trim()) parts.push(branchFull.trim());
+        i++;
+        continue;
+      }
+      if (tag === 'branchType') {
+        if (branchTypeVal) parts.push(branchTypeVal);
+        continue;
+      }
+      if (tag === 'number') {
+        if (numberVal) parts.push(numberVal);
+        continue;
+      }
+
+      // 3. [Вулиця] + [Будинок]
+      if (tag === 'street' && nextTag === 'house' && houseVal) {
+        const fullStreet = (streetVal ? streetVal + ', ' : '') + houseVal;
+        if (fullStreet.trim()) parts.push(fullStreet.trim());
+        i++;
+        continue;
+      }
+      if (tag === 'street') {
+        if (streetVal) parts.push(streetVal);
+        continue;
+      }
+      if (tag === 'house') {
+        if (houseVal) parts.push(houseVal);
+        continue;
+      }
+
+      // 4. [Район] + [Область]
+      if (tag === 'raion' && nextTag === 'oblast' && oblVal) {
+        if (raionVal) {
+          parts.push(`${raionVal}, ${oblVal}`);
+        } else {
+          parts.push(oblVal);
+        }
+        i++;
+        continue;
+      }
+      if (tag === 'raion') {
+        if (raionVal) parts.push(raionVal);
+        continue;
+      }
+      if (tag === 'oblast') {
+        if (oblVal) parts.push(oblVal);
+        continue;
+      }
+
+      // 5. Інші теги
+      if (tag === 'service' && serviceVal) {
+        parts.push(serviceVal);
+        continue;
+      }
+      if (tag === 'postalCode' && postalCodeVal) {
+        parts.push(postalCodeVal);
+        continue;
+      }
+      if (tag === 'weight' && weightVal) {
+        parts.push(weightVal);
+        continue;
+      }
+    }
+
+    // З'єднання токенів: за замовчуванням через ", "
+    // Якщо опція noBranchWord вимкнена і вулиця йде після номера/типу/ваги, ставимо ": "
+    let result = '';
+    for (let p = 0; p < parts.length; p++) {
+      const part = parts[p];
+      if (p === 0) {
+        result = part;
+        continue;
+      }
+      const prevPart = parts[p - 1];
+      const isStreetPart = streetVal && (part === streetVal || part.startsWith(streetVal + ','));
+      const prevIsBranchOrWeight = prevPart && (
+        (numberVal && prevPart.includes(numberVal)) ||
+        (branchTypeVal && prevPart.includes(branchTypeVal)) ||
+        (weightVal && prevPart.includes(weightVal))
+      );
+
+      if (!options.noBranchWord && isStreetPart && prevIsBranchOrWeight) {
+        result += ': ' + part;
       } else {
-        result += ', ' + val;
+        result += ', ' + part;
       }
-      lastTag = t;
     }
 
     return cleanOutputString(result);
@@ -3838,23 +3900,28 @@
       endNew--;
     }
 
-    // Розширюємо межі до початку та кінця слів/токенів
-    while (start > 0 && !/[\s,.]/.test(newStr[start - 1])) {
+    // Якщо фрагмент видалено або start > endNew: підсвічуємо невеликий контекст у точці зміни
+    if (start > endNew) {
+      const idx = Math.min(start, newStr.length);
+      const ctxStart = Math.max(0, idx - 3);
+      const ctxEnd = Math.min(newStr.length, idx + 3);
+      const prefix = newStr.slice(0, ctxStart);
+      const changed = newStr.slice(ctxStart, ctxEnd);
+      const suffix = newStr.slice(ctxEnd);
+      return `${escapeHtml(prefix)}<span class="preview-flash-highlight">${escapeHtml(changed)}</span>${escapeHtml(suffix)}`;
+    }
+
+    // Розширюємо межі до початку та кінця слів/токенів у межах [0, newStr.length]
+    while (start > 0 && !/[\s,.:]/.test(newStr[start - 1])) {
       start--;
     }
-    while (endNew < newStr.length - 1 && !/[\s,.]/.test(newStr[endNew + 1])) {
+    while (endNew < newStr.length - 1 && !/[\s,.:]/.test(newStr[endNew + 1])) {
       endNew++;
     }
 
     const prefix = newStr.slice(0, start);
     const changed = newStr.slice(start, endNew + 1);
     const suffix = newStr.slice(endNew + 1);
-
-    if (!changed.trim()) {
-      const ctxStart = Math.max(0, start - 12);
-      const ctxEnd = Math.min(newStr.length, start + 12);
-      return `${escapeHtml(newStr.slice(0, ctxStart))}<span class="preview-flash-highlight">${escapeHtml(newStr.slice(ctxStart, ctxEnd))}</span>${escapeHtml(newStr.slice(ctxEnd))}`;
-    }
 
     return `${escapeHtml(prefix)}<span class="preview-flash-highlight">${escapeHtml(changed)}</span>${escapeHtml(suffix)}`;
   }
