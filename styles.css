@@ -1504,30 +1504,47 @@ mark.hl-match,
   border-color: var(--brand-border);
 }
 
-.btn-card-close-x {
-  position: absolute;
-  top: 10px;
-  right: 12px;
+/* Єдина кругла кнопка скидання вибору над карткою */
+.btn-card-close-circle {
   width: 28px;
   height: 28px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   border: 1px solid var(--border-light);
   background: var(--bg-card);
   color: var(--text-muted);
+  font-family: var(--font-main);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
-  z-index: 2;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
-.btn-card-close-x:hover {
+.btn-card-close-circle:hover {
   background: var(--bg-card-hover);
   color: var(--brand-color);
   border-color: var(--brand-border);
+  transform: scale(1.08);
+}
+
+.btn-card-close-circle:active {
+  transform: scale(0.95);
+}
+
+.selected-branch-container {
+  width: 100%;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.selected-branch-container.closing {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
 }
 
 .selected-badge-indicator {

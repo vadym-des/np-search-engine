@@ -74,7 +74,7 @@
     didYouMeanBox: document.getElementById('didYouMeanBox'),
     resultsList: document.getElementById('resultsList'),
     resultsCount: document.getElementById('resultsCount'),
-    btnCloseResults: document.getElementById('btnCloseResults'),
+    btnResetSelectedBranch: document.getElementById('btnResetSelectedBranch'),
     resultsTypeFilters: document.getElementById('resultsTypeFilters'),
     limitSelector: document.getElementById('limitSelector'),
 
@@ -1653,8 +1653,6 @@
     const hlSettlement = `${escapeHtml(sType)} ${hlCity}${hlGeoSub ? ' ' + hlGeoSub : ''}`;
 
     card.innerHTML = `
-      <button type="button" class="btn-card-close-x" title="Скинути вибір" aria-label="Скинути вибір">✕</button>
-
       <!-- Рядок 1: місто [Місто] - [Тип] №[Номер]: [Вулиця] (одне речення без іконок та крапок) -->
       <div class="card-primary-line" title="${escapeHtml(primaryLineText)}">
         <span class="city-highlight">${escapeHtml(sType)} ${hlCity}</span>
@@ -1680,9 +1678,6 @@
         </button>
         <button class="btn-copy-action btn-copy-settings" type="button" title="Налаштування шаблону копіювання" aria-label="Налаштування шаблону копіювання">
           ⚙️
-        </button>
-        <button class="btn-copy-action btn-reset-selection" type="button" title="Скинути вибір">
-          ✕ Скинути вибір
         </button>
         <span class="weight-pill ${typeInfo.cls}">${escapeHtml(typeInfo.label)}</span>
         <span class="status-pill"><span class="status-dot"></span> Працює</span>
@@ -1710,22 +1705,6 @@
       btnCopySettings.addEventListener('click', (e) => {
         e.stopPropagation();
         openCopyPresetModal();
-      });
-    }
-
-    const btnCloseX = card.querySelector('.btn-card-close-x');
-    if (btnCloseX) {
-      btnCloseX.addEventListener('click', (e) => {
-        e.stopPropagation();
-        resetBranchSelection();
-      });
-    }
-
-    const btnResetFoot = card.querySelector('.btn-reset-selection');
-    if (btnResetFoot) {
-      btnResetFoot.addEventListener('click', (e) => {
-        e.stopPropagation();
-        resetBranchSelection();
       });
     }
 
@@ -1768,20 +1747,33 @@
       updateMapTypeFilterUI();
     }
 
-    // 3) Прибирати картку вибраного відділення (повертати стан до загального огляду або списку міст)
-    if (state.currentResults && state.currentResults.length > 1) {
-      renderSearchResults(state.currentResults, state.searchQuery || (previousBranch ? previousBranch.city : '') || '');
-    } else {
-      if (dom.searchResultsSection) {
-        dom.searchResultsSection.classList.add('hidden');
-      }
-      if (dom.resultsList) {
-        dom.resultsList.innerHTML = '';
-      }
-      if (state.isMapVisible && state.leafletMap) {
-        updateVisibleMarkersFromViewport();
-      }
+    // 3) Плавне закриття картки та скидання вибору
+    const container = dom.resultsList ? (dom.resultsList.querySelector('.selected-branch-container') || dom.resultsList.querySelector('.branch-card')) : null;
+    if (container) {
+      container.classList.add('closing');
     }
+
+    setTimeout(() => {
+      if (dom.btnResetSelectedBranch) {
+        dom.btnResetSelectedBranch.classList.add('hidden');
+      }
+      if (state.currentResults && state.currentResults.length > 1) {
+        renderSearchResults(state.currentResults, state.searchQuery || (previousBranch ? previousBranch.city : '') || '');
+      } else {
+        if (dom.searchResultsSection) {
+          dom.searchResultsSection.classList.add('hidden');
+        }
+        if (dom.resultsList) {
+          dom.resultsList.innerHTML = '';
+        }
+        if (state.isMapVisible && state.leafletMap) {
+          updateVisibleMarkersFromViewport();
+        }
+      }
+      if (dom.searchInput) {
+        dom.searchInput.focus();
+      }
+    }, container ? 120 : 0);
   }
 
   function renderSearchResults(branches, query, didYouMeanText, missingTargetBranch, missingSettlement, didYouMeanData) {
@@ -1936,6 +1928,7 @@
     if (state.selectedBranch) {
       if (dom.limitSelector) dom.limitSelector.style.display = 'none';
       if (dom.resultsTypeFilters) dom.resultsTypeFilters.style.display = 'none';
+      if (dom.btnResetSelectedBranch) dom.btnResetSelectedBranch.classList.remove('hidden');
       dom.resultsCount.textContent = `1 обране відділення`;
       const branch = state.selectedBranch;
 
@@ -1943,48 +1936,17 @@
       container.className = 'selected-branch-container';
       container.style.width = '100%';
 
-      const backBtnHtml = `
-        <div class="selected-branch-header">
-          ${filtered.length > 1 ? `
-            <button type="button" class="btn-back-to-matches" id="btnBackToMatches">
-              <span>←</span>
-              <span>Показати всі збіги адреси (${filtered.length})</span>
-            </button>
-          ` : '<div></div>'}
-          <button type="button" class="btn-reset-selection" id="btnResetSelection" title="Скинути вибір">
-            <span>✕ Скинути вибір</span>
-          </button>
-        </div>
-      `;
-
-      container.innerHTML = backBtnHtml;
-
       const card = createFullBranchCard(branch, query || state.searchQuery);
       card.addEventListener('mouseenter', () => setMarkerHighlightedOnMap(branch, true));
       card.addEventListener('mouseleave', () => setMarkerHighlightedOnMap(branch, false));
       container.appendChild(card);
       dom.resultsList.appendChild(container);
-
-      const btnBack = container.querySelector('#btnBackToMatches');
-      if (btnBack) {
-        btnBack.addEventListener('click', (e) => {
-          e.preventDefault();
-          resetBranchSelection();
-        });
-      }
-
-      const btnResetHeader = container.querySelector('#btnResetSelection');
-      if (btnResetHeader) {
-        btnResetHeader.addEventListener('click', (e) => {
-          e.preventDefault();
-          resetBranchSelection();
-        });
-      }
       return;
     }
 
     // РЕЖИМ 2: ПОШУК ПО АДРЕСІ — ПОКАЗУЄМО СУТО ЗБІГИ АДРЕСИ В 1 КОЛОНКУ (як в LP-CRM)
     if (dom.limitSelector) dom.limitSelector.style.display = '';
+    if (dom.btnResetSelectedBranch) dom.btnResetSelectedBranch.classList.add('hidden');
     applyTypeFiltersVisibility();
     dom.resultsCount.textContent = `${filtered.length} збігів адреси`;
 
@@ -3554,15 +3516,20 @@
       state.currentResults = [];
       state.selectedBranch = null;
       state.selectedSettlement = null;
+      if (dom.btnResetSelectedBranch) {
+        dom.btnResetSelectedBranch.classList.add('hidden');
+      }
       if (state.isMapVisible) {
         updateVisibleMarkersFromViewport();
       }
       dom.searchInput.focus();
     });
 
-    dom.btnCloseResults.addEventListener('click', () => {
-      dom.searchResultsSection.classList.add('hidden');
-    });
+    if (dom.btnResetSelectedBranch) {
+      dom.btnResetSelectedBranch.addEventListener('click', () => {
+        resetBranchSelection();
+      });
+    }
 
     if (dom.mapTypeFilters) {
       dom.mapTypeFilters.addEventListener('click', (e) => {
