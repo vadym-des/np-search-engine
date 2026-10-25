@@ -18,6 +18,20 @@
     if (!raw) return '';
     let text = stripApostrophes(String(raw).trim());
 
+    // 0. Очищення префіксів служб з опечатками ("нвоа пошат", "ноав пошта" тощо)
+    text = text.replace(/(?<!\p{L})(?:нова|нової|нвоа|ноав|нвао)\s+(?:пошта|пошти|пошат|пошт)(?!\p{L})/giu, ' ')
+               .replace(/(?<!\p{L})(?:укрпошта|укрпошти|укр\s+пошта|укрпошат)(?!\p{L})/giu, ' ');
+
+    // Біграмні склеювання назв міст та опечаток
+    text = text.replace(/\bкри(?:\s+|\.)ріг\b/giu, 'кривий ріг')
+               .replace(/\bкрив(?:\s+|\.)ріг\b/giu, 'кривий ріг')
+               .replace(/\bстепан\s+город\b/giu, 'степангород')
+               .replace(/\bвелика\s+доб\b/giu, 'велика добронь')
+               .replace(/\bбіла\s+цер\b/giu, 'біла церква')
+               .replace(/\bстароконстантинів\b/giu, 'старокостянтинів')
+               .replace(/\bстароконстатинів\b/giu, 'старокостянтинів')
+               .replace(/\bбойовик\b/giu, 'буялик');
+
     // 1. Видалення лапок усіх видів (« », " ", ' ', “ ”, „ ”, ` `)
     text = text.replace(/[«»""''“”„`]/g, ' ');
 
@@ -255,7 +269,15 @@
     ['ужг', 'ужгород'],
     ['кроп', 'кропивницький'],
     ['кривбас', 'кривий ріг'],
-    ['кривой рог', 'кривий ріг']
+    ['кривой рог', 'кривий ріг'],
+    ['кри ріг', 'кривий ріг'],
+    ['криріг', 'кривий ріг'],
+    ['крив ріг', 'кривий ріг'],
+    ['степан город', 'степангород'],
+    ['степангород', 'степангород'],
+    ['велика доб', 'велика добронь'],
+    ['великадоб', 'велика добронь'],
+    ['бойовик', 'буялик']
   ]);
 
   function isOblastToken(tok) {
@@ -728,6 +750,32 @@
     'демидівський': 'дубенський',
     'млинівський': 'дубенський',
     'києво-святошинський': 'бучанський',
+    // Житомирська
+    'попільнянський': 'житомирський', 'попільнянськ': 'житомирський', 'попільня': 'житомирський',
+    'брусилівський': 'житомирський', 'чуднівський': 'житомирський', 'любарський': 'житомирський',
+    'романівський': 'житомирський', 'черняхівський': 'житомирський', 'хорошівський': 'житомирський',
+    'радомишльський': 'житомирський', 'коростишівський': 'житомирський',
+    // Миколаївська
+    'братський': 'вознесенський', 'братськ': 'вознесенський', 'єланецький': 'вознесенський',
+    'доманівський': 'вознесенський', 'новобузький': 'баштанський', 'березнегуватський': 'баштанський',
+    'казанківський': 'баштанський', 'снігурівський': 'баштанський', 'кривоозерський': 'первомайський',
+    'арбузинський': 'первомайський', 'врадіївський': 'первомайський',
+    // Чернігівська
+    'коропський': 'новгород-сіверський', 'семенівський': 'новгород-сіверський', 'сосницький': 'корюківський',
+    'варвинський': 'прилуцький', 'талалаївський': 'прилуцький', 'срібнянський': 'прилуцький',
+    'ічнянський': 'прилуцький', 'борзнянський': 'ніжинський', 'бахмацький': 'ніжинський',
+    // Дніпропетровська
+    'новомосковський': 'дніпровський', 'магдалинівський': 'дніпровський', 'царичанський': 'дніпровський',
+    'петриківський': 'дніпровський', 'солонянський': 'дніпровський', 'криничанський': 'камʼянський',
+    'софіївський': 'криворізький', 'широківський': 'криворізький', 'апостолівський': 'криворізький',
+    // Закарпатська
+    'великоберезнянський': 'ужгородський', 'перечинський': 'ужгородський', 'воловецький': 'мукачівський',
+    'свалявський': 'мукачівський', 'іршавський': 'хустський', 'виноградівський': 'берегівський',
+    // Одеська
+    'комінтернівський': 'одеський', 'лиманський': 'одеський', 'біляївський': 'одеський',
+    'овідіопольський': 'одеський', 'іванівський': 'березівський', 'миколаївський': 'березівський',
+    'ширяївський': 'березівський', 'любашівський': 'подільський', 'окнянський': 'подільський',
+    'савранський': 'подільський', 'балтський': 'подільський', 'кодимський': 'подільський',
     'бородянський': 'бучанський',
     'макарівський': 'бучанський',
     'іванківський': 'вишгородський',
@@ -907,6 +955,52 @@
       };
     } else if (exactBase) {
       return exactBase;
+    }
+
+    // 2.5. Фонетична нормалізація чергувань приголосних та ненаголошених голосних (O(1))
+    const pVariants = [];
+    if (w.endsWith('цке') || w.endsWith('цьке')) {
+      const b = w.replace(/ц[ь]?ке$/, '');
+      pVariants.push(b + 'ське', b + 'тське');
+    } else if (w.endsWith('ське') || w.endsWith('тське')) {
+      const b = w.replace(/(?:тськ|ськ)е$/, '');
+      pVariants.push(b + 'цьке', b + 'цке');
+    }
+    if (w.endsWith('нів') && w.length >= 6) {
+      pVariants.push(w.slice(0, -3) + 'ньїв');
+    }
+    if (w.includes('и')) pVariants.push(w.replace(/и/g, 'е'));
+    if (w.includes('е')) pVariants.push(w.replace(/е/g, 'и'));
+
+    for (let i = 0; i < pVariants.length; i++) {
+      const pv = pVariants[i];
+      const pCand = _settlementsByName.get(pv) || _settlementsByAlias.get(pv);
+      if (pCand) return pCand;
+      const pAll = _allSettlementsByName.get(pv);
+      if (pAll && pAll.length > 0) {
+        let chosen = pAll[0];
+        if (contextOblast || contextRaion) {
+          const cObl = (contextOblast || '').toLowerCase();
+          const cRaion = (contextRaion || '').toLowerCase();
+          for (let j = 0; j < pAll.length; j++) {
+            const cand = pAll[j];
+            const candObl = (cand.oblast || '').toLowerCase();
+            const candRaion = (cand.raion || '').toLowerCase();
+            if ((!cObl || candObl.includes(cObl) || cObl.includes(candObl)) &&
+                (!cRaion || candRaion.includes(cRaion) || cRaion.includes(candRaion) || areRaionsCompatible(cRaion, candRaion))) {
+              chosen = cand;
+              break;
+            }
+          }
+        }
+        return {
+          name: chosen.cleanName,
+          oblast: chosen.oblast,
+          raion: chosen.raion,
+          type: chosen.type || 'село',
+          allVariants: pAll
+        };
+      }
     }
 
     // 3. Нечітке зіставлення (Levenshtein Distance <= 2):
@@ -2328,6 +2422,31 @@
         item.s.type === 'місто' || REGIONAL_CENTERS.has(item.s.name.toLowerCase())
       );
 
+      // ДЕЗАМБІГУАЦІЯ ТЕЗОК СІЛ/СМТ ЗА ОБЛАСНИМ ЦЕНТРОМ АБО РАЙОНОМ
+      for (let v of villageCandidates) {
+        if (v.s.allVariants && v.s.allVariants.length > 1 && cityCandidates.length > 0) {
+          for (let c of cityCandidates) {
+            const cObl = (c.s.oblast || '').toLowerCase();
+            const cStem = c.s.name.toLowerCase().slice(0, 4);
+            const matchingVar = v.s.allVariants.find(cand => {
+              const candObl = (cand.oblast || '').toLowerCase();
+              const candRaion = (cand.raion || '').toLowerCase();
+              return (cObl && (candObl.includes(cObl) || cObl.includes(candObl))) || (cStem && candRaion.includes(cStem));
+            });
+            if (matchingVar) {
+              v.s = {
+                name: matchingVar.cleanName,
+                oblast: matchingVar.oblast,
+                raion: matchingVar.raion,
+                type: matchingVar.type || 'смт',
+                allVariants: v.s.allVariants
+              };
+              break;
+            }
+          }
+        }
+      }
+
       // Валідуємо сільські кандидати: якщо в запиті є велике місто, село повинно мати територіальний зв'язок із ним
       const validVillageCandidates = villageCandidates.filter(v => {
         if (cityCandidates.length === 0) return true;
@@ -2540,8 +2659,33 @@
     // Патерни: /(?:відділення|відд|склад|№|#)\s*(\d+)/i, або окрема цифра/число в кінці запиту ("Городок 1", "Борщів Бандери 1")
     const strictNumRegex = /(?:відділення|віділення|відділ|відд|вд|склад|поштомат|почтомат|пошт|п\/м|пм|№|#)\s*(\d+)/i;
     const strictExplicitMatch = rawQuery.match(strictNumRegex);
-    const strictEndMatch = sanitizeChatQuery(rawQuery).match(/(?:^|\s)(\d{1,6})\s*$/);
-    const strictTargetNumber = strictExplicitMatch ? strictExplicitMatch[1] : (strictEndMatch ? strictEndMatch[1] : null);
+    const cleanSanitized = sanitizeChatQuery(rawQuery);
+    const strictEndMatch = cleanSanitized.match(/(?:^|\s)(\d{1,6})\s*$/);
+
+    // Перевірка чи число в кінці є номером будинку після вулиці (наприклад "михайлова 46", "соборна 29")
+    let isBuildingNum = false;
+    let streetBuildingNum = null;
+    if (strictEndMatch && !strictExplicitMatch) {
+      const numCandidate = strictEndMatch[1];
+      const textBeforeNum = cleanSanitized.slice(0, strictEndMatch.index).trim();
+      const lastWordMatch = textBeforeNum.match(/([А-Яа-яІіЇїЄєA-Za-z]+)$/u);
+      if (lastWordMatch) {
+        const lw = lastWordMatch[1].toLowerCase();
+        // Якщо слово має прикметникове закінчення вулиці або перед ним є позначення вулиці
+        const isNotOblastOrCity = !isOblastToken(lw) && !_settlementsByName.has(lw) && !_allSettlementsByName.has(lw) && !REGIONAL_CENTERS.has(lw);
+        const isStreetEnding = /(?:ова|єва|івка|івська|евська|ська|ського|ської|ськой|на|ного|ної|ний|ний|яка|ого|му|ра)$/u.test(lw);
+        const hasStreetPrefix = /(?:вул|вулиця|просп|проспект|бульв|бульвар|пл|площа|пров|провулок)/iu.test(textBeforeNum);
+        if (isNotOblastOrCity && (isStreetEnding || hasStreetPrefix)) {
+          // Якщо в запиті є слово "поштомат", але номер короткий (не 4-5 цифр поштомату), це номер будинку на вулиці!
+          if (hasPostomatKeyword && numCandidate.length < 4) {
+            isBuildingNum = true;
+            streetBuildingNum = numCandidate;
+          }
+        }
+      }
+    }
+
+    const strictTargetNumber = strictExplicitMatch ? strictExplicitMatch[1] : (strictEndMatch && !isBuildingNum ? strictEndMatch[1] : null);
 
     // Підготовка токенів області / скорочень
     let explicitOblast = facets.oblast ? facets.oblast.toLowerCase() : null;
@@ -2677,6 +2821,14 @@
         else score -= 1000;
       } else if (!isPostomat) {
         score += 150; // Перевага звичайного відділення над поштоматом за замовчуванням
+      }
+
+      // 0.5. Скоринг номера будинку на вулиці (наприклад поштомат на "вул. Михайлова, 46")
+      if (streetBuildingNum && bStreet) {
+        const hasBuilding = new RegExp('(?:^|[^\\d])' + streetBuildingNum + '(?:[^\\d]|$)', 'u').test(bStreet);
+        if (hasBuilding) {
+          score += 12000;
+        }
       }
 
       // 1. ВУЛИЦЯ:

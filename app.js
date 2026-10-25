@@ -553,6 +553,16 @@
       const tabPred = tf === 'postomat' ? isPostomatBranch : tf === 'cargo' ? isCargoBranch : tf === 'branch' ? isRegularBranch : null;
       const searchPool = tabPred ? allStaticBranches.filter(tabPred) : allStaticBranches;
       staticMatches = engine.filterBranchesByNormalizedSearch(rawQuery, searchPool, tabPred ? 200 : 20);
+
+      // Relaxed Smart Fallback (як у Google):
+      // Якщо обраний таб-фільтр повернув 0 результатів (наприклад шукали "коломи я 6" з табом "Поштомат"),
+      // але за повним пулом міста відділення існує, показуємо його замість помилки
+      if (staticMatches.length === 0 && tabPred) {
+        const relaxedMatches = engine.filterBranchesByNormalizedSearch(rawQuery, allStaticBranches, 20);
+        if (relaxedMatches.length > 0) {
+          staticMatches = relaxedMatches;
+        }
+      }
     }
 
     // Якщо зафіксовано точний населений пункт або в запиті є область чи район — фільтруємо за гео-контекстом
