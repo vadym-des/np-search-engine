@@ -1850,7 +1850,7 @@
       const parts = [cleanName];
       if (cleanRaion) parts.push(cleanRaion);
       if (cleanOblast) parts.push(cleanOblast);
-      const fullGeoText = parts.join(' ').replace(/[()]/g, '').replace(/\s+/g, ' ').trim() + ' ';
+      const fullGeoText = parts.join(' ').replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
 
       let postalCode = s.postalCode || (Array.isArray(s.postalCodes) && s.postalCodes.length > 0 ? s.postalCodes[0] : null) || s.index || null;
       if (!postalCode) {
@@ -1871,7 +1871,10 @@
         postalCode: postalCode || null,
         subtitle: displaySub,
         value: cleanName,
-        textToFill: fullGeoText,
+        settlement: cleanName,
+        raion: cleanRaion,
+        oblast: cleanOblast,
+        textToFill: customTextToFill ? customTextToFill.trim() : fullGeoText,
         badge: badgeType,
         icon: isUkr ? '📮' : '📍',
         settlementObj: normObj
