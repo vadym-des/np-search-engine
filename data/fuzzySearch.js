@@ -453,6 +453,7 @@
     { name: 'Ковель', oblast: 'Волинська', raion: 'Ковельський', type: 'місто', lat: 51.2167, lng: 24.7167, postalCodes: ['45000'], aliases: ['ковель'], streets: ['вул. Незалежності'] },
     { name: 'Олександрівка', oblast: 'Кіровоградська', raion: 'Кропивницький', type: 'смт', lat: 48.9619, lng: 32.2356, postalCodes: ['27300'], aliases: ['олександрівка', 'олександрівка кіровоград'], streets: ['вул. Незалежності', 'вул. Шевченка'] },
     { name: 'Олександрівка', oblast: 'Одеська', raion: 'Одеський', type: 'смт', lat: 46.3314, lng: 30.6328, postalCodes: ['68090'], aliases: ['олександрівка', 'олександрівка одеса'], streets: ['вул. Перемоги', 'вул. Центральна'] },
+    { name: 'Широке', oblast: 'Закарпатська', raion: 'Виноградівський', type: 'село', lat: 48.2178, lng: 23.1024, postalCodes: ['90314'], aliases: ['широке', 'широке виноградівський', 'широке закарпаття'], streets: ['вул. Миру'] },
     { name: 'Ужгород', oblast: 'Закарпатська', raion: 'Ужгородський', type: 'місто', lat: 48.6208, lng: 22.2879, postalCodes: ['88000'], aliases: ['ужгород', 'uzhhorod'], streets: ['вул. Корзо', 'вул. Собранецька', 'просп. Свободи'] },
     { name: 'Мукачево', oblast: 'Закарпатська', raion: 'Мукачівський', type: 'місто', lat: 48.4411, lng: 22.7178, postalCodes: ['89600'], aliases: ['мукачево', 'мукачеве', 'mukachevo'], streets: ['вул. Миру', 'вул. Ярослава Мудрого'] },
     { name: 'Берегове', oblast: 'Закарпатська', raion: 'Берегівський', type: 'місто', lat: 48.2047, lng: 22.6433, postalCodes: ['90200'], aliases: ['берегове', 'берегово'], streets: ['пл. Кошута', 'вул. Мукачівська'] },
@@ -1516,13 +1517,17 @@
       if (seen.has(sKey)) return false;
       seen.add(sKey);
       const normObj = { ...s, name: cleanName, cleanName, type: badgeType };
+      const sOblast = (s.oblast || '').replace(/\s*(?:область|обл\.?)$/i, '').trim();
+      const sRaion = (s.raion || '').replace(/\s*(?:район|р-н)$/i, '').trim();
+      const fullGeoText = `${cleanName} ${sOblast} ${sRaion} `.replace(/\s+/g, ' ');
+
       suggestions.push({
         mode: 'city',
         type: badgeType,
         title: cleanName,
         subtitle: formatSettlementSubtitle(normObj),
         value: cleanName,
-        textToFill: customTextToFill || (cleanName + ' '),
+        textToFill: customTextToFill || fullGeoText,
         badge: badgeType,
         icon: '📍',
         settlementObj: normObj

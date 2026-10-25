@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.3.7';
+  const APP_VERSION = '1.3.8';
 
   // ==========================================================================
   // СТАН ДОДАТКУ (STATE)
@@ -2481,8 +2481,17 @@
       activeAutocompleteAbortController = null;
     }
 
-    let fill = item.textToFill || item.title;
-    const isSettlement = item.mode === 'city' || item.type === 'місто' || item.type === 'смт' || item.type === 'село' || item.type === 'селище';
+    const isSettlement = item.mode === 'city' || item.mode === 'settlement' || item.type === 'місто' || item.type === 'смт' || item.type === 'село' || item.type === 'селище';
+    let fill = item.textToFill || item.title || '';
+
+    if (isSettlement) {
+      const settlement = item.settlementObj || item;
+      const sName = (settlement.name || settlement.cleanName || item.title || item.value || '').replace(/^(?:місто|селище міського типу|смт|селище|село)\s+/i, '').trim();
+      const sOblast = (settlement.oblast || '').replace(/\s*(?:область|обл\.?)$/i, '').trim();
+      const sRaion = (settlement.raion || '').replace(/\s*(?:район|р-н)$/i, '').trim();
+      fill = `${sName} ${sOblast} ${sRaion} `.replace(/\s+/g, ' ');
+    }
+
     if (isSettlement && !fill.endsWith(' ')) {
       fill += ' ';
     }
@@ -2507,12 +2516,63 @@
       return;
     }
 
+    // Якщо в базі відділень для цього села діє єдине відділення — одразу показувати його картку з кнопкою копіювання
+    if (isSettlement) {
+      const allBranches = getAllCurrentServiceBranches();
+      const searchPool = state.typeFilter === 'postomat' ? allBranches.filter(isPostomatBranch)
+        : state.typeFilter === 'cargo' ? allBranches.filter(isCargoBranch)
+        : state.typeFilter === 'branch' ? allBranches.filter(isRegularBranch)
+        : allBranches;
+
+      const engine = window.SmartSearchEngine;
+      let matchedVillageBranches = [];
+      if (engine && engine.filterBranchesByNormalizedSearch) {
+        matchedVillageBranches = engine.filterBranchesByNormalizedSearch(fill.trim(), searchPool, 10);
+      } else {
+        const settlement = item.settlementObj || item;
+        const sName = (settlement.name || settlement.cleanName || item.title || '').replace(/^(?:місто|селище міського типу|смт|селище|село)\s+/i, '').trim().toLowerCase();
+        const sOblast = (settlement.oblast || '').replace(/\s*(?:область|обл\.?)$/i, '').trim().toLowerCase();
+        const sRaion = (settlement.raion || '').replace(/\s*(?:район|р-н)$/i, '').trim().toLowerCase();
+        matchedVillageBranches = searchPool.filter(b => {
+          const bCity = (b.city || '').toLowerCase();
+          if (bCity !== sName) return false;
+          if (sOblast && b.oblast && !b.oblast.toLowerCase().includes(sOblast.slice(0, 4))) return false;
+          if (sRaion && b.raion && !b.raion.toLowerCase().includes(sRaion.slice(0, 4))) return false;
+          return true;
+        });
+      }
+
+      if (matchedVillageBranches.length === 1) {
+        const singleBranch = matchedVillageBranches[0];
+        state.searchQuery = fill.trim();
+        state.selectedBranch = singleBranch;
+        state.currentResults = [singleBranch];
+        renderSearchResults([singleBranch], fill.trim(), null, null);
+        recordFrequentQuery(singleBranch.city || fill.trim());
+        recordSearchHistory(fill.trim(), 1);
+        if (state.isMapVisible && state.leafletMap) {
+          updateMapMarkers([singleBranch], singleBranch);
+          if (singleBranch.lat && singleBranch.lng) {
+            state.leafletMap.flyTo([singleBranch.lat, singleBranch.lng], 14, { duration: 1.2 });
+          }
+        }
+        focusSearchInputAtEnd(true);
+        setTimeout(() => focusSearchInputAtEnd(true), 25);
+        return;
+      }
+    }
+
     executeSearch(fill.trim(), true, true);
     if (isSettlement) {
       focusSearchInputAtEnd(true);
       setTimeout(() => focusSearchInputAtEnd(true), 25);
     }
   }
+
+  function selectSuggestion(item) {
+    return selectAutocompleteItem(item);
+  }
+  const onSuggestionClick = selectSuggestion;
 
   function updateAutocompleteFocus() {
     if (!dom.autocompleteDropdown) return;
@@ -2957,6 +3017,9 @@
   }
 
   window.__executeSearchForTest = executeSearch;
+  window.selectAutocompleteItem = selectAutocompleteItem;
+  window.selectSuggestion = selectSuggestion;
+  window.onSuggestionClick = onSuggestionClick;
   window.highlightMatch = highlightMatch;
   window.createFullBranchCard = createFullBranchCard;
   window.renderSelectedBranch = renderSelectedBranch;

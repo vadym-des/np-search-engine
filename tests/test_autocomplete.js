@@ -216,7 +216,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 38;
+  let totalTests = 39;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -2348,6 +2348,85 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 38:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 39: UX Auto-fill Full Geo Context on Select та ізоляція сіл-тезок ("Широке Закарпатська Виноградівський 1")
+  // --------------------------------------------------------------------------
+  console.log('▶ ТЕСТ 39: UX Auto-fill Full Geo Context on Select ("Широке") та запит "Широке Закарпатська Виноградівський 1"');
+  try {
+    const npPool = window.BRANCHES_DATA.novaposhta;
+    // 1. Пошуковий запит "Широке Закарпатська Виноградівський 1" повинен повертати виключно відділення села Широке на Закарпатті
+    const resShiroke = window.SmartSearchEngine.searchBranches('Широке Закарпатська Виноградівський 1', npPool, 10);
+    if (!resShiroke || resShiroke.length === 0) {
+      throw new Error('Запит "Широке Закарпатська Виноградівський 1" не повернув результатів');
+    }
+    if (resShiroke.length !== 1) {
+      throw new Error(`Очікувалось рівно 1 цільове відділення для села Широке на Закарпатті, отримано: ${resShiroke.length}`);
+    }
+    const topShiroke = resShiroke[0];
+    if (canon(topShiroke.city) !== 'широке' || !topShiroke.oblast.includes('Закарпатськ') || !topShiroke.raion.includes('Виноградівськ') || String(topShiroke.number) !== '1') {
+      throw new Error(`Очікувалось с. Широке (Виноградівський р-н, Закарпатська обл.) №1, отримано: ${topShiroke.city} (${topShiroke.raion}, ${topShiroke.oblast}) №${topShiroke.number}`);
+    }
+
+    // Перевіряємо відсутність домішування відділень з інших областей (Дніпропетровська, Запорізька, Одеська)
+    const leakedShiroke = resShiroke.filter(b => !b.oblast.includes('Закарпатськ') || !b.raion.includes('Виноградівськ'));
+    if (leakedShiroke.length > 0) {
+      const leakedNames = leakedShiroke.map(b => `${b.city} (${b.oblast}, ${b.raion}) №${b.number}`).join(', ');
+      throw new Error(`Виявлено домішування сіл-тезок з інших областей: ${leakedNames}`);
+    }
+
+    // 2. Інтерактивна перевірка UI вибору підказки з автокомпліту:
+    searchInput.value = 'Широке';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(360);
+
+    const suggestions = dropdown.querySelectorAll('.autocomplete-item');
+    if (!suggestions || suggestions.length === 0) {
+      throw new Error('Очікувалися підказки в автокомпліті для "Широке"');
+    }
+
+    // Знаходимо підказку для с. Широке Виноградівського р-ну Закарпатської обл.
+    let zakarpattiaItem = null;
+    for (const item of suggestions) {
+      const text = item.innerHTML;
+      if (text.includes('Виноградівськ') && text.includes('Закарпатськ')) {
+        zakarpattiaItem = item;
+        break;
+      }
+    }
+    if (!zakarpattiaItem) {
+      throw new Error('Не знайдено підказку "Широке (Виноградівський р-н, Закарпатська обл.)" у списку автокомпліту');
+    }
+
+    // Симулюємо вибір підказки користувачем
+    zakarpattiaItem.dispatchEvent({
+      type: 'mousedown',
+      preventDefault: () => {},
+      stopPropagation: () => {}
+    });
+    await sleep(100);
+
+    // Перевіряємо Auto-fill розширеного гео-контексту в input
+    const expectedPrefix = 'Широке Закарпатська Виноградівський ';
+    if (searchInput.value !== expectedPrefix) {
+      throw new Error(`Очікувався повний гео-контекст "${expectedPrefix}", отримано: "${searchInput.value}"`);
+    }
+
+    // Оскільки для цього села діє єдине відділення — перевіряємо миттєве відображення картки з кнопкою копіювання
+    const resultsContainer = elementsById['resultsList'];
+    const resultsHtml = resultsContainer ? resultsContainer.innerHTML : '';
+    if (!resultsHtml.includes('btn-copy-crm') && !resultsHtml.includes('btn-copy-short') && !resultsHtml.includes('card-copy-btn')) {
+      throw new Error('Для села з єдиним відділенням не відобразилася картка з кнопкою копіювання');
+    }
+    if (!resultsHtml.includes('Миру, 47') && !resultsHtml.includes('Відділення №1')) {
+      throw new Error(`Картка єдиного відділення с. Широке не містить очікуваних даних: ${resultsHtml}`);
+    }
+
+    console.log('  ✓ Успіх: Auto-fill розширеного гео-контексту підставив "Широке Закарпатська Виноградівський ", одразу відобразив картку єдиного відділення з кнопкою копіювання, а пошук "Широке Закарпатська Виноградівський 1" повернув виключно Закарпаття без домішування інших областей!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 39:', err.message, '\n');
   }
 
   console.log('===============================================================');

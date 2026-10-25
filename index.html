@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.3.7">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.3.8">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -35,7 +35,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.3.7">
+  <link rel="stylesheet" href="styles.css?v=1.3.8">
 </head>
 <body data-service="novaposhta">
 
@@ -254,7 +254,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.3.7</span>
+          <span class="version-tag">v1.3.8</span>
           
         </button>
       </div>
@@ -283,8 +283,22 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.3.7 -->
+        <!-- Версія 1.3.8 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.3.8</span>
+            <span class="version-state">Auto-fill Full Geo Context on Select & Single Branch Instant Preview</span>
+            <span class="version-date">25 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Auto-fill розширеного географічного контексту:</strong> при виборі населеного пункту з автокомпліту в рядок пошуку автоматично підставляється повний ланцюжок <code>`${settlement.name} ${settlement.oblast} ${settlement.raion} `</code>, що унеможливлює видачу сіл-клонів при подальшому введенні номера відділення чи вулиці (наприклад, замість «Широке» рядок стає «Широке Закарпатська Виноградівський »).</li>
+            <li><strong>Миттєвий показ картки для сіл з єдиним відділенням:</strong> якщо для обраного населеного пункту в базі діє лише одне відділення, одразу відкривається його картка з кнопкою швидкого копіювання для LP-CRM без необхідності додаткового набору номерів.</li>
+            <li><strong>Фокус та збереження позиції курсору:</strong> після вибору пункту фокус інпуту утримується в кінці рядка з кінцевим пробілом для комфортного введення додаткових параметрів адреси.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.3.7 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.3.7</span>
             <span class="version-state">Strict Warehouse Priority, City Isolation & KATOTTG District Mapping</span>
@@ -485,15 +499,15 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.3.7"></script>
+  <script src="data/branches.js?v=1.3.8"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.3.7"></script>
+  <script src="data/all_settlements.js?v=1.3.8"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.3.7"></script>
+  <script src="data/fuzzySearch.js?v=1.3.8"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.3.7"></script>
+  <script src="app.js?v=1.3.8"></script>
 </body>
 </html>
