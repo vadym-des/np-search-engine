@@ -1344,16 +1344,23 @@
   };
 
   function cleanOutputString(str) {
-    return (str || '')
+    if (!str) return '';
+    let text = String(str);
+    text = text
       .replace(/\(\s*,\s*\)/g, '')
       .replace(/\(\s*\)/g, '')
-      .replace(/,\s*,+/g, ', ')
       .replace(/:\s*,/g, ': ')
       .replace(/,\s*:/g, ': ')
+      .replace(/\s*:\s*/g, ': ')
       .replace(/\s+/g, ' ')
+      .replace(/\s*,\s*/g, ', ')
+      .replace(/,\s*,+/g, ', ')
+      .replace(/,\s*,/g, ',')
+      .replace(/\s*,\s*/g, ', ')
       .replace(/^\s*[,:\-]\s*/, '')
       .replace(/\s*[,:\-]\s*$/, '')
       .trim();
+    return text;
   }
 
   // Дефолтний класичний формат копіювання
@@ -1569,6 +1576,7 @@
     };
 
     let result = '';
+    let lastTag = null;
     for (let i = 0; i < tags.length; i++) {
       const t = tags[i];
       const val = tagValues[t];
@@ -1576,29 +1584,33 @@
 
       if (!result) {
         result = val;
+        lastTag = t;
         continue;
       }
 
-      const prevTag = tags[i - 1];
-
       // Правила сполучення
-      if (prevTag === 'settlementType' && t === 'city') {
+      if (lastTag === 'settlementType' && t === 'city') {
         result += ' ' + val;
-      } else if (prevTag === 'branchType' && t === 'number') {
+      } else if (lastTag === 'branchType' && t === 'number') {
         result += ' ' + val;
-      } else if (prevTag === 'city' && t === 'raion' && tags[i + 1] === 'oblast') {
+      } else if (lastTag === 'city' && t === 'raion' && tags[i + 1] === 'oblast') {
         const nextObl = tagValues['oblast'];
         result += ` (${val}${nextObl ? ', ' + nextObl : ''})`;
+        lastTag = nextObl ? 'oblast' : 'raion';
         i++; // пропускаємо наступну область
-      } else if (prevTag === 'number' && t === 'street') {
-        result += (options.noBranchWord ? ', ' : ': ') + val;
-      } else if (prevTag === 'number' && t === 'weight') {
+        continue;
+      } else if (lastTag === 'city' && (t === 'raion' || t === 'oblast')) {
         result += ` (${val})`;
-      } else if (prevTag === 'street' && t === 'house') {
+      } else if ((lastTag === 'number' || lastTag === 'weight' || lastTag === 'branchType') && t === 'street') {
+        result += (options.noBranchWord ? ', ' : ': ') + val;
+      } else if (lastTag === 'number' && t === 'weight') {
+        result += ` (${val})`;
+      } else if (lastTag === 'street' && t === 'house') {
         result += ', ' + val;
       } else {
         result += ', ' + val;
       }
+      lastTag = t;
     }
 
     return cleanOutputString(result);
@@ -3891,10 +3903,12 @@
       });
     }
 
-    // 4. Рендер палітри доступних чіпів
+    // 4. Рендер палітри доступних чіпів (динамічний пул без дублювання)
     if (dom.presetChipPalette) {
       dom.presetChipPalette.innerHTML = '';
-      COPY_PRESET_TAGS.forEach(meta => {
+      const activeTags = currentConfig.tags || [];
+      const availableTags = COPY_PRESET_TAGS.filter(meta => !activeTags.includes(meta.id));
+      availableTags.forEach(meta => {
         const item = document.createElement('button');
         item.type = 'button';
         item.className = 'preset-palette-item';
@@ -3903,6 +3917,12 @@
         item.innerHTML = `<span>+</span> <span>${escapeHtml(meta.label)}</span>`;
         dom.presetChipPalette.appendChild(item);
       });
+      if (availableTags.length === 0) {
+        const emptyHint = document.createElement('span');
+        emptyHint.className = 'preset-palette-empty';
+        emptyHint.textContent = 'Усі доступні елементи додано до шаблону';
+        dom.presetChipPalette.appendChild(emptyHint);
+      }
     }
 
     // 5. Оновлення чекбоксів та їх пігулок (Швидкі правила скорочення)
@@ -4155,16 +4175,19 @@
       });
     }
 
-    // Додавання чіпів із палітри
+    // Додавання чіпів із палітри (без дублювання)
     if (dom.presetChipPalette) {
       dom.presetChipPalette.addEventListener('click', e => {
         const item = e.target.closest('.preset-palette-item');
         if (!item) return;
         const tagId = item.dataset.tag;
         if (draftCopyPresets && draftCopyPresets[activePresetTab]) {
-          draftCopyPresets[activePresetTab].tags.push(tagId);
-          draftCopyPresets[activePresetTab].presetName = 'custom';
-          renderPresetModalUI();
+          const tags = draftCopyPresets[activePresetTab].tags;
+          if (!tags.includes(tagId)) {
+            tags.push(tagId);
+            draftCopyPresets[activePresetTab].presetName = 'custom';
+            renderPresetModalUI();
+          }
         }
       });
     }
@@ -4343,6 +4366,7 @@
   window.saveCopyPresets = saveCopyPresets;
   window.openCopyPresetModal = openCopyPresetModal;
   window.assembleCopyStringFromPreset = assembleCopyStringFromPreset;
+  window.cleanOutputString = cleanOutputString;
   window.DEFAULT_COPY_PRESETS = DEFAULT_COPY_PRESETS;
   window.QUICK_PRESETS = QUICK_PRESETS;
   window.COPY_PRESET_TAGS = COPY_PRESET_TAGS;

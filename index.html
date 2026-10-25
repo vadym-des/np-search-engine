@@ -262,7 +262,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.1</span>
+          <span class="version-tag">v1.6.2</span>
           
         </button>
       </div>
@@ -291,8 +291,22 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.1 -->
+        <!-- Версія 1.6.2 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.2</span>
+            <span class="version-state">Dynamic Copy Preset Builder &amp; Layout Fix</span>
+            <span class="version-date">25 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Динамічний пул тегів без дублювання:</strong> активні елементи шаблону автоматично ховаються з нижньої палітри. Клік на <code>+</code> додає тег та приховує його знизу, а клік на <code>✕</code> видаляє його з рядка та миттєво повертає до палітри.</li>
+            <li><strong>Усунення злипання слів у Live Preview:</strong> покращена конкатенація та обов'язкова фінальна нормалізація рядка усувають злипання слів, нерозривні пробіли, здвоєні коми та некоректні розділові знаки при будь-яких комбінаціях опцій скорочень.</li>
+            <li><strong>Адаптивна верстка блоку правил скорочення:</strong> оновлено контейнер <code>.preset-rules-chips</code> на гнучкий <code>flex-wrap</code> з відступами, що унеможливлює вихід чіпів за межі вікна та горизонтальний скрол.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.1 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.1</span>
             <span class="version-state">Apostrophe &amp; Whitespace Normalization</span>

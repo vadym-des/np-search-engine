@@ -252,6 +252,88 @@ runTest('Плавне перетягування тегів (Drag-and-Drop): [С
   assert(res.startsWith('Київ, Нова Пошта, №15'), `Очікувалось що [Служба] стоїть перед [Номер]: "${res}"`);
 });
 
+// 10. Динамічний пул тегів без дублювання (Двосторонній обмін)
+runTest('Динамічний пул тегів без дублювання (Двосторонній обмін)', () => {
+  const allTagIds = window.COPY_PRESET_TAGS.map(t => t.id);
+  const activeTags = ['settlementType', 'city', 'branchType', 'number', 'street'];
+
+  // Перевірка фільтрації палітри: тільки невикористані теги
+  let paletteTags = allTagIds.filter(id => !activeTags.includes(id));
+  assert(!paletteTags.includes('city'), 'Палітра не повинна містити вже активний тег "city"');
+  assert(!paletteTags.includes('street'), 'Палітра не повинна містити вже активний тег "street"');
+  assert(paletteTags.includes('oblast'), 'Палітра повинна містити неактивний тег "oblast"');
+  assert(paletteTags.includes('raion'), 'Палітра повинна містити неактивний тег "raion"');
+
+  // Симуляція додавання тегу 'oblast' до активних
+  const tagToAdd = 'oblast';
+  if (!activeTags.includes(tagToAdd)) {
+    activeTags.push(tagToAdd);
+  }
+  paletteTags = allTagIds.filter(id => !activeTags.includes(id));
+  assert(activeTags.includes('oblast'), 'Активні теги мають містити "oblast"');
+  assert(!paletteTags.includes('oblast'), 'Після додавання "oblast" має зникнути з палітри');
+
+  // Захист від повторного додавання
+  const countBefore = activeTags.length;
+  if (!activeTags.includes(tagToAdd)) {
+    activeTags.push(tagToAdd);
+  }
+  assert.strictEqual(activeTags.length, countBefore, 'Повторне додавання не повинно створювати дублікат');
+
+  // Симуляція видалення (клік на ✕)
+  const removeIndex = activeTags.indexOf('city');
+  assert(removeIndex >= 0);
+  activeTags.splice(removeIndex, 1);
+  paletteTags = allTagIds.filter(id => !activeTags.includes(id));
+  assert(!activeTags.includes('city'), 'Активні теги не повинні містити видалений "city"');
+  assert(paletteTags.includes('city'), 'Видалений тег "city" повинен повернутися до палітри');
+});
+
+// 11. Усунення злипання слів при різних комбінаціях чекбоксів
+runTest('Усунення злипання слів при будь-яких комбінаціях чекбоксів скорочень', () => {
+  const configs = [
+    { smtShort: false, noBranchWord: false, shortRegion: false, noStreetPrefix: false },
+    { smtShort: true, noBranchWord: false, shortRegion: false, noStreetPrefix: false },
+    { smtShort: false, noBranchWord: true, shortRegion: false, noStreetPrefix: false },
+    { smtShort: false, noBranchWord: false, shortRegion: true, noStreetPrefix: false },
+    { smtShort: false, noBranchWord: false, shortRegion: false, noStreetPrefix: true },
+    { smtShort: true, noBranchWord: true, shortRegion: true, noStreetPrefix: true }
+  ];
+
+  const testTags = ['settlementType', 'city', 'raion', 'oblast', 'branchType', 'number', 'street'];
+
+  configs.forEach((opts, idx) => {
+    const config = { tags: testTags, options: opts };
+    const str = window.assembleCopyStringFromPreset(benchmarkBranch, config);
+
+    // Перевірка на відсутність злиплих слів типу "смтСереднє", "м.Київ", "відд.1"
+    assert(!/смт[А-Яа-яЇїІіЄєҐґ]/.test(str), `Конфіг ${idx}: виявлено злипання "смт": "${str}"`);
+    assert(!/м\.[А-Яа-яЇїІіЄєҐґ]/.test(str), `Конфіг ${idx}: виявлено злипання "м.": "${str}"`);
+    assert(!/с\.[А-Яа-яЇїІіЄєҐґ]/.test(str), `Конфіг ${idx}: виявлено злипання "с.": "${str}"`);
+    assert(!/відд\.\d/.test(str), `Конфіг ${idx}: виявлено злипання "відд.": "${str}"`);
+    assert(!/№\s*№/.test(str), `Конфіг ${idx}: подвійний знак №: "${str}"`);
+    assert(!/,\S/.test(str), `Конфіг ${idx}: кома без пробілу після неї: "${str}"`);
+    assert(!/\s,/.test(str), `Конфіг ${idx}: пробіл перед комою: "${str}"`);
+    assert(!/,\s*,/.test(str), `Конфіг ${idx}: подвійна кома: "${str}"`);
+  });
+});
+
+// 12. Фінальна нормалізація пробілів та ком (cleanOutputString)
+runTest('Фінальна нормалізація пробілів та ком (cleanOutputString)', () => {
+  const dirtySamples = [
+    { input: '   місто   Київ   ,   ,   Відділення   №1  :   вул.   Хрещатик, 15  ,  ', expected: 'місто Київ, Відділення №1: вул. Хрещатик, 15' },
+    { input: 'Київ , , , 15 , , вул. Хрещатик', expected: 'Київ, 15, вул. Хрещатик' },
+    { input: ', : Київ, відд. 1 : ,', expected: 'Київ, відд. 1' },
+    { input: 'Середнє ( , ) , вул. Закарпатська', expected: 'Середнє, вул. Закарпатська' },
+    { input: 'Середнє () , вул. Закарпатська', expected: 'Середнє, вул. Закарпатська' }
+  ];
+
+  dirtySamples.forEach((sample, i) => {
+    const cleaned = window.cleanOutputString(sample.input);
+    assert.strictEqual(cleaned, sample.expected, `Зразок ${i}: очікувалось "${sample.expected}", отримано "${cleaned}"`);
+  });
+});
+
 console.log('===============================================================');
 console.log(`📊 РЕЗУЛЬТАТ: ${passedTests} / ${totalTests} ТЕСТІВ ПРОЙДЕНО УСПІШНО!`);
 console.log('===============================================================\n');

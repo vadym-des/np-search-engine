@@ -2815,28 +2815,28 @@ mark.hl-match,
 }
 
 .preset-rules-chips {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-}
-
-@media (max-width: 600px) {
-  .preset-rules-chips {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .preset-rule-pill {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
+  padding: 6px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
   background: var(--bg-card);
   cursor: pointer;
   user-select: none;
   transition: all 0.15s ease;
+  box-sizing: border-box;
+  max-width: 100%;
+  flex: 1 1 auto;
 }
 
 .preset-rule-pill:hover {
@@ -3089,6 +3089,13 @@ mark.hl-match,
   background: var(--bg-chip-hover);
   border-color: var(--border-subtle);
   transform: translateY(-1px);
+}
+
+.preset-palette-empty {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 6px;
 }
 
 /* Футер модалки */

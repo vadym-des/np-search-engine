@@ -5,7 +5,7 @@
  */
 
 const CACHE_VERSION = 'v1.6.1';
-const CACHE_NAME = 'np-ukr-cache-v1.6.1';
+const CACHE_NAME = 'np-ukr-cache-v1.6.2';
 
 // Ресурси для попереднього кешування з версіонуванням
 const PRECACHE_ASSETS = [
