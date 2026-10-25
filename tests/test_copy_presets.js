@@ -101,7 +101,7 @@ function runTest(name, fn) {
 const benchmarkBranch = {
   id: 'np-test-cargo',
   service: 'novaposhta',
-  settlementType: 'смт',
+  settlementType: 'селище',
   city: 'Середнє',
   number: '1',
   postalCode: '89432',
@@ -136,8 +136,8 @@ runTest('Дефолтний класичний формат (Кнопка «Ск
   const classicResult = window.formatClassicCopyString(benchmarkBranch);
   assert.strictEqual(
     classicResult,
-    'смт Середнє, Вантажне відділення №1: вул. Закарпатська, 75',
-    `Очікувалось смт Середнє, Вантажне відділення №1: вул. Закарпатська, 75, отримано: "${classicResult}"`
+    'селище Середнє, Вантажне відділення №1: вул. Закарпатська, 75',
+    `Очікувалось селище Середнє, Вантажне відділення №1: вул. Закарпатська, 75, отримано: "${classicResult}"`
   );
 });
 
@@ -186,6 +186,14 @@ runTest('Опція скорочення типів населених пунк�
   };
   const result = window.assembleCopyStringFromPreset(standardBranch, config);
   assert.strictEqual(result, 'м. Київ', `Очікувалось "м. Київ", отримано: "${result}"`);
+
+  // Перевірка тогла смт: при smtShort: true -> "смт Середнє"
+  const smtOnRes = window.assembleCopyStringFromPreset(benchmarkBranch, { tags: ['settlementType', 'city'], options: { smtShort: true } });
+  assert.strictEqual(smtOnRes, 'смт Середнє', `Очікувалось "смт Середнє", отримано: "${smtOnRes}"`);
+
+  // Перевірка тогла смт: при smtShort: false -> "селище Середнє"
+  const smtOffRes = window.assembleCopyStringFromPreset(benchmarkBranch, { tags: ['settlementType', 'city'], options: { smtShort: false } });
+  assert.strictEqual(smtOffRes, 'селище Середнє', `Очікувалось "селище Середнє", отримано: "${smtOffRes}"`);
 });
 
 // 7. Збереження та зчитування налаштувань із LocalStorage
@@ -359,6 +367,8 @@ runTest('Фінальна нормалізація пробілів та ком 
     { input: ', : Київ, відд. 1 : ,', expected: 'Київ, відд. 1' },
     { input: 'Середнє ( , ) , вул. Закарпатська', expected: 'Середнє, вул. Закарпатська' },
     { input: 'Середнє () , вул. Закарпатська', expected: 'Середнє, вул. Закарпатська' },
+    { input: 'смт Середнє, Вантажневідділення №1: вул. Закарпатська, 75', expected: 'смт Середнє, Вантажне відділення №1: вул. Закарпатська, 75' },
+    { input: 'смт Середнє, Вантажне1, Закарпатська, 75', expected: 'смт Середнє, Вантажне 1, Закарпатська, 75' },
     { input: 'смт Середнє, Вантажне 1, - Закарпатська, 75', expected: 'смт Середнє, Вантажне 1, Закарпатська, 75' },
     { input: 'смт Середнє, Вантажне 1, — Закарпатська, 75', expected: 'смт Середнє, Вантажне 1, Закарпатська, 75' },
     { input: 'смт Середнє, Вантажне 1, : Закарпатська, 75', expected: 'смт Середнє, Вантажне 1, Закарпатська, 75' }

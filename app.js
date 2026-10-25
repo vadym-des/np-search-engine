@@ -1329,7 +1329,7 @@
   const BENCHMARK_SAMPLE_BRANCH = {
     id: 'benchmark-sample',
     service: 'novaposhta',
-    settlementType: 'смт',
+    settlementType: 'селище',
     city: 'Середнє',
     number: '1',
     postalCode: '89432',
@@ -1347,9 +1347,10 @@
     if (!str) return '';
     let text = String(str);
     return text
+      .replace(/Вантажневідділення/gi, 'Вантажне відділення')
+      .replace(/(Вантажне|відділення|відд\.|Поштомат)(\d+)/gi, '$1 $2')
       .replace(/\(\s*,\s*\)/g, '')
       .replace(/\(\s*\)/g, '')
-      .replace(/(Вантажне|відділення|відд\.|Поштомат)(\d+)/gi, '$1 $2')
       .replace(/\s*:\s*/g, ': ')
       .replace(/:\s*/g, ': ')
       .replace(/:\s*[-—–]\s*/g, ': ')
@@ -1359,6 +1360,8 @@
       .replace(/,\s*,/g, ', ')
       .replace(/\s*,\s*/g, ', ')
       .replace(/,\s*[-—–:]\s*/g, ', ')
+      .replace(/Вантажневідділення/gi, 'Вантажне відділення')
+      .replace(/(Вантажне|відділення|відд\.|Поштомат)(\d+)/gi, '$1 $2')
       .replace(/\s+/g, ' ')
       .replace(/^\s*[,:\-—–\s]+/g, '')
       .replace(/[,:\-—–\s]+$/g, '')
@@ -1379,8 +1382,7 @@
     let sTypeFull = sType.trim().toLowerCase();
     if (sTypeFull === 'м.' || sTypeFull === 'м' || sTypeFull === 'місто') sTypeFull = 'місто';
     else if (sTypeFull === 'с.' || sTypeFull === 'с' || sTypeFull === 'село') sTypeFull = 'село';
-    else if (sTypeFull.includes('смт')) sTypeFull = 'смт';
-    else if (sTypeFull.includes('сел')) sTypeFull = 'селище';
+    else if (sTypeFull.includes('смт') || sTypeFull.includes('селище') || sTypeFull.includes('сел')) sTypeFull = 'селище';
 
     const isPost = isPostomatBranch(branch);
     const isCarg = isCargoBranch(branch);
@@ -1412,8 +1414,7 @@
     let sTypePrefix = sType.trim().toLowerCase();
     if (sTypePrefix === 'село' || sTypePrefix === 'с' || sTypePrefix === 'с.') sTypePrefix = 'с.';
     else if (sTypePrefix === 'місто' || sTypePrefix === 'м' || sTypePrefix === 'м.') sTypePrefix = 'м.';
-    else if (sTypePrefix === 'смт' || sTypePrefix.includes('селище міського типу')) sTypePrefix = 'смт';
-    else if (sTypePrefix === 'селище' || sTypePrefix === 'сел' || sTypePrefix === 'сел.') sTypePrefix = 'сел.';
+    else if (sTypePrefix.includes('смт') || sTypePrefix.includes('селище') || sTypePrefix.includes('сел')) sTypePrefix = 'смт';
     else if (!sTypePrefix.endsWith('.')) sTypePrefix = sTypePrefix + '.';
 
     let oblast = branch.oblast || '';
@@ -1484,16 +1485,14 @@
 
     let sTypeVal = sType.trim().toLowerCase();
     if (options.smtShort) {
-      if (sTypeVal.includes('смт') || sTypeVal.includes('селище міського типу')) sTypeVal = 'смт';
+      if (sTypeVal.includes('смт') || sTypeVal.includes('селище') || sTypeVal.includes('сел')) sTypeVal = 'смт';
       else if (sTypeVal.includes('село') || sTypeVal === 'с' || sTypeVal === 'с.') sTypeVal = 'с.';
       else if (sTypeVal.includes('міст') || sTypeVal === 'м' || sTypeVal === 'м.') sTypeVal = 'м.';
-      else if (sTypeVal.includes('сел')) sTypeVal = 'сел.';
       else sTypeVal = sTypeVal.endsWith('.') ? sTypeVal : sTypeVal + '.';
     } else {
-      if (sTypeVal.includes('смт') || sTypeVal.includes('селище міського типу')) sTypeVal = 'смт';
+      if (sTypeVal.includes('смт') || sTypeVal.includes('селище') || sTypeVal.includes('сел')) sTypeVal = 'селище';
       else if (sTypeVal.includes('село') || sTypeVal === 'с' || sTypeVal === 'с.') sTypeVal = 'село';
       else if (sTypeVal.includes('міст') || sTypeVal === 'м' || sTypeVal === 'м.') sTypeVal = 'місто';
-      else if (sTypeVal.includes('сел')) sTypeVal = 'селище';
     }
     sTypeVal = sTypeVal.trim();
 
