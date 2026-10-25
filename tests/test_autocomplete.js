@@ -226,7 +226,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 40;
+  let totalTests = 41;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -2574,6 +2574,108 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 40:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 41: Конфлікт автокомпліту та списку відділень при дописуванні номера ("Олександрія ... 5")
+  // --------------------------------------------------------------------------
+  console.log('▶ ТЕСТ 41: Придушення автокомпліту при зафіксованому місті та дописуванні номера ("Олександрія 5" -> Enter/вибір картки)');
+  try {
+    // 1. Вводимо "Олександрія"
+    searchInput.value = 'Олександрія';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(350);
+
+    const suggestions = dropdown.querySelectorAll('.autocomplete-item');
+    if (!suggestions || suggestions.length === 0) {
+      throw new Error('Очікувалися підказки в автокомпліті для "Олександрія"');
+    }
+
+    // Знаходимо підказку міста Олександрія
+    let olekItem = null;
+    for (const item of suggestions) {
+      const text = item.innerHTML;
+      if (text.includes('Олександрія') && text.includes('Кіровоградськ')) {
+        olekItem = item;
+        break;
+      }
+    }
+    if (!olekItem) {
+      throw new Error('Не знайдено підказку "Олександрія" у списку автокомпліту');
+    }
+
+    // Симулюємо вибір міста користувачем
+    olekItem.dispatchEvent({
+      type: 'mousedown',
+      preventDefault: () => {},
+      stopPropagation: () => {}
+    });
+    await sleep(150);
+
+    // Перевіряємо, що поп-ап закрився
+    if (!dropdown.classList.contains('hidden')) {
+      throw new Error('Поп-ап автокомпліту повинен бути закритий після вибору міста');
+    }
+
+    // 2. Дописуємо в кінець номер відділення "5"
+    searchInput.value = searchInput.value + '5';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(150);
+
+    // ПЕРЕВІРКА 1: Попап автокомпліту НЕ повинен вискакувати
+    if (!dropdown.classList.contains('hidden')) {
+      throw new Error('ПОМИЛКА UX: Поп-ап автокомпліту вискочив при дописуванні номера відділення "5" до зафіксованого міста!');
+    }
+
+    // ПЕРЕВІРКА 2: Живий фільтр підняв шукане відділення #5 (або ізолював його)
+    const resultsContainer = elementsById['resultsList'];
+    let html5 = resultsContainer ? resultsContainer.innerHTML : '';
+    if (!html5.includes('Святомиколаївська') || !html5.includes('5')) {
+      throw new Error(`Очікувалось відділення №5 (Святомиколаївська) для Олександрії, отримано: ${html5}`);
+    }
+
+    // 3. Швидке уточнення номера: змінюємо 5 на 2
+    searchInput.value = searchInput.value.slice(0, -1) + '2';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(150);
+
+    // Попап як і раніше НЕ повинен з'являтися
+    if (!dropdown.classList.contains('hidden')) {
+      throw new Error('ПОМИЛКА UX: Поп-ап автокомпліту вискочив при зміні номера на "2"!');
+    }
+
+    let html2 = resultsContainer ? resultsContainer.innerHTML : '';
+    if (!html2.includes('Соборний') || !html2.includes('2')) {
+      throw new Error(`Очікувалось відділення №2 (просп. Соборний) для Олександрії, отримано: ${html2}`);
+    }
+
+    // 4. Натискання клавіші Enter
+    searchInput.focus();
+    searchInput.dispatchEvent({ type: 'keydown', key: 'Enter', preventDefault: () => {} });
+    await sleep(100);
+
+    // Інпут завершив редагування (blur), попап ховається
+    if (!dropdown.classList.contains('hidden')) {
+      throw new Error('Поп-ап повинен бути закритий після натискання Enter');
+    }
+    if (searchInput.isFocused) {
+      throw new Error('Поле вводу повинно завершити редагування (blur) після натискання Enter');
+    }
+
+    // На екрані показується одиночна головна картка обраного відділення
+    const selectedContainer = resultsContainer.querySelector('.selected-branch-container');
+    if (!selectedContainer) {
+      throw new Error('Очікувався контейнер .selected-branch-container для одиночної картки після Enter');
+    }
+    const countText = elementsById['resultsCount'] ? elementsById['resultsCount'].textContent : '';
+    if (!countText.includes('1 обране відділення')) {
+      throw new Error(`Очікувався статус "1 обране відділення", отримано: "${countText}"`);
+    }
+
+    console.log('  ✓ Успіх: Попап надійно придушено при зафіксованому місті, живий фільтр миттєво підхоплює зміну номера (5 -> 2), а Enter завершує введення (blur) та ізолює картку!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 41:', err.message, '\n');
   }
 
   console.log('===============================================================');

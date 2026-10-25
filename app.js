@@ -756,7 +756,7 @@
     }
 
     state.currentResults = results;
-    if (results.length === 1) {
+    if (results.length === 1 || (isExplicitSubmit && results.length > 0 && (parsed.targetBranchNumber || /\d/.test(rawQuery)))) {
       state.selectedBranch = results[0];
     } else {
       state.selectedBranch = null;
@@ -2884,8 +2884,28 @@
         activeAutocompleteAbortController.abort();
       }
       closeAutocomplete();
+      if (dom.searchInput) {
+        dom.searchInput.blur();
+      }
       executeSearch(dom.searchInput.value, true, true);
     });
+
+    function hasFixedSettlementContext(query) {
+      if (state.selectedSettlement) {
+        const sLower = state.selectedSettlement.cleanName.toLowerCase();
+        if (query && query.toLowerCase().startsWith(sLower)) {
+          return true;
+        }
+      }
+      if (!query || query.length < 3) return false;
+      if (window.SmartSearchEngine && window.SmartSearchEngine.extractFacets) {
+        const facets = window.SmartSearchEngine.extractFacets(query);
+        if (facets && facets.city && (facets.oblast || facets.raion)) {
+          return true;
+        }
+      }
+      return false;
+    }
 
     function triggerAutocomplete(val) {
       if (!val || val.length < 2) {
@@ -2922,6 +2942,10 @@
         if (state.selectedBranch && state.currentResults.length === 1 && val === state.searchQuery) {
           return;
         }
+        // Якщо населений пункт уже зафіксовано (або введено повний геоконтекст), не вибиваємо поп-ап міст при фокусі/кліку
+        if (hasFixedSettlementContext(val)) {
+          return;
+        }
         triggerAutocomplete(val);
       }
     };
@@ -2955,21 +2979,37 @@
       clearTimeout(liveSearchDebounceTimer);
 
       if (val.length >= 2) {
-        // Миттєвий показ підказок автокомпліту при введенні (дебаунс 120мс)
-        autocompleteDebounceTimer = setTimeout(() => {
-          if (currentSignal.aborted) return;
-          triggerAutocomplete(val);
-        }, 120);
+        const isFixedSettlement = hasFixedSettlementContext(val);
 
-        if (/\d/.test(val)) {
-          // Якщо в запиті є цифра (напр. "Озерянка 1", "Київ 100"), паралельно оновлюємо результати
+        if (isFixedSettlement) {
+          // 1. Придушення попапу, коли населений пункт уже зафіксовано:
+          // При дописуванні числа або швидкому уточненні номера (напр. "Олександрія ... 5", "Олександрія 2")
+          // спливаючий дропдаун автокомпліту під інпутом НЕ відкривається і миттєво ховається
+          closeAutocomplete();
+
+          // 2. Живий фільтр основного списку карток (миттєве оновлення картки без смикання зайвих попапів)
           liveSearchDebounceTimer = setTimeout(() => {
             if (!currentSignal.aborted) {
               executeSearch(val, false, false); // isExplicitSubmit = false
             }
-          }, 250);
+          }, 60);
         } else {
-          dom.searchResultsSection.classList.add('hidden');
+          // Звичайний режим вводу міста з клавіатури: показ підказок автокомпліту (дебаунс 120мс)
+          autocompleteDebounceTimer = setTimeout(() => {
+            if (currentSignal.aborted) return;
+            triggerAutocomplete(val);
+          }, 120);
+
+          if (/\d/.test(val)) {
+            // Якщо в запиті є цифра (напр. "Озерянка 1", "Київ 100"), паралельно оновлюємо результати
+            liveSearchDebounceTimer = setTimeout(() => {
+              if (!currentSignal.aborted) {
+                executeSearch(val, false, false); // isExplicitSubmit = false
+              }
+            }, 250);
+          } else {
+            dom.searchResultsSection.classList.add('hidden');
+          }
         }
       } else {
         closeAutocomplete();
@@ -2984,6 +3024,9 @@
       if (!dom.autocompleteDropdown || dom.autocompleteDropdown.classList.contains('hidden') || autocompleteItems.length === 0) {
         if (e.key === 'Escape') {
           closeAutocomplete();
+        } else if (e.key === 'Enter') {
+          closeAutocomplete();
+          if (dom.searchInput) dom.searchInput.blur();
         }
         return;
       }
@@ -3007,6 +3050,10 @@
         if (activeAutocompleteIndex >= 0 && activeAutocompleteIndex < autocompleteItems.length) {
           e.preventDefault();
           selectAutocompleteItem(autocompleteItems[activeAutocompleteIndex]);
+          if (dom.searchInput) dom.searchInput.blur();
+        } else {
+          closeAutocomplete();
+          if (dom.searchInput) dom.searchInput.blur();
         }
       } else if (e.key === 'Escape') {
         e.preventDefault();
