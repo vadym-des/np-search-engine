@@ -538,6 +538,9 @@
     if (/(?:вантажне|вантажний|вантаж)/i.test(rawQuery)) {
       state.typeFilter = 'cargo';
       updateTypeFilterUI();
+    } else if (/(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)/i.test(rawQuery)) {
+      state.typeFilter = 'postomat';
+      updateTypeFilterUI();
     } else if (/(?:відділення|відділ|вд|склад)/i.test(rawQuery)) {
       state.typeFilter = 'all';
       updateTypeFilterUI();
@@ -584,7 +587,10 @@
 
     // Перевіряємо, чи є впевнений збіг у статичній базі
     if (staticMatches.length > 0) {
-      if (parsed.targetBranchNumber) {
+      const isPostomatSearch = parsed.isPostomat || state.typeFilter === 'postomat' || /(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)/i.test(rawQuery);
+      const isHouseNumberNotBranch = isPostomatSearch && parsed.targetBranchNumber && parseInt(parsed.targetBranchNumber, 10) < 1000;
+
+      if (parsed.targetBranchNumber && !isHouseNumberNotBranch) {
         // Якщо шукали конкретний номер, залишаємо відділення саме з цим номером (відсікаючи номери будинків з адреси)
         let exactMatches = staticMatches.filter(b => (b.number && b.number.toString() === parsed.targetBranchNumber.toString()) || (b.postalCode && b.postalCode.toString() === parsed.targetBranchNumber.toString()));
 

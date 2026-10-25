@@ -1258,9 +1258,14 @@
     // 2.1. Пріоритет: Явне зазначення відділення або поштомату
     const explicitBranchMatch = corrected.match(/(?:поштомат|поштомата|поштомати|почтомат|пошт|п\/м|пм|відділення|віділення|відділ|№|#)\s*(?:№|#)?\s*(\b\d{1,6}\b)/iu);
     if (explicitBranchMatch) {
-      targetBranchNumber = explicitBranchMatch[1];
-      if (parseInt(targetBranchNumber, 10) >= 1000 || isPostomatKeyword(corrected)) {
-        isPostomat = true;
+      const candNum = explicitBranchMatch[1];
+      if (isPostomatKeyword(explicitBranchMatch[0]) && parseInt(candNum, 10) < 1000) {
+        // Поштоматів з номером < 1000 не існує; це номер будинку або адреси
+      } else {
+        targetBranchNumber = candNum;
+        if (parseInt(targetBranchNumber, 10) >= 1000 || isPostomatKeyword(corrected)) {
+          isPostomat = true;
+        }
       }
     }
 
@@ -1273,9 +1278,9 @@
       }
     }
 
-    // 2.3. Якщо є слово поштомат і є 3-6 значне число
+    // 2.3. Якщо є слово поштомат і є 3-6 значне число (поштомати від 1000)
     if (!targetBranchNumber && isPostomat) {
-      const anyPostomatNum = corrected.match(/\b\d{3,6}\b/);
+      const anyPostomatNum = corrected.match(/\b\d{4,6}\b/);
       if (anyPostomatNum) {
         targetBranchNumber = anyPostomatNum[0];
       }
@@ -1299,9 +1304,13 @@
       const standaloneNum = corrected.match(/\b\d{1,6}\b/);
       if (standaloneNum) {
         if (!postalCode || standaloneNum[0] !== postalCode) {
-          targetBranchNumber = standaloneNum[0];
-          if (parseInt(targetBranchNumber, 10) >= 1000) {
-            isPostomat = true;
+          const numVal = parseInt(standaloneNum[0], 10);
+          // Якщо запит на поштомат і число < 1000 — це номер будинку на вулиці, а не номер поштомату!
+          if (!isPostomat || numVal >= 1000) {
+            targetBranchNumber = standaloneNum[0];
+            if (numVal >= 1000) {
+              isPostomat = true;
+            }
           }
         }
       }
@@ -1371,9 +1380,12 @@
     if (!targetBranchNumber) {
       const numTok = norm.tokens.find(t => /^\d{1,6}$/.test(t));
       if (numTok && (!postalCode || numTok !== postalCode)) {
-        targetBranchNumber = numTok;
-        if (parseInt(targetBranchNumber, 10) >= 1000) {
-          isPostomat = true;
+        const numVal = parseInt(numTok, 10);
+        if (!isPostomat || numVal >= 1000) {
+          targetBranchNumber = numTok;
+          if (numVal >= 1000) {
+            isPostomat = true;
+          }
         }
       }
     }
@@ -2316,15 +2328,26 @@
 
     // 1. Номер відділення або поштомату
     let number = null;
+    const isPostomatQuery = isPostomatKeyword(text);
     const explicitBranchMatch = text.match(/(?:поштомат|поштомата|поштомати|почтомат|пошт|п\/м|пм|відділення|віділення|відділ|№|#)\s*(?:№|#)?\s*(\b\d{1,6}\b)/iu);
     if (explicitBranchMatch) {
-      number = explicitBranchMatch[1];
-      text = text.replace(explicitBranchMatch[0], ' ');
+      const cand = explicitBranchMatch[1];
+      if (isPostomatKeyword(explicitBranchMatch[0]) && parseInt(cand, 10) < 1000) {
+        // Число після слова поштомат < 1000 — це номер будинку, не номер поштомату
+      } else {
+        number = cand;
+        text = text.replace(explicitBranchMatch[0], ' ');
+      }
     } else {
       const numMatch = text.match(/\b\d{1,6}\b/);
       if (numMatch) {
-        number = numMatch[0];
-        text = text.replace(numMatch[0], ' ');
+        const cand = numMatch[0];
+        const val = parseInt(cand, 10);
+        // Якщо це запит на поштомат і число < 1000 — це номер будинку або адреси, залишаємо його для вулиці!
+        if (!isPostomatQuery || val >= 1000) {
+          number = cand;
+          text = text.replace(numMatch[0], ' ');
+        }
       }
     }
 
@@ -2814,8 +2837,8 @@
         if (isCargo) score += 800;
         else score -= 1500;
       } else if (hasPostomatKeyword) {
-        if (isPostomat) score += 150;
-        else score -= 1000;
+        if (isPostomat) score += 2000;
+        else score -= 30000;
       } else if (hasBranchKeyword) {
         if (!isPostomat) score += 150;
         else score -= 1000;
@@ -2827,7 +2850,8 @@
       if (streetBuildingNum && bStreet) {
         const hasBuilding = new RegExp('(?:^|[^\\d])' + streetBuildingNum + '(?:[^\\d]|$)', 'u').test(bStreet);
         if (hasBuilding) {
-          score += 12000;
+          // Абсолютний пріоритет збігу за назвою вулиці + номером будинку серед об'єктів типу «поштомат»
+          score += isPostomat ? 35000 : 5000;
         }
       }
 
@@ -2858,6 +2882,11 @@
       if (hasExplicitNumber) {
         for (let t = 0; t < numTokens.length; t++) {
           const numTok = numTokens[t];
+          // Якщо в запиті є маркер поштомату, а це число є номером будинку після вулиці (напр. 46 у "михайлова 46"):
+          // Звичайне відділення не повинно матчитися за цим номером!
+          if (streetBuildingNum && numTok === streetBuildingNum && hasPostomatKeyword && !isPostomat) {
+            continue;
+          }
           const isLongNum = numTok.length >= 4 && numTok.length <= 5;
           const is5Digit = numTok.length === 5;
           const isStrictTarget = Boolean(strictTargetNumber && numTok === strictTargetNumber && hasStrictWarehouseInPool);
