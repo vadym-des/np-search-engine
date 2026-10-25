@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.3.8';
+  const APP_VERSION = '1.3.9';
 
   // ==========================================================================
   // СТАН ДОДАТКУ (STATE)
@@ -775,14 +775,21 @@
       }
     }
 
-    const oblClean = (oblast || '').replace(/\s*область$/i, '').trim();
-    const raionClean = (raion || '').replace(/\s*район$/i, '').trim();
+    let oblClean = (oblast || '').replace(/\s*(?:область|обл\.?)$/i, '').trim();
+    let raionClean = (raion || '').replace(/\s*(?:район|р-н|міськрада|громада)$/i, '').trim();
+    if (/ська$/i.test(raionClean)) {
+      raionClean = raionClean.replace(/ська$/i, 'ський');
+    } else if (/цька$/i.test(raionClean)) {
+      raionClean = raionClean.replace(/цька$/i, 'цький');
+    } else if (/зька$/i.test(raionClean)) {
+      raionClean = raionClean.replace(/зька$/i, 'зький');
+    }
 
     const parts = [];
-    if (raionClean) parts.push(`${raionClean} район`);
-    if (oblClean) parts.push(`${oblClean} область`);
+    if (raionClean) parts.push(`${raionClean} р-н`);
+    if (oblClean) parts.push(`${oblClean} обл.`);
 
-    return parts.length > 0 ? parts.join(', ') : 'Україна';
+    return parts.length > 0 ? parts.join(', ') : '';
   }
 
   // Уніфікована перевірка поштомату (без урахування регістру) за всіма можливими полями
@@ -2487,9 +2494,9 @@
     if (isSettlement) {
       const settlement = item.settlementObj || item;
       const sName = (settlement.name || settlement.cleanName || item.title || item.value || '').replace(/^(?:місто|селище міського типу|смт|селище|село)\s+/i, '').trim();
-      const sOblast = (settlement.oblast || '').replace(/\s*(?:область|обл\.?)$/i, '').trim();
       const sRaion = (settlement.raion || '').replace(/\s*(?:район|р-н)$/i, '').trim();
-      fill = `${sName} ${sOblast} ${sRaion} `.replace(/\s+/g, ' ');
+      const sOblast = (settlement.oblast || '').replace(/\s*(?:область|обл\.?)$/i, '').trim();
+      fill = `${sName} ${sRaion} ${sOblast} `.replace(/\s+/g, ' ');
     }
 
     if (isSettlement && !fill.endsWith(' ')) {

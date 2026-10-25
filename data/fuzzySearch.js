@@ -1519,7 +1519,7 @@
       const normObj = { ...s, name: cleanName, cleanName, type: badgeType };
       const sOblast = (s.oblast || '').replace(/\s*(?:область|обл\.?)$/i, '').trim();
       const sRaion = (s.raion || '').replace(/\s*(?:район|р-н)$/i, '').trim();
-      const fullGeoText = `${cleanName} ${sOblast} ${sRaion} `.replace(/\s+/g, ' ');
+      const fullGeoText = `${cleanName} ${sRaion} ${sOblast} `.replace(/\s+/g, ' ');
 
       suggestions.push({
         mode: 'city',
