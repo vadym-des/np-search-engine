@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.4.9">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.5.0">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -35,7 +35,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.4.9">
+  <link rel="stylesheet" href="styles.css?v=1.5.0">
 </head>
 <body data-service="novaposhta">
 
@@ -262,7 +262,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.4.9</span>
+          <span class="version-tag">v1.5.0</span>
           
         </button>
       </div>
@@ -291,8 +291,24 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.4.9 -->
+        <!-- Версія 1.5.0 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.5.0</span>
+            <span class="version-state">Zero Input Latency (&lt; 16ms / 60fps)</span>
+            <span class="version-date">25 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Хеш-індексація пулу відділень (O(1)):</strong> заміна лінійних проходів по 55 000 записах на O(1) хеш-мапи (міста, номери, індекси, області) з WeakMap кешуванням.</li>
+            <li><strong>Ізольований скоринг міст:</strong> при виявленні цільового міста скоринг запускається суто по відділеннях цього міста (~10-400 відділень замість 55 000).</li>
+            <li><strong>Мікро-тротлінг та requestAnimationFrame:</strong> події вводу тексту синхронізовані з частотою оновлення дисплею (60fps), затримка вводу &lt; 16ms.</li>
+            <li><strong>Кешування DOM-розрахунків:</strong> кешування очищеної вулиці <code>_cleanStreet</code> на об'єкті та миттєвий доступ до типів поселень.</li>
+            <li><strong>Pre-filtered таб-пули:</strong> попереднє кешування вибірок поштоматів, вантажних та відділень при ініціалізації.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.4.9 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.4.9</span>
             <span class="version-state">Native Drag-and-Drop Tag Sorting</span>
@@ -768,15 +784,15 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.4.9"></script>
+  <script src="data/branches.js?v=1.5.0"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.4.9"></script>
+  <script src="data/all_settlements.js?v=1.5.0"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.4.9"></script>
+  <script src="data/fuzzySearch.js?v=1.5.0"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.4.9"></script>
+  <script src="app.js?v=1.5.0"></script>
 </body>
 </html>

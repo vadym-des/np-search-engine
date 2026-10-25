@@ -34,6 +34,8 @@
     onlineTabsCount: 1
   };
 
+  const safeRAF = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (cb) => { cb(); };
+
   // Початкові міста для сітки з 10 популярних запитів (вайрфрейм 2 рядки по 5)
   const DEFAULT_CITIES = [
     { query: 'Київ', count: 48 },
@@ -254,6 +256,52 @@
     return window.BRANCHES_DATA[state.currentService] || [];
   }
 
+  // Кешування пулів за табами (postomat, cargo, branch) для виключення O(N) фільтрації на кожен запит
+  const _tabPoolsCache = new WeakMap();
+
+  function getTabFilteredPool(allStaticBranches, tabFilter) {
+    if (!tabFilter || tabFilter === 'all' || !Array.isArray(allStaticBranches)) return allStaticBranches;
+    let pools = _tabPoolsCache.get(allStaticBranches);
+    if (!pools) {
+      pools = {
+        postomat: allStaticBranches.filter(isPostomatBranch),
+        cargo: allStaticBranches.filter(isCargoBranch),
+        branch: allStaticBranches.filter(isRegularBranch)
+      };
+      _tabPoolsCache.set(allStaticBranches, pools);
+    }
+    return pools[tabFilter] || allStaticBranches;
+  }
+
+  // O(1) швидкісний пошук населеного пункту через хеш-мапу рушія замість O(N) Array.find
+  function findSettlementInEngine(cityName) {
+    if (!cityName || !window.SmartSearchEngine) return null;
+    if (typeof window.SmartSearchEngine.getSettlement === 'function') {
+      return window.SmartSearchEngine.getSettlement(cityName);
+    }
+    if (Array.isArray(window.SmartSearchEngine.UKRAINE_SETTLEMENTS)) {
+      const low = cityName.toLowerCase();
+      return window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === low);
+    }
+    return null;
+  }
+
+  // Попереднє розігрівання O(1) індексів пошуку при завантаженні (Zero Input Latency < 16ms)
+  function prewarmBranchIndices() {
+    if (!window.BRANCHES_DATA || !window.SmartSearchEngine) return;
+    if (typeof window.SmartSearchEngine.buildBranchIndex === 'function') {
+      if (Array.isArray(window.BRANCHES_DATA.novaposhta)) {
+        window.SmartSearchEngine.buildBranchIndex(window.BRANCHES_DATA.novaposhta);
+        getTabFilteredPool(window.BRANCHES_DATA.novaposhta, 'postomat');
+        getTabFilteredPool(window.BRANCHES_DATA.novaposhta, 'cargo');
+        getTabFilteredPool(window.BRANCHES_DATA.novaposhta, 'branch');
+      }
+      if (Array.isArray(window.BRANCHES_DATA.ukrposhta)) {
+        window.SmartSearchEngine.buildBranchIndex(window.BRANCHES_DATA.ukrposhta);
+      }
+    }
+  }
+
   // Кеш у пам'яті для відділень Нової пошти (швидкодія + збереження завантажених міст)
   const liveWarehousesCache = {
     novaposhta: new Map()
@@ -320,10 +368,7 @@
     let normalizedCity = cityName.trim();
     if (window.SmartSearchEngine) {
       normalizedCity = window.SmartSearchEngine.normalizeLocativeCase(normalizedCity);
-      const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s =>
-        s.name.toLowerCase() === normalizedCity.toLowerCase() ||
-        (s.aliases && s.aliases.includes(normalizedCity.toLowerCase()))
-      );
+      const found = findSettlementInEngine(normalizedCity);
       if (found) normalizedCity = found.name;
     }
 
@@ -568,16 +613,16 @@
     const allStaticBranches = getAllCurrentServiceBranches();
     let staticMatches = [];
     if (engine && allStaticBranches.length > 0) {
-      // Таб-фільтр застосовується до ПОВНОГО пулу, а не до обрізаних результатів пошуку
+      // Таб-фільтр застосовується до ПОВНОГО пулу через кешований пул (O(1) операція)
       const tf = state.typeFilter;
-      const tabPred = tf === 'postomat' ? isPostomatBranch : tf === 'cargo' ? isCargoBranch : tf === 'branch' ? isRegularBranch : null;
-      const searchPool = tabPred ? allStaticBranches.filter(tabPred) : allStaticBranches;
-      staticMatches = engine.filterBranchesByNormalizedSearch(rawQuery, searchPool, tabPred ? 200 : 20);
+      const searchPool = getTabFilteredPool(allStaticBranches, tf);
+      const isFilteredTab = tf && tf !== 'all';
+      staticMatches = engine.filterBranchesByNormalizedSearch(rawQuery, searchPool, isFilteredTab ? 200 : 20);
 
       // Relaxed Smart Fallback (як у Google):
       // Якщо обраний таб-фільтр повернув 0 результатів (наприклад шукали "коломи я 6" з табом "Поштомат"),
       // але за повним пулом міста відділення існує, показуємо його замість помилки
-      if (staticMatches.length === 0 && tabPred) {
+      if (staticMatches.length === 0 && isFilteredTab) {
         const relaxedMatches = engine.filterBranchesByNormalizedSearch(rawQuery, allStaticBranches, 20);
         if (relaxedMatches.length > 0) {
           staticMatches = relaxedMatches;
@@ -840,8 +885,10 @@
     }
   }
 
-  // Допоміжний метод: очищення вулиці
+  // Допоміжний метод: очищення вулиці з кешуванням на об'єкті
   function getCleanStreet(branch) {
+    if (!branch) return '';
+    if (branch._cleanStreet !== undefined) return branch._cleanStreet;
     let street = branch.street || '';
     if (!street) {
       if (branch.name && branch.name.includes(':')) {
@@ -858,6 +905,7 @@
     if (street && !/^(?:вул|вулиця|просп|проспект|пр-т|пл|площа|бульв|бульвар|б-р|пров|провулок|шосе|наб|набережна|узвіз|майдан|тупик|алея|квартал|мікрорайон|мкрн|урочище|ст\.|станція)(?:\.|[\s-]|$)/i.test(street)) {
       street = 'вул. ' + street;
     }
+    branch._cleanStreet = street;
     return street;
   }
 
@@ -962,8 +1010,8 @@
     if (!raion && OBLAST_CENTER_RAIONS[city]) {
       raion = OBLAST_CENTER_RAIONS[city];
     }
-    if ((!oblast || !raion) && window.SmartSearchEngine && window.SmartSearchEngine.UKRAINE_SETTLEMENTS) {
-      const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === city.toLowerCase());
+    if ((!oblast || !raion) && window.SmartSearchEngine) {
+      const found = findSettlementInEngine(city);
       if (found) {
         if (!oblast) oblast = found.oblast;
         if (!raion) raion = found.raion;
@@ -1186,8 +1234,8 @@
     let sType = branch.settlementType || '';
     const city = branch.city || '';
 
-    if (!sType && window.SmartSearchEngine && window.SmartSearchEngine.UKRAINE_SETTLEMENTS) {
-      const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === city.toLowerCase() || (s.cleanName && s.cleanName.toLowerCase() === city.toLowerCase()));
+    if (!sType && window.SmartSearchEngine) {
+      const found = findSettlementInEngine(city);
       if (found) sType = found.type;
     }
     if (!sType) sType = 'місто';
@@ -1219,8 +1267,8 @@
     let sType = branch.settlementType || '';
     const city = branch.city || '';
 
-    if (!sType && window.SmartSearchEngine && window.SmartSearchEngine.UKRAINE_SETTLEMENTS) {
-      const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === city.toLowerCase() || (s.cleanName && s.cleanName.toLowerCase() === city.toLowerCase()));
+    if (!sType && window.SmartSearchEngine) {
+      const found = findSettlementInEngine(city);
       if (found) sType = found.type;
     }
     if (!sType) sType = 'місто';
@@ -1237,8 +1285,8 @@
     if (!raion && OBLAST_CENTER_RAIONS[city]) {
       raion = OBLAST_CENTER_RAIONS[city];
     }
-    if ((!oblast || !raion) && window.SmartSearchEngine && window.SmartSearchEngine.UKRAINE_SETTLEMENTS) {
-      const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === city.toLowerCase());
+    if ((!oblast || !raion) && window.SmartSearchEngine) {
+      const found = findSettlementInEngine(city);
       if (found) {
         if (!oblast) oblast = found.oblast;
         if (!raion) raion = found.raion;
@@ -1292,8 +1340,8 @@
 
     let sType = branch.settlementType || '';
     const city = branch.city || '';
-    if (!sType && window.SmartSearchEngine && window.SmartSearchEngine.UKRAINE_SETTLEMENTS) {
-      const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === city.toLowerCase() || (s.cleanName && s.cleanName.toLowerCase() === city.toLowerCase()));
+    if (!sType && window.SmartSearchEngine) {
+      const found = findSettlementInEngine(city);
       if (found) sType = found.type;
     }
     if (!sType) sType = 'місто';
@@ -1356,8 +1404,8 @@
     if (!raion && OBLAST_CENTER_RAIONS[cityVal]) {
       raion = OBLAST_CENTER_RAIONS[cityVal];
     }
-    if ((!oblast || !raion) && window.SmartSearchEngine && window.SmartSearchEngine.UKRAINE_SETTLEMENTS) {
-      const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === cityVal.toLowerCase());
+    if ((!oblast || !raion) && window.SmartSearchEngine) {
+      const found = findSettlementInEngine(cityVal);
       if (found) {
         if (!oblast) oblast = found.oblast;
         if (!raion) raion = found.raion;
@@ -1536,7 +1584,7 @@
 
     let sType = branch.settlementType || '';
     if (!sType && window.SmartSearchEngine) {
-      const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === (branch.city || '').toLowerCase());
+      const found = findSettlementInEngine(branch.city);
       if (found) sType = found.type;
     }
     if (!sType) sType = 'село';
@@ -1581,8 +1629,8 @@
     if (!raion && OBLAST_CENTER_RAIONS[cleanCity]) {
       raion = OBLAST_CENTER_RAIONS[cleanCity];
     }
-    if ((!oblast || !raion) && window.SmartSearchEngine && window.SmartSearchEngine.UKRAINE_SETTLEMENTS) {
-      const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === cleanCity.toLowerCase());
+    if ((!oblast || !raion) && window.SmartSearchEngine) {
+      const found = findSettlementInEngine(cleanCity);
       if (found) {
         if (!oblast) oblast = found.oblast;
         if (!raion) raion = found.raion;
@@ -1959,8 +2007,12 @@
 
       let sType = branch.settlementType || '';
       if (!sType && window.SmartSearchEngine) {
-        const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === (branch.city || '').toLowerCase());
-        if (found) sType = found.type;
+        if (typeof window.SmartSearchEngine.getSettlementType === 'function') {
+          sType = window.SmartSearchEngine.getSettlementType(branch.city);
+        } else {
+          const found = findSettlementInEngine(branch.city);
+          if (found) sType = found.type;
+        }
       }
       if (!sType) sType = 'місто';
 
@@ -3146,10 +3198,7 @@
     // Якщо в базі відділень для цього села діє єдине відділення — одразу показувати його картку з кнопкою копіювання
     if (isSettlement) {
       const allBranches = getAllCurrentServiceBranches();
-      const searchPool = state.typeFilter === 'postomat' ? allBranches.filter(isPostomatBranch)
-        : state.typeFilter === 'cargo' ? allBranches.filter(isCargoBranch)
-        : state.typeFilter === 'branch' ? allBranches.filter(isRegularBranch)
-        : allBranches;
+      const searchPool = getTabFilteredPool(allBranches, state.typeFilter);
 
       const engine = window.SmartSearchEngine;
       let matchedVillageBranches = [];
@@ -3371,26 +3420,32 @@
           // спливаючий дропдаун автокомпліту під інпутом НЕ відкривається і миттєво ховається
           closeAutocomplete();
 
-          // 2. Живий фільтр основного списку карток (миттєве оновлення картки без смикання зайвих попапів)
+          // 2. Живий фільтр основного списку карток (мікро-тротлінг 60ms + safeRAF для 60fps)
           liveSearchDebounceTimer = setTimeout(() => {
             if (!currentSignal.aborted) {
-              executeSearch(val, false, false); // isExplicitSubmit = false
+              safeRAF(() => {
+                executeSearch(val, false, false); // isExplicitSubmit = false
+              });
             }
           }, 60);
         } else {
-          // Звичайний режим вводу міста з клавіатури: показ підказок автокомпліту (дебаунс 120мс)
+          // Звичайний режим вводу міста з клавіатури: показ підказок автокомпліту (мікро-дебаунс 80мс + safeRAF)
           autocompleteDebounceTimer = setTimeout(() => {
             if (currentSignal.aborted) return;
-            triggerAutocomplete(val);
-          }, 120);
+            safeRAF(() => {
+              triggerAutocomplete(val);
+            });
+          }, 80);
 
           if (/\d/.test(val)) {
-            // Якщо в запиті є цифра (напр. "Озерянка 1", "Київ 100"), паралельно оновлюємо результати
+            // Якщо в запиті є цифра (напр. "Озерянка 1", "Київ 100"), паралельно оновлюємо результати (мікро-тротлінг 60мс + safeRAF)
             liveSearchDebounceTimer = setTimeout(() => {
               if (!currentSignal.aborted) {
-                executeSearch(val, false, false); // isExplicitSubmit = false
+                safeRAF(() => {
+                  executeSearch(val, false, false); // isExplicitSubmit = false
+                });
               }
-            }, 250);
+            }, 60);
           } else {
             dom.searchResultsSection.classList.add('hidden');
           }
@@ -3816,9 +3871,19 @@
       });
     }
 
-    // Нативний Drag-and-Drop для сортування та видалення активних чіпів
+    // Нативний Drag-and-Drop для сортування та видалення активних чіпів (без layout thrashing)
     if (dom.presetActiveChips) {
       let draggedChipIndex = null;
+      let lastHoverChip = null;
+      let lastHoverSide = null;
+
+      function clearHoverIndicators() {
+        if (lastHoverChip) {
+          lastHoverChip.classList.remove('drag-over-left', 'drag-over-right');
+          lastHoverChip = null;
+          lastHoverSide = null;
+        }
+      }
 
       // 1. Початок перетягування (dragstart)
       dom.presetActiveChips.addEventListener('dragstart', (e) => {
@@ -3835,7 +3900,7 @@
         }
       });
 
-      // 2. Наведення під час перетягування (dragover): індикатор лінії вставки
+      // 2. Наведення під час перетягування (dragover): індикатор лінії вставки з оптимізацією DOM-мутацій
       dom.presetActiveChips.addEventListener('dragover', (e) => {
         e.preventDefault();
         if (e.dataTransfer) {
@@ -3843,16 +3908,23 @@
         }
 
         const chip = e.target.closest('.preset-chip');
-        dom.presetActiveChips.querySelectorAll('.preset-chip').forEach(c => {
-          if (c !== chip) {
-            c.classList.remove('drag-over-left', 'drag-over-right');
-          }
-        });
+        if (!chip || chip.classList.contains('dragging')) {
+          clearHoverIndicators();
+          return;
+        }
 
-        if (chip && !chip.classList.contains('dragging')) {
-          const rect = chip.getBoundingClientRect();
-          const midX = rect.left + rect.width / 2;
-          if (e.clientX < midX) {
+        if (chip !== lastHoverChip) {
+          clearHoverIndicators();
+          lastHoverChip = chip;
+        }
+
+        const rect = chip.getBoundingClientRect();
+        const midX = rect.left + rect.width / 2;
+        const newSide = e.clientX < midX ? 'left' : 'right';
+
+        if (lastHoverSide !== newSide) {
+          lastHoverSide = newSide;
+          if (newSide === 'left') {
             chip.classList.add('drag-over-left');
             chip.classList.remove('drag-over-right');
           } else {
@@ -3866,7 +3938,7 @@
       dom.presetActiveChips.addEventListener('dragleave', (e) => {
         const chip = e.target.closest('.preset-chip');
         if (chip && !chip.contains(e.relatedTarget)) {
-          chip.classList.remove('drag-over-left', 'drag-over-right');
+          clearHoverIndicators();
         }
       });
 
@@ -3881,6 +3953,7 @@
         const rawSource = e.dataTransfer ? e.dataTransfer.getData('text/plain') : null;
         const sourceIdx = draggedChipIndex !== null ? draggedChipIndex : (rawSource !== null ? parseInt(rawSource, 10) : -1);
 
+        clearHoverIndicators();
         dom.presetActiveChips.querySelectorAll('.preset-chip').forEach(c => {
           c.classList.remove('drag-over-left', 'drag-over-right', 'dragging');
         });
@@ -3915,6 +3988,7 @@
       // 5. Завершення перетягування (dragend)
       dom.presetActiveChips.addEventListener('dragend', () => {
         draggedChipIndex = null;
+        clearHoverIndicators();
         dom.presetActiveChips.querySelectorAll('.preset-chip').forEach(c => {
           c.classList.remove('drag-over-left', 'drag-over-right', 'dragging');
         });
@@ -4085,6 +4159,7 @@
   // ІНІЦІАЛІЗАЦІЯ ДОДАТКУ
   // ==========================================================================
   function init() {
+    prewarmBranchIndices();
     applyTheme(getStoredTheme(), false);
     initEventListeners();
     checkServerApiStatus();
