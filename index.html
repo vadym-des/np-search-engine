@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.4.4">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.4.5">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -35,7 +35,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.4.4">
+  <link rel="stylesheet" href="styles.css?v=1.4.5">
 </head>
 <body data-service="novaposhta">
 
@@ -254,7 +254,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.4.4</span>
+          <span class="version-tag">v1.4.5</span>
           
         </button>
       </div>
@@ -283,8 +283,22 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.4.4 -->
+        <!-- Версія 1.4.5 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.4.5</span>
+            <span class="version-state">High-Contrast Geo Context & Typography Refinement</span>
+            <span class="version-date">25 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Підвищення контрасту геоконтексту:</strong> текст у дужках <code>(Район р-н, Область обл.)</code> у темній темі став чітким світло-сірим <code>#cbd5e1</code>, а у світлій — насиченим темно-сірим <code>#475569</code> для швидкого читання оператором.</li>
+            <li><strong>Збільшення шрифту:</strong> розмір геоконтексту піднято до 13.5px із компактною висотою рядка <code>line-height: 1.35</code>.</li>
+            <li><strong>Збереження звичного формату:</strong> структура з дужками залишилася незмінною, а назва населеного пункту залишається головним контрастним акцентом.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.4.4 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.4.4</span>
             <span class="version-state">Fixed Settlement UX & Instant Number Filtering</span>
@@ -584,15 +598,15 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.4.4"></script>
+  <script src="data/branches.js?v=1.4.5"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.4.4"></script>
+  <script src="data/all_settlements.js?v=1.4.5"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.4.4"></script>
+  <script src="data/fuzzySearch.js?v=1.4.5"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.4.4"></script>
+  <script src="app.js?v=1.4.5"></script>
 </body>
 </html>
