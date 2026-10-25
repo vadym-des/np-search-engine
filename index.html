@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.4.7">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.4.8">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -35,7 +35,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.4.7">
+  <link rel="stylesheet" href="styles.css?v=1.4.8">
 </head>
 <body data-service="novaposhta">
 
@@ -262,7 +262,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.4.7</span>
+          <span class="version-tag">v1.4.8</span>
           
         </button>
       </div>
@@ -291,8 +291,24 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.4.7 -->
+        <!-- Версія 1.4.8 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.4.8</span>
+            <span class="version-state">Preset Builder UX & Flash Highlight</span>
+            <span class="version-date">25 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Перекомпонування структури:</strong> блок «Швидкі правила скорочення» піднято безпосередньо під вікно «Живий перегляд (Live Preview)», що усуває потребу бігати очима по всій висоті модального вікна.</li>
+            <li><strong>Компактні чіпи-перемикачі:</strong> колишні чекбокси з підвалу оформлено у вигляді компактних горизонтальних пігулок-перемикачів (<code>[✓] смт</code>, <code>[✓] Без «відділення»</code>, <code>[✓] р-н / обл.</code>, <code>[✓] Без «вул.»</code>) з миттєвою колірною реакцією.</li>
+            <li><strong>Висококонтрастний Live Preview:</strong> блок попереднього перегляду отримав візуальний стиль головного екрана результату (контрастніший фон, фірмовий акцентний бордюр та чітка моноширинна типографіка).</li>
+            <li><strong>Анімація оновлення прев'ю (Flash Highlight):</strong> при будь-якій зміні правил скорочення, додаванні/переміщенні тегів або виборі пресету змінений фрагмент у прев'ю підсвічується м'яким пульсуючим спалахом.</li>
+            <li><strong>Компактні розміри конструктора:</strong> оптимізовано габарити активних чіпів, кнопок переміщення <code>←</code> / <code>→</code> та палітри елементів — тепер уся модалка комфортно поміщається на екрані без зайвого скролу.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.4.7 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.4.7</span>
             <span class="version-state">Did-You-Mean Precision & Token Replacement</span>
@@ -645,7 +661,7 @@
       </div>
 
       <div class="modal-body preset-modal-body">
-        <!-- Таби: Скопіювати / Детально -->
+        <!-- 1. Вкладки вибору [ Кнопка «Скопіювати» ] / [ Кнопка «Детально» ] -->
         <div class="copy-preset-tabs" role="tablist" aria-label="Вибір кнопки для налаштування">
           <button type="button" class="copy-preset-tab active" data-tab="short" role="tab" aria-selected="true">
             📋 Кнопка «Скопіювати»
@@ -655,19 +671,50 @@
           </button>
         </div>
 
-        <!-- Live Preview -->
+        <!-- 2. Блок Live Preview (контрастний екран результату) -->
         <div class="preset-preview-section">
           <div class="preset-section-header">
             <span class="preset-section-label">Живий перегляд (Live Preview):</span>
             <button type="button" class="btn-preset-test-copy" id="btnPresetTestCopy" title="Скопіювати цей зразок у буфер">📋 Скопіювати зразок</button>
           </div>
           <div class="preset-preview-box" id="presetLivePreview">
-            <!-- Динамічний рядок -->
+            <!-- Динамічний рядок зі спалахом оновлення -->
           </div>
           <div class="preset-preview-hint">Зразок: смт Середнє, Нова Пошта №1, вантажне відділення, вул. Закарпатська, 75, Ужгородський р-н, Закарпатська обл.</div>
         </div>
 
-        <!-- Швидкі пресети -->
+        <!-- 3. Швидкі правила скорочення (підняті одразу під прев'ю!) -->
+        <div class="preset-rules-section">
+          <span class="preset-subheading">Швидкі правила скорочення:</span>
+          <div class="preset-rules-chips">
+            <label class="preset-rule-pill" for="optSmtShort" title="Селище міського типу ➔ смт">
+              <input type="checkbox" id="optSmtShort" class="preset-rule-checkbox">
+              <span class="rule-pill-check">✓</span>
+              <span class="rule-pill-title">смт</span>
+              <span class="rule-pill-sub">(замість селища)</span>
+            </label>
+            <label class="preset-rule-pill" for="optNoBranchWord" title="Прибирати службове слово «відділення»">
+              <input type="checkbox" id="optNoBranchWord" class="preset-rule-checkbox">
+              <span class="rule-pill-check">✓</span>
+              <span class="rule-pill-title">Без «відділення»</span>
+              <span class="rule-pill-sub">(прибрати слово)</span>
+            </label>
+            <label class="preset-rule-pill" for="optShortRegion" title="Скорочувати «район» ➔ «р-н», «область» ➔ «обл.»">
+              <input type="checkbox" id="optShortRegion" class="preset-rule-checkbox">
+              <span class="rule-pill-check">✓</span>
+              <span class="rule-pill-title">р-н / обл.</span>
+              <span class="rule-pill-sub">(скоротити)</span>
+            </label>
+            <label class="preset-rule-pill" for="optNoStreetPrefix" title="Прибирати префікс «вул.»">
+              <input type="checkbox" id="optNoStreetPrefix" class="preset-rule-checkbox">
+              <span class="rule-pill-check">✓</span>
+              <span class="rule-pill-title">Без «вул.»</span>
+              <span class="rule-pill-sub">(лише назва)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 4. Швидкі пресети в 1 клік -->
         <div class="preset-quick-group">
           <span class="preset-subheading">Швидкі пресети в 1 клік:</span>
           <div class="preset-quick-buttons" id="presetQuickButtons">
@@ -678,7 +725,7 @@
           </div>
         </div>
 
-        <!-- Порядок елементів у рядку -->
+        <!-- 5. Конструктор порядку елементів -->
         <div class="preset-chips-section">
           <span class="preset-subheading">Порядок елементів у рядку (переміщуйте або видаляйте):</span>
           <div class="preset-active-chips" id="presetActiveChips">
@@ -686,34 +733,11 @@
           </div>
         </div>
 
-        <!-- Палітра доступних елементів -->
+        <!-- 6. Палітра доступних елементів -->
         <div class="preset-palette-section">
           <span class="preset-subheading">Додати елемент до рядка:</span>
           <div class="preset-chip-palette" id="presetChipPalette">
             <!-- Доступні теги рендеряться динамічно -->
-          </div>
-        </div>
-
-        <!-- Опції форматування -->
-        <div class="preset-options-section">
-          <span class="preset-subheading">Додаткові налаштування:</span>
-          <div class="preset-options-grid">
-            <label class="preset-option-label">
-              <input type="checkbox" id="optSmtShort" class="preset-checkbox">
-              <span>Селище міського типу ➔ смт</span>
-            </label>
-            <label class="preset-option-label">
-              <input type="checkbox" id="optNoBranchWord" class="preset-checkbox">
-              <span>Прибирати службове слово «відділення»</span>
-            </label>
-            <label class="preset-option-label">
-              <input type="checkbox" id="optShortRegion" class="preset-checkbox">
-              <span>Скорочувати «район» ➔ «р-н», «область» ➔ «обл.»</span>
-            </label>
-            <label class="preset-option-label">
-              <input type="checkbox" id="optNoStreetPrefix" class="preset-checkbox">
-              <span>Прибирати префікс «вул.»</span>
-            </label>
           </div>
         </div>
       </div>
@@ -729,15 +753,15 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.4.7"></script>
+  <script src="data/branches.js?v=1.4.8"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.4.7"></script>
+  <script src="data/all_settlements.js?v=1.4.8"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.4.7"></script>
+  <script src="data/fuzzySearch.js?v=1.4.8"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.4.7"></script>
+  <script src="app.js?v=1.4.8"></script>
 </body>
 </html>

@@ -3615,6 +3615,45 @@
   // ==========================================================================
   let activePresetTab = 'short';
   let draftCopyPresets = null;
+  let lastPresetLivePreviewStr = '';
+
+  function highlightPreviewDiff(oldStr, newStr) {
+    if (!oldStr || oldStr === newStr) return escapeHtml(newStr);
+
+    // Спільний префікс
+    let start = 0;
+    while (start < oldStr.length && start < newStr.length && oldStr[start] === newStr[start]) {
+      start++;
+    }
+
+    // Спільний суфікс
+    let endOld = oldStr.length - 1;
+    let endNew = newStr.length - 1;
+    while (endOld >= start && endNew >= start && oldStr[endOld] === newStr[endNew]) {
+      endOld--;
+      endNew--;
+    }
+
+    // Розширюємо межі до початку та кінця слів/токенів
+    while (start > 0 && !/[\s,.]/.test(newStr[start - 1])) {
+      start--;
+    }
+    while (endNew < newStr.length - 1 && !/[\s,.]/.test(newStr[endNew + 1])) {
+      endNew++;
+    }
+
+    const prefix = newStr.slice(0, start);
+    const changed = newStr.slice(start, endNew + 1);
+    const suffix = newStr.slice(endNew + 1);
+
+    if (!changed.trim()) {
+      const ctxStart = Math.max(0, start - 12);
+      const ctxEnd = Math.min(newStr.length, start + 12);
+      return `${escapeHtml(newStr.slice(0, ctxStart))}<span class="preview-flash-highlight">${escapeHtml(newStr.slice(ctxStart, ctxEnd))}</span>${escapeHtml(newStr.slice(ctxEnd))}`;
+    }
+
+    return `${escapeHtml(prefix)}<span class="preview-flash-highlight">${escapeHtml(changed)}</span>${escapeHtml(suffix)}`;
+  }
 
   function renderPresetModalUI() {
     if (!draftCopyPresets) {
@@ -3673,13 +3712,21 @@
       });
     }
 
-    // 5. Оновлення чекбоксів
-    if (dom.optSmtShort) dom.optSmtShort.checked = !!currentConfig.options.smtShort;
-    if (dom.optNoBranchWord) dom.optNoBranchWord.checked = !!currentConfig.options.noBranchWord;
-    if (dom.optShortRegion) dom.optShortRegion.checked = !!currentConfig.options.shortRegion;
-    if (dom.optNoStreetPrefix) dom.optNoStreetPrefix.checked = !!currentConfig.options.noStreetPrefix;
+    // 5. Оновлення чекбоксів та їх пігулок (Швидкі правила скорочення)
+    [
+      { el: dom.optSmtShort, val: !!currentConfig.options.smtShort },
+      { el: dom.optNoBranchWord, val: !!currentConfig.options.noBranchWord },
+      { el: dom.optShortRegion, val: !!currentConfig.options.shortRegion },
+      { el: dom.optNoStreetPrefix, val: !!currentConfig.options.noStreetPrefix }
+    ].forEach(item => {
+      if (item.el) {
+        item.el.checked = item.val;
+        const pill = item.el.closest('.preset-rule-pill');
+        if (pill) pill.classList.toggle('active', item.val);
+      }
+    });
 
-    // 6. Оновлення Live Preview
+    // 6. Оновлення Live Preview зі спалахом підсвітки (Flash Highlight)
     const previewBranch = state.selectedBranch || BENCHMARK_SAMPLE_BRANCH;
     let previewStr = '';
     if (detectedName === 'default') {
@@ -3690,11 +3737,20 @@
       previewStr = assembleCopyStringFromPreset(previewBranch, currentConfig);
     }
     if (dom.presetLivePreview) {
-      dom.presetLivePreview.textContent = previewStr;
+      if (lastPresetLivePreviewStr && lastPresetLivePreviewStr !== previewStr) {
+        dom.presetLivePreview.innerHTML = highlightPreviewDiff(lastPresetLivePreviewStr, previewStr);
+        dom.presetLivePreview.classList.remove('preview-box-pulse');
+        void dom.presetLivePreview.offsetWidth;
+        dom.presetLivePreview.classList.add('preview-box-pulse');
+      } else {
+        dom.presetLivePreview.textContent = previewStr;
+      }
+      lastPresetLivePreviewStr = previewStr;
     }
   }
 
   function openCopyPresetModal() {
+    lastPresetLivePreviewStr = '';
     draftCopyPresets = JSON.parse(JSON.stringify(userCopyPresets));
     renderPresetModalUI();
     if (dom.copyPresetModal && typeof dom.copyPresetModal.showModal === 'function') {
@@ -3734,6 +3790,7 @@
     // Таби: Скопіювати / Детально
     document.querySelectorAll('.copy-preset-tab').forEach(btn => {
       btn.addEventListener('click', () => {
+        lastPresetLivePreviewStr = '';
         activePresetTab = btn.dataset.tab;
         renderPresetModalUI();
       });

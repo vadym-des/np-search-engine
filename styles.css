@@ -2612,24 +2612,25 @@ mark.hl-match,
 }
 
 .preset-modal-body {
-  padding: 20px 24px;
-  max-height: 72vh;
+  padding: 16px 20px;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 /* Таби */
 .copy-preset-tabs {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   border-bottom: 1px solid var(--border-light);
-  padding-bottom: 14px;
-  margin-bottom: 18px;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .copy-preset-tab {
   flex: 1;
-  padding: 10px 16px;
+  padding: 8px 14px;
   font-family: var(--font-main);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
@@ -2656,21 +2657,22 @@ mark.hl-match,
 .preset-preview-section {
   background: var(--bg-card-subtle);
   border: 1px solid var(--border-subtle);
+  border-left: 3.5px solid var(--brand-color);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
-  margin-bottom: 18px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
 }
 
 .preset-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   gap: 10px;
 }
 
 .preset-section-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -2683,7 +2685,7 @@ mark.hl-match,
   border: 1px solid var(--border-subtle);
   background: var(--bg-card);
   color: var(--text-main);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -2698,54 +2700,184 @@ mark.hl-match,
 .preset-preview-box {
   font-family: var(--font-mono);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
+  font-weight: 600;
   color: var(--text-main);
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  padding: 9px 12px;
   word-break: break-word;
   user-select: all;
-  min-height: 40px;
+  min-height: 38px;
   display: flex;
   align-items: center;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .preset-preview-hint {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-subtle);
-  margin-top: 6px;
+  margin-top: 4px;
+}
+
+/* Анімація підсвітки зміненого фрагмента (Flash Highlight) */
+@keyframes previewFlash {
+  0% {
+    background-color: var(--brand-color);
+    color: var(--brand-contrast-text);
+    box-shadow: 0 0 10px var(--brand-glow, rgba(217, 37, 52, 0.4));
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  100% {
+    background-color: transparent;
+    color: inherit;
+    box-shadow: none;
+    padding: 0;
+  }
+}
+
+.preview-flash-highlight {
+  display: inline;
+  font-weight: 700;
+  animation: previewFlash 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes boxPulse {
+  0% {
+    border-color: var(--brand-color);
+    box-shadow: 0 0 10px var(--brand-border);
+  }
+  100% {
+    border-color: var(--border-subtle);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+}
+
+.preview-box-pulse {
+  animation: boxPulse 0.5s ease-out;
 }
 
 /* Підзаголовки блоків */
 .preset-subheading {
   display: block;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+}
+
+/* Швидкі правила скорочення (Чіпи-перемикачі прямо під прев'ю) */
+.preset-rules-section {
+  margin-bottom: 12px;
+}
+
+.preset-rules-chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+@media (max-width: 600px) {
+  .preset-rules-chips {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.preset-rule-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.preset-rule-pill:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-focus);
+}
+
+.preset-rule-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.rule-pill-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  border: 1.5px solid var(--border-subtle);
+  background: var(--bg-chip);
+  color: transparent;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.preset-rule-pill:has(.preset-rule-checkbox:checked),
+.preset-rule-pill.active {
+  background: var(--brand-bg-subtle, rgba(217, 37, 52, 0.08));
+  border-color: var(--brand-color);
+  box-shadow: 0 1px 4px var(--brand-glow, transparent);
+}
+
+.preset-rule-pill:has(.preset-rule-checkbox:checked) .rule-pill-check,
+.preset-rule-pill.active .rule-pill-check {
+  background: var(--brand-color);
+  border-color: var(--brand-color);
+  color: var(--brand-contrast-text);
+}
+
+.rule-pill-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+.rule-pill-sub {
+  font-size: 10px;
+  color: var(--text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Швидкі пресети */
 .preset-quick-group {
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .preset-quick-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .btn-preset-quick {
-  padding: 6px 14px;
+  padding: 4px 12px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-subtle);
   background: var(--bg-chip);
   color: var(--text-main);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -2765,15 +2897,15 @@ mark.hl-match,
 
 /* Порядок елементів у рядку (Активні чіпи) */
 .preset-chips-section {
-  margin-bottom: 18px;
+  margin-bottom: 10px;
 }
 
 .preset-active-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  min-height: 48px;
-  padding: 10px;
+  gap: 6px;
+  min-height: 38px;
+  padding: 6px 8px;
   border-radius: var(--radius-md);
   background: var(--bg-card-subtle);
   border: 1px dashed var(--border-subtle);
@@ -2783,12 +2915,12 @@ mark.hl-match,
 .preset-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 6px;
+  gap: 2px;
+  padding: 2px 4px;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  font-size: 12.5px;
+  border-radius: 5px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--text-main);
   box-shadow: var(--shadow-sm);
@@ -2798,6 +2930,7 @@ mark.hl-match,
 
 .preset-chip .chip-label {
   padding: 0 4px;
+  line-height: 1.2;
 }
 
 .chip-move-btn,
@@ -2805,13 +2938,13 @@ mark.hl-match,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 17px;
+  height: 17px;
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
   background: var(--bg-chip);
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -2835,28 +2968,28 @@ mark.hl-match,
 
 /* Палітра доступних елементів */
 .preset-palette-section {
-  margin-bottom: 18px;
+  margin-bottom: 6px;
 }
 
 .preset-chip-palette {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
 }
 
 .preset-palette-item {
-  padding: 5px 12px;
-  border-radius: var(--radius-sm);
+  padding: 3px 9px;
+  border-radius: 5px;
   border: 1px solid var(--border-light);
   background: var(--bg-chip);
   color: var(--text-main);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .preset-palette-item:hover {
@@ -2865,55 +2998,22 @@ mark.hl-match,
   transform: translateY(-1px);
 }
 
-/* Чекбокси опцій */
-.preset-options-section {
-  margin-bottom: 8px;
-}
-
-.preset-options-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px 16px;
-}
-
-@media (max-width: 600px) {
-  .preset-options-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.preset-option-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-main);
-  cursor: pointer;
-}
-
-.preset-checkbox {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--brand-color);
-}
-
 /* Футер модалки */
 .preset-modal-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 10px 20px;
 }
 
 .btn-preset-reset {
   background: none;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  padding: 9px 16px;
+  padding: 7px 14px;
   color: var(--text-muted);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12.5px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
