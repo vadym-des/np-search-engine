@@ -30,6 +30,7 @@
     apiKeyNP: localStorage.getItem('np_api_key') || '',
     hasServerKey: false,
     selectedBranch: null, // Обране користувачем відділення для повної картки
+    selectedSettlement: null, // Обраний населений пункт з автокомпліту для захисту від змішування міст
     onlineTabsCount: 1
   };
 
@@ -554,6 +555,23 @@
       staticMatches = engine.filterBranchesByNormalizedSearch(rawQuery, searchPool, tabPred ? 200 : 20);
     }
 
+    // Якщо зафіксовано точний населений пункт або в запиті є область чи район — фільтруємо за гео-контекстом
+    if (state.selectedSettlement) {
+      const selName = state.selectedSettlement.cleanName.toLowerCase();
+      const selObl = state.selectedSettlement.cleanOblast.toLowerCase().slice(0, 4);
+      const selRaion = state.selectedSettlement.cleanRaion.toLowerCase().slice(0, 4);
+      staticMatches = staticMatches.filter(b => {
+        const bc = (b._canonCity || (b.city || '').toLowerCase()).trim();
+        if (bc !== selName) return false;
+        if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
+        if (selRaion && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaion, b.raion)) return false;
+        return true;
+      });
+    } else if (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast)) {
+      const targetObl = (parsed.detectedOblast || parsed.facets.oblast).toLowerCase().slice(0, 4);
+      staticMatches = staticMatches.filter(b => !b.oblast || b.oblast.toLowerCase().includes(targetObl));
+    }
+
     // Перевіряємо, чи є впевнений збіг у статичній базі
     if (staticMatches.length > 0) {
       if (parsed.targetBranchNumber) {
@@ -597,7 +615,7 @@
     // 2. ДИНАМІЧНИЙ ОНЛАЙН API FALLBACK ДЛЯ НОВОЇ ПОШТИ
     // Запускається лише якщо місто взагалі відсутнє у статичному реєстрі (55k+ відділень вже у статичній базі)
     if (isNP && results.length === 0) {
-      let searchCity = parsed.matchedSettlement ? parsed.matchedSettlement.name : '';
+      let searchCity = state.selectedSettlement ? state.selectedSettlement.cleanName : (parsed.matchedSettlement ? parsed.matchedSettlement.name : '');
       if (!searchCity && parsed.cleanQuery) {
         const candidate = parsed.cleanQuery.split(/[, ]+/)[0];
         if (candidate && candidate.length >= 3 && !/^\d+$/.test(candidate)) {
@@ -606,28 +624,50 @@
       }
 
       const cityLower = searchCity ? searchCity.toLowerCase() : '';
-      const hasCityInStatic = cityLower && allStaticBranches.some(b => b.city && b.city.toLowerCase() === cityLower);
+      const hasCityInStatic = cityLower && allStaticBranches.some(b => {
+        if (!b.city || b.city.toLowerCase() !== cityLower) return false;
+        if (state.selectedSettlement) {
+          const selObl = state.selectedSettlement.cleanOblast.toLowerCase().slice(0, 4);
+          if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
+        }
+        return true;
+      });
 
       if (searchCity && !hasCityInStatic) {
-        const liveData = await fetchLiveNovaPoshta(searchCity, currentSignal);
+        let liveData = await fetchLiveNovaPoshta(searchCity, currentSignal);
         if (liveData && liveData.length > 0) {
-          allCityBranches = liveData;
-
-          // Збагачуємо живі відділення нормалізованим пошуковим індексом
-          if (engine) {
-            liveData.forEach(b => {
-              if (!b.normalizedSearchText) {
-                b.normalizedSearchText = engine.buildNormalizedSearchText(b);
-              }
+          if (state.selectedSettlement) {
+            const selObl = state.selectedSettlement.cleanOblast.toLowerCase().slice(0, 4);
+            const selRaion = state.selectedSettlement.cleanRaion.toLowerCase().slice(0, 4);
+            liveData = liveData.filter(b => {
+              if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
+              if (selRaion && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaion, b.raion)) return false;
+              return true;
             });
+          } else if (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast)) {
+            const oblClean = (parsed.detectedOblast || parsed.facets.oblast).toLowerCase().slice(0, 4);
+            liveData = liveData.filter(b => b.oblast && b.oblast.toLowerCase().includes(oblClean));
           }
 
-          // Застосовуємо універсальний нормалізований фільтр до відділень цього міста
-          const liveFiltered = engine ? engine.filterBranchesByNormalizedSearch(rawQuery, liveData) : [];
-          if (liveFiltered.length > 0) {
-            results = liveFiltered;
-          } else {
-            results = [];
+          if (liveData.length > 0) {
+            allCityBranches = liveData;
+
+            // Збагачуємо живі відділення нормалізованим пошуковим індексом
+            if (engine) {
+              liveData.forEach(b => {
+                if (!b.normalizedSearchText) {
+                  b.normalizedSearchText = engine.buildNormalizedSearchText(b);
+                }
+              });
+            }
+
+            // Застосовуємо універсальний нормалізований фільтр до відділень цього міста
+            const liveFiltered = engine ? engine.filterBranchesByNormalizedSearch(rawQuery, liveData) : [];
+            if (liveFiltered.length > 0) {
+              results = liveFiltered;
+            } else {
+              results = [];
+            }
           }
         }
       }
@@ -639,16 +679,42 @@
     // Для Нової Пошти КАТЕГОРИЧНО ЗАБОРОНЕНО фолбечитись до показу всіх інших відділень міста!
     // Для Укрпошти: у селах/СМТ відділення мають поштовий індекс замість номера 1-9, тому показуємо відділення населеного пункту з індексом
     if (results.length === 0) {
-      if (!isNP && parsed.matchedSettlement) {
+      if (state.selectedSettlement) {
+        const sName = state.selectedSettlement.cleanName.toLowerCase();
+        const sObl = state.selectedSettlement.cleanOblast.toLowerCase().slice(0, 4);
+        const sRaion = state.selectedSettlement.cleanRaion.toLowerCase().slice(0, 4);
+        const settlementBranches = allStaticBranches.filter(b => {
+          const bc = (b._canonCity || (b.city || '').toLowerCase()).trim();
+          if (bc !== sName) return false;
+          if (sObl && b.oblast && !b.oblast.toLowerCase().includes(sObl)) return false;
+          if (sRaion && b.raion && !b.raion.toLowerCase().includes(sRaion) && !areRaionsCompatible(sRaion, b.raion)) return false;
+          return true;
+        });
+        if (settlementBranches.length > 0) results = settlementBranches;
+      } else if (!isNP && parsed.matchedSettlement) {
         const sName = parsed.matchedSettlement.name.toLowerCase();
-        const cityOnly = allStaticBranches.filter(b => b.city && b.city.toLowerCase() === sName);
+        const targetObl = (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast) || parsed.matchedSettlement.oblast || '').toLowerCase().slice(0, 4);
+        const cityOnly = allStaticBranches.filter(b => {
+          const bc = (b._canonCity || (b.city || '').toLowerCase()).trim();
+          if (bc !== sName) return false;
+          if (targetObl && b.oblast && !b.oblast.toLowerCase().includes(targetObl)) return false;
+          return true;
+        });
         if (cityOnly.length > 0) results = cityOnly;
       } else if (!parsed.targetBranchNumber) {
         if (staticMatches.length > 0) {
           results = staticMatches;
         } else if (parsed.matchedSettlement) {
           const sName = parsed.matchedSettlement.name.toLowerCase();
-          const cityOnly = allStaticBranches.filter(b => b.city && b.city.toLowerCase() === sName);
+          const targetObl = (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast) || parsed.matchedSettlement.oblast || '').toLowerCase().slice(0, 4);
+          const targetRaion = (parsed.detectedRaion || (parsed.facets && parsed.facets.raion) || '').toLowerCase().slice(0, 4);
+          const cityOnly = allStaticBranches.filter(b => {
+            const bc = (b._canonCity || (b.city || '').toLowerCase()).trim();
+            if (bc !== sName) return false;
+            if (targetObl && b.oblast && !b.oblast.toLowerCase().includes(targetObl)) return false;
+            if (targetRaion && b.raion && !b.raion.toLowerCase().includes(targetRaion) && !areRaionsCompatible(targetRaion, b.raion)) return false;
+            return true;
+          });
           if (cityOnly.length > 0) results = cityOnly;
         }
       }
@@ -664,6 +730,15 @@
       didYouMeanText = null;
     }
 
+    let missingSettlement = null;
+    if (results.length === 0) {
+      if (state.selectedSettlement) {
+        missingSettlement = state.selectedSettlement;
+      } else if (parsed && (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast) || parsed.detectedRaion || (parsed.facets && parsed.facets.raion)) && parsed.matchedSettlement) {
+        missingSettlement = parsed.matchedSettlement;
+      }
+    }
+
     state.currentResults = results;
     if (results.length === 1) {
       state.selectedBranch = results[0];
@@ -673,7 +748,7 @@
     if (isExplicitSubmit || results.length === 0) {
       closeAutocomplete();
     }
-    renderSearchResults(results, rawQuery, didYouMeanText, missingTargetBranch);
+    renderSearchResults(results, rawQuery, didYouMeanText, missingTargetBranch, missingSettlement);
 
     // Запис у найчастіші запити та історію
     if (shouldRecordAnalytics) {
@@ -693,8 +768,16 @@
         mapBranches = allCityBranches.slice(0, 20);
       } else if (parsed && parsed.matchedSettlement) {
         const allBranches = getAllCurrentServiceBranches();
-        const sName = parsed.matchedSettlement.name.toLowerCase();
-        mapBranches = allBranches.filter(b => b.city && b.city.toLowerCase() === sName).slice(0, 20);
+        const sName = (state.selectedSettlement ? state.selectedSettlement.cleanName : parsed.matchedSettlement.name).toLowerCase();
+        const targetObl = (state.selectedSettlement ? state.selectedSettlement.cleanOblast : (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast) || parsed.matchedSettlement.oblast || '')).toLowerCase().slice(0, 4);
+        const targetRaion = (state.selectedSettlement ? state.selectedSettlement.cleanRaion : (parsed.detectedRaion || (parsed.facets && parsed.facets.raion) || '')).toLowerCase().slice(0, 4);
+        mapBranches = allBranches.filter(b => {
+          const bc = (b._canonCity || (b.city || '').toLowerCase()).trim();
+          if (bc !== sName) return false;
+          if (targetObl && b.oblast && !b.oblast.toLowerCase().includes(targetObl)) return false;
+          if (targetRaion && b.raion && !b.raion.toLowerCase().includes(targetRaion) && !areRaionsCompatible(targetRaion, b.raion)) return false;
+          return true;
+        }).slice(0, 20);
       }
 
       if (mapBranches.length > 0) {
@@ -797,6 +880,16 @@
       r = r.replace(/(?:зького|зькому|зьким|зьком|зька|зької|зькій|зькою)$/i, 'зький');
     }
     return r.replace(/[-–—.,;:]+$/, '').trim();
+  }
+
+  function areRaionsCompatible(r1, r2) {
+    if (window.SmartSearchEngine && window.SmartSearchEngine.areRaionsCompatible) {
+      return window.SmartSearchEngine.areRaionsCompatible(r1, r2);
+    }
+    if (!r1 || !r2) return false;
+    const s1 = String(r1).toLowerCase().replace(/район|р-н/g, '').trim().slice(0, 4);
+    const s2 = String(r2).toLowerCase().replace(/район|р-н/g, '').trim().slice(0, 4);
+    return s1 === s2;
   }
 
   function cleanSettlementName(raw) {
@@ -1089,14 +1182,13 @@
       const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === (branch.city || '').toLowerCase());
       if (found) sType = found.type;
     }
-    if (!sType) sType = 'місто';
+    if (!sType) sType = 'село';
 
     const isUkrposhta = state.currentService === 'ukrposhta' || (branch.id && branch.id.startsWith('up-'));
     const postalCode = (branch.postalCode || branch.number || '').toString().trim();
     const classicCopyText = formatClassicCopyString(branch);
     const detailedCopyText = formatDetailedCopyString(branch);
     const cleanStreet = getCleanStreet(branch);
-    const geoSub = formatGeoSub(branch);
     const typeInfo = getTypeBadgeInfo(branch);
     const isPostomat = branch.type === 'poshtomat' || (branch.typeText && branch.typeText.includes('Поштомат')) || (branch.typeName && branch.typeName.includes('Поштомат')) || (branch.name && branch.name.includes('Поштомат'));
 
@@ -1126,10 +1218,34 @@
     const primaryLineText = `${sType} ${branch.city || ''} - ${typeDisplay} №${branchNumber}: ${cleanStreet}`;
 
     const cleanCity = cleanSettlementName(branch.city || '');
+
+    let oblast = branch.oblast || '';
+    let raion = branch.raion || '';
+    if (!raion && OBLAST_CENTER_RAIONS[cleanCity]) {
+      raion = OBLAST_CENTER_RAIONS[cleanCity];
+    }
+    if ((!oblast || !raion) && window.SmartSearchEngine && window.SmartSearchEngine.UKRAINE_SETTLEMENTS) {
+      const found = window.SmartSearchEngine.UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === cleanCity.toLowerCase());
+      if (found) {
+        if (!oblast) oblast = found.oblast;
+        if (!raion) raion = found.raion;
+      }
+    }
+    const oblClean = cleanOblastName(oblast);
+    const raionClean = cleanRaionName(raion);
+
+    const geoParts = [];
+    if (raionClean) geoParts.push(`${raionClean} р-н`);
+    if (oblClean) geoParts.push(`${oblClean} обл.`);
+    const geoSub = geoParts.length > 0 ? `(${geoParts.join(', ')})` : '';
+
     const hlCity = highlightMatch(cleanCity, query);
     const hlNumber = highlightMatch(branchNumber, query);
     const hlStreet = highlightMatch(cleanStreet, query);
     const hlGeoSub = geoSub ? highlightMatch(geoSub, query) : '';
+
+    const fullSettlementText = `${sType} ${cleanCity}${geoSub ? ' ' + geoSub : ''}`;
+    const hlSettlement = `${escapeHtml(sType)} ${hlCity}${hlGeoSub ? ' ' + hlGeoSub : ''}`;
 
     card.innerHTML = `
       <button type="button" class="btn-card-close-x" title="Скинути вибір" aria-label="Скинути вибір">✕</button>
@@ -1143,9 +1259,9 @@
       </div>
 
       <!-- Рядок 2: Населений пункт (район, область) -->
-      <div class="card-geo-line" title="Населений пункт: ${escapeHtml(sType)} ${escapeHtml(cleanCity)}${geoSub ? ' ' + escapeHtml(geoSub) : ''}">
+      <div class="card-geo-line" title="Населений пункт: ${escapeHtml(fullSettlementText)}">
         <span class="geo-label">Населений пункт:</span>
-        <span class="geo-val">${escapeHtml(sType)} ${hlCity}${hlGeoSub ? ' ' + hlGeoSub : ''}</span>
+        <span class="geo-val">${hlSettlement}</span>
       </div>
 
       ${renamingHtml}
@@ -1252,7 +1368,7 @@
     }
   }
 
-  function renderSearchResults(branches, query, didYouMeanText, missingTargetBranch) {
+  function renderSearchResults(branches, query, didYouMeanText, missingTargetBranch, missingSettlement) {
     dom.searchResultsSection.classList.remove('hidden');
 
     // 1. Фільтрація за типом (Всі | Вантажні | Відділення | Поштомати)
@@ -1317,19 +1433,52 @@
             </p>
           </div>
         `;
-      } else {
+        return;
+      }
+
+      const targetSettlement = missingSettlement || state.selectedSettlement || (
+        (window.SmartSearchEngine && (query || state.searchQuery))
+          ? (() => {
+              const p = window.SmartSearchEngine.parseQuery(query || state.searchQuery);
+              return (p && (p.detectedOblast || p.detectedRaion || (p.facets && (p.facets.oblast || p.facets.raion))))
+                ? (p.detectedSettlement || p.matchedSettlement)
+                : null;
+            })()
+          : null
+      );
+
+      if (targetSettlement) {
+        const sType = (targetSettlement.type || 'село').toLowerCase();
+        const shortType = sType === 'місто' ? 'м.' : (sType === 'смт' ? 'смт' : (sType === 'селище' ? 'сел.' : 'с.'));
+        const sName = cleanSettlementName(targetSettlement.cleanName || targetSettlement.name);
+        const sRaion = cleanRaionName(targetSettlement.cleanRaion || targetSettlement.raion);
+        const sOblast = cleanOblastName(targetSettlement.cleanOblast || targetSettlement.oblast);
+        const geoDesc = sRaion ? ` (${sRaion} р-н)` : (sOblast ? ` (${sOblast} обл.)` : '');
+        const emptyTitle = `У ${shortType} ${sName}${geoDesc} відділень не знайдено`;
         dom.resultsList.innerHTML = `
-          <div style="padding: 36px 16px; text-align: center; color: var(--text-muted); width: 100%;">
-            <div style="font-size: 36px; margin-bottom: 10px;">🔍</div>
+          <div class="empty-results-box" style="padding: 40px 16px; text-align: center; color: var(--text-muted); width: 100%;">
+            <div style="font-size: 38px; margin-bottom: 12px;">📍</div>
             <h4 style="font-weight: 800; color: var(--text-main); font-size: 16px; margin-bottom: 6px;">
-              Населений пункт або відділення не знайдено
+              ${escapeHtml(emptyTitle)}
             </h4>
-            <p style="font-size: 13px; max-width: 500px; margin: 0 auto; line-height: 1.5;">
-              За запитом «${escapeHtml(query || state.searchQuery)}» нічого не знайдено. Перевірте правильність написання міста або номера відділення.
+            <p style="font-size: 13px; max-width: 500px; margin: 0 auto; line-height: 1.5; color: var(--text-muted);">
+              У цьому населеному пункті наразі немає відкритих відділень або поштоматів.
             </p>
           </div>
         `;
+        return;
       }
+      dom.resultsList.innerHTML = `
+        <div style="padding: 36px 16px; text-align: center; color: var(--text-muted); width: 100%;">
+          <div style="font-size: 36px; margin-bottom: 10px;">🔍</div>
+          <h4 style="font-weight: 800; color: var(--text-main); font-size: 16px; margin-bottom: 6px;">
+            Населений пункт або відділення не знайдено
+          </h4>
+          <p style="font-size: 13px; max-width: 500px; margin: 0 auto; line-height: 1.5;">
+            За запитом «${escapeHtml(query || state.searchQuery)}» нічого не знайдено. Перевірте правильність написання міста або номера відділення.
+          </p>
+        </div>
+      `;
       return;
     }
 
@@ -2546,10 +2695,27 @@
 
     if (isSettlement) {
       const settlement = item.settlementObj || item;
-      const sName = cleanSettlementName(settlement.cleanName || settlement.name || item.title || item.value || '');
-      const sRaion = cleanRaionName(settlement.cleanRaion || settlement.raion || '');
-      const sOblast = cleanOblastName(settlement.cleanOblast || settlement.oblast || '');
-      fill = `${sName} ${sRaion} ${sOblast} `.replace(/\s+/g, ' ');
+      const sName = cleanSettlementName(settlement.cleanName || settlement.name || item.title || item.value || '').replace(/[()]/g, '').trim();
+      const sRaion = cleanRaionName(settlement.cleanRaion || settlement.raion || '').replace(/[()]/g, '').trim();
+      const sOblast = cleanOblastName(settlement.cleanOblast || settlement.oblast || '').replace(/[()]/g, '').trim();
+      const parts = [sName];
+      if (sRaion) parts.push(sRaion);
+      if (sOblast) parts.push(sOblast);
+      fill = parts.join(' ').replace(/[()]/g, '').replace(/\s+/g, ' ').trim() + ' ';
+
+      state.selectedSettlement = {
+        cleanName: sName,
+        name: sName,
+        cleanRaion: sRaion,
+        raion: sRaion,
+        cleanOblast: sOblast,
+        oblast: sOblast,
+        type: settlement.type || item.type || 'село',
+        settlementRef: settlement.settlementRef || settlement.ref || settlement.Ref || null
+      };
+    } else {
+      fill = fill.replace(/[()]/g, '').trim();
+      state.selectedSettlement = null;
     }
 
     if (isSettlement && !fill.endsWith(' ')) {
@@ -2563,6 +2729,7 @@
       const b = item.branchObj;
       state.searchQuery = fill.trim();
       state.selectedBranch = b;
+      state.selectedSettlement = null;
       state.currentResults = [b];
       renderSearchResults([b], fill.trim(), null, null);
       recordFrequentQuery(b.city || fill.trim());
@@ -2598,6 +2765,20 @@
           if (bCity !== sName) return false;
           if (sOblast && b.oblast && !b.oblast.toLowerCase().includes(sOblast.slice(0, 4))) return false;
           if (sRaion && b.raion && !b.raion.toLowerCase().includes(sRaion.slice(0, 4))) return false;
+          return true;
+        });
+      }
+
+      // Додатковий фільтр за точним обраним населеним пунктом (захист від домішування тезок та столиці)
+      if (state.selectedSettlement) {
+        const selName = state.selectedSettlement.cleanName.toLowerCase();
+        const selObl = state.selectedSettlement.cleanOblast.toLowerCase().slice(0, 4);
+        const selRaion = state.selectedSettlement.cleanRaion.toLowerCase().slice(0, 4);
+        matchedVillageBranches = matchedVillageBranches.filter(b => {
+          const bc = (b._canonCity || (b.city || '').toLowerCase()).trim();
+          if (bc !== selName) return false;
+          if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
+          if (selRaion && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaion, b.raion)) return false;
           return true;
         });
       }
@@ -2734,6 +2915,12 @@
     // Автодоповнення та миттєвий живий пошук при введенні (LP-CRM City Mode <-> Branch Mode + дебаунс + AbortController)
     dom.searchInput.addEventListener('input', () => {
       const val = dom.searchInput.value.trim();
+      if (state.selectedSettlement) {
+        const sLower = state.selectedSettlement.cleanName.toLowerCase();
+        if (!val.toLowerCase().startsWith(sLower)) {
+          state.selectedSettlement = null;
+        }
+      }
       if (val.length > 0) {
         dom.btnClearSearch.classList.remove('hidden');
       } else {
@@ -2869,6 +3056,7 @@
       state.searchQuery = '';
       state.currentResults = [];
       state.selectedBranch = null;
+      state.selectedSettlement = null;
       if (state.isMapVisible) {
         updateVisibleMarkersFromViewport();
       }

@@ -57,6 +57,16 @@ class MockElement {
     }
   }
 
+  get textContent() {
+    if (this._textContent !== undefined) return this._textContent;
+    return (this.innerHTML || '').replace(/<[^>]*>/g, '').trim();
+  }
+
+  set textContent(val) {
+    this._textContent = val;
+    this._innerHTML = String(val);
+  }
+
   get classList() {
     const self = this;
     return {
@@ -216,7 +226,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 39;
+  let totalTests = 40;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -2455,6 +2465,115 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 39:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 40: Ізоляція сіл-тезок від столиці ("Київ Вознесенський Миколаївська"), відсутність дужок та точний формат географії картки
+  // --------------------------------------------------------------------------
+  console.log('▶ ТЕСТ 40: Ізоляція сіл-тезок від столиці ("Київ Вознесенський Миколаївська"), відсутність дужок та точний формат географії картки');
+  try {
+    const npPool = window.BRANCHES_DATA.novaposhta;
+
+    // 1. Пошуковий запит "Київ Вознесенський Миколаївська" не повинен повертати жодного відділення чи поштомату м. Києва
+    const resKyivVillage = window.SmartSearchEngine.searchBranches('Київ Вознесенський Миколаївська', npPool, 20);
+    const leakedCapitalBranches = resKyivVillage.filter(b => (b.oblast && b.oblast.includes('Київськ')) || (b.city && b.city.toLowerCase() === 'київ' && (!b.oblast || b.oblast.includes('Київськ'))));
+    if (leakedCapitalBranches.length > 0) {
+      throw new Error(`Пошук "Київ Вознесенський Миколаївська" повернув ${leakedCapitalBranches.length} київських відділень/поштоматів!`);
+    }
+
+    // 2. Симуляція пошуку та вибору с. Київ (Вознесенський р-н, Миколаївська обл.) в інтерфейсі
+    searchInput.value = 'Київ';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(360);
+
+    const suggestions = dropdown.querySelectorAll('.autocomplete-item');
+    let villageKyivItem = null;
+    for (const item of suggestions) {
+      const text = item.innerHTML;
+      if (text.includes('Вознесенськ') && text.includes('Миколаївськ')) {
+        villageKyivItem = item;
+        break;
+      }
+    }
+    if (!villageKyivItem) {
+      throw new Error('Не знайдено підказку "Київ (Вознесенський р-н, Миколаївська обл.)" в автокомпліті');
+    }
+
+    // Вибір підказки користувачем
+    villageKyivItem.dispatchEvent({
+      type: 'mousedown',
+      preventDefault: () => {},
+      stopPropagation: () => {}
+    });
+    await sleep(100);
+
+    // Перевірка інпуту: відсутність дужок "(" та ")" і точний рядок
+    if (searchInput.value.includes('(') || searchInput.value.includes(')')) {
+      throw new Error(`Рядок пошуку містить дужки: "${searchInput.value}"`);
+    }
+    const expectedKyivInput = 'Київ Вознесенський Миколаївська ';
+    if (searchInput.value !== expectedKyivInput) {
+      throw new Error(`Очікувався рядок "${expectedKyivInput}", отримано: "${searchInput.value}"`);
+    }
+
+    // Перевірка результату: відсутність київських поштоматів та наявність інформативного повідомлення
+    const resultsContainer = elementsById['resultsList'];
+    const resultsHtml = resultsContainer ? resultsContainer.innerHTML : '';
+    if (resultsHtml.includes('Оболонськ') || resultsHtml.includes('Велика Васильківська') || resultsHtml.includes('Хрещатик') || resultsHtml.includes('Київська область')) {
+      throw new Error(`Результати для села Київ містять відділення/вулиці столиці: ${resultsHtml}`);
+    }
+    if (!resultsHtml.includes('У с. Київ (Вознесенський р-н) відділень не знайдено')) {
+      throw new Error(`Не знайдено повідомлення "У с. Київ (Вознесенський р-н) відділень не знайдено": ${resultsHtml}`);
+    }
+
+    // 3. Перевірка відсутності закриваючої дужки при виборі "Широке"
+    searchInput.value = 'Широке';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(360);
+
+    const shirokeSuggestions = dropdown.querySelectorAll('.autocomplete-item');
+    let shirokeItem = null;
+    for (const item of shirokeSuggestions) {
+      if (item.innerHTML.includes('Виноградівськ') && item.innerHTML.includes('Закарпатськ')) {
+        shirokeItem = item;
+        break;
+      }
+    }
+    if (shirokeItem) {
+      shirokeItem.dispatchEvent({
+        type: 'mousedown',
+        preventDefault: () => {},
+        stopPropagation: () => {}
+      });
+      await sleep(100);
+      if (searchInput.value.includes(')')) {
+        throw new Error(`При виборі села Широке інпут містить закриваючу дужку: "${searchInput.value}"`);
+      }
+      if (searchInput.value !== 'Широке Виноградівський Закарпатська ') {
+        throw new Error(`Очікувався рядок "Широке Виноградівський Закарпатська ", отримано: "${searchInput.value}"`);
+      }
+    }
+
+    // 4. Перевірка формату географії картки через createFullBranchCard
+    const shirokeBranch = npPool.find(b => (b.city || '').toLowerCase() === 'широке' && (b.oblast || '').includes('Закарпатськ'));
+    if (!shirokeBranch) {
+      throw new Error('Не знайдено відділення с. Широке Закарпатської обл. у базі');
+    }
+    const card = window.createFullBranchCard(shirokeBranch);
+    const geoValEl = card.querySelector('.geo-val');
+    if (!geoValEl) {
+      throw new Error('У картці відділення не знайдено .geo-val');
+    }
+    const geoText = geoValEl.textContent.trim();
+    const expectedGeoFormat = 'село Широке (Виноградівський р-н, Закарпатська обл.)';
+    if (geoText !== expectedGeoFormat) {
+      throw new Error(`Очікувався формат географії "${expectedGeoFormat}", отримано: "${geoText}"`);
+    }
+
+    console.log('  ✓ Успіх: Село Київ (Вознесенський р-н) не домішує столицю і виводить точне повідомлення "У с. Київ (Вознесенський р-н) відділень не знайдено", дужка ")" відсутня в інпуті, а картка має точний формат "село Широке (Виноградівський р-н, Закарпатська обл.)"!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 40:', err.message, '\n');
   }
 
   console.log('===============================================================');

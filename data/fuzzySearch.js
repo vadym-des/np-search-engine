@@ -849,7 +849,21 @@
                       _settlementsByAlias.get(w) || _settlementsByAlias.get(wNorm) ||
                       _settlementsByNameNA.get(wA) || _settlementsByAliasNA.get(wA);
     if (exactBase) {
-      return exactBase;
+      if (!contextOblast && !contextRaion) {
+        return exactBase;
+      }
+      const cObl = (contextOblast || '').toLowerCase();
+      const cRaion = (contextRaion || '').toLowerCase();
+      const ebObl = (exactBase.oblast || '').toLowerCase();
+      const ebRaion = (exactBase.raion || '').toLowerCase();
+      const oblMatches = !cObl || ebObl.includes(cObl) || cObl.includes(ebObl);
+      const raionMatches = !cRaion || ebRaion.includes(cRaion) || cRaion.includes(ebRaion) || areRaionsCompatible(cRaion, ebRaion);
+
+      if (oblMatches && raionMatches) {
+        return exactBase;
+      }
+      // Якщо exactBase не відповідає заданому контексту області або району (напр. Київ у Миколаївській обл.),
+      // шукаємо відповідного тезку в повному реєстрі ALL_SETTLEMENTS!
     }
 
     // 2. Точний збіг у повному реєстрі ALL_SETTLEMENTS (26 000+ сіл, смт, селищ, міст) - O(1)
@@ -857,21 +871,31 @@
                        _allSettlementsByNameNA.get(wA) || _allSettlementsByNameNA.get(wANorm);
     if (candidates && candidates.length > 0) {
       let chosen = candidates[0];
-      if (candidates.length > 1 && (contextOblast || contextRaion)) {
+      if (contextOblast || contextRaion) {
         const cObl = (contextOblast || '').toLowerCase();
         const cRaion = (contextRaion || '').toLowerCase();
+        let matchedCand = null;
         for (let i = 0; i < candidates.length; i++) {
           const cand = candidates[i];
           const candObl = (cand.oblast || '').toLowerCase();
           const candRaion = (cand.raion || '').toLowerCase();
-          if (cObl && (candObl.includes(cObl) || cObl.includes(candObl))) {
-            chosen = cand;
+          const oblMatches = cObl && (candObl.includes(cObl) || cObl.includes(candObl));
+          const raionMatches = cRaion && (candRaion.includes(cRaion) || cRaion.includes(candRaion) || areRaionsCompatible(cRaion, candRaion));
+          if (oblMatches && raionMatches) {
+            matchedCand = cand;
             break;
           }
-          if (cRaion && (candRaion.includes(cRaion) || cRaion.includes(candRaion) || areRaionsCompatible(cRaion, candRaion))) {
-            chosen = cand;
-            break;
+          if (oblMatches && !matchedCand) {
+            matchedCand = cand;
           }
+          if (raionMatches && !matchedCand) {
+            matchedCand = cand;
+          }
+        }
+        if (matchedCand) {
+          chosen = matchedCand;
+        } else if (exactBase) {
+          return exactBase;
         }
       }
       return {
@@ -881,6 +905,8 @@
         type: chosen.type || 'село',
         allVariants: candidates
       };
+    } else if (exactBase) {
+      return exactBase;
     }
 
     // 3. Нечітке зіставлення (Levenshtein Distance <= 2):
@@ -985,6 +1011,10 @@
     let filteredTokens = rawTokens.filter(t => !STOP_WORDS.has(t) && !/^[-_–—]+$/.test(t));
     if (filteredTokens.length === 0) filteredTokens = rawTokens;
 
+    const detectedO = detectOblast(text);
+    const contextOblast = detectedO ? detectedO.name : null;
+    const contextRaion = detectRaion(text);
+
     let mergedTokens = [];
     let detectedCity = null;
 
@@ -1001,7 +1031,8 @@
       }
 
       if (next && !/^\d+$/.test(cur) && !/^\d+$/.test(next)) {
-        const foundCombined = findSettlementByNameOrFuzzy(cur + ' ' + next) || findSettlementByNameOrFuzzy((cur + next).replace(/-/g, ''));
+        const foundCombined = findSettlementByNameOrFuzzy(cur + ' ' + next, contextOblast, contextRaion) ||
+                              findSettlementByNameOrFuzzy((cur + next).replace(/-/g, ''), contextOblast, contextRaion);
         if (foundCombined) {
           if (!detectedCity) {
             detectedCity = foundCombined;
@@ -1025,7 +1056,7 @@
 
       // Якщо слово не склеїлося, перевіряємо нечітке зіставлення одиночного токена
       if (!/^\d+$/.test(cur)) {
-        const foundSingle = findSettlementByNameOrFuzzy(cur);
+        const foundSingle = findSettlementByNameOrFuzzy(cur, contextOblast, contextRaion);
         if (foundSingle) {
           if (!detectedCity) {
             detectedCity = foundSingle;
@@ -1347,6 +1378,18 @@
       }
     }
 
+    const facets = extractFacets(rawQuery);
+    if (facets && facets.city) {
+      const ctxObl = detectedOblast ? detectedOblast.name : facets.oblast;
+      const ctxRaion = detectedRaion || facets.raion;
+      if (!matchedSettlement || (ctxObl && matchedSettlement.oblast && !matchedSettlement.oblast.toLowerCase().includes(ctxObl.toLowerCase().slice(0, 4)))) {
+        const betterS = findSettlementByNameOrFuzzy(facets.city, ctxObl, ctxRaion);
+        if (betterS) {
+          matchedSettlement = betterS;
+        }
+      }
+    }
+
     return {
       rawQuery: rawQuery.trim(),
       cleanQuery: stripped,
@@ -1354,13 +1397,13 @@
       targetBranchNumber,
       isPostomat,
       postalCode,
-      detectedOblast: detectedOblast ? detectedOblast.name : (matchedSettlement ? matchedSettlement.oblast : null),
-      detectedRaion: detectedRaion || (matchedSettlement ? matchedSettlement.raion : null),
+      detectedOblast: detectedOblast ? detectedOblast.name : (matchedSettlement ? matchedSettlement.oblast : (facets ? facets.oblast : null)),
+      detectedRaion: detectedRaion || (matchedSettlement ? matchedSettlement.raion : (facets ? facets.raion : null)),
       detectedStreet,
       matchedSettlement,
       confidence: highestScore,
       didYouMeanText,
-      facets: extractFacets(rawQuery),
+      facets,
       // Залишок запиту після топоніма/області/району/номера — фільтр за вулицею (street / ShortAddress)
       get streetQuery() { return ((this.facets && this.facets.streetTokens) || []).join(' '); }
     };
@@ -1568,7 +1611,10 @@
         cleanOblast,
         type: badgeType
       };
-      const fullGeoText = `${cleanName} ${cleanRaion} ${cleanOblast} `.replace(/\s+/g, ' ');
+      const parts = [cleanName];
+      if (cleanRaion) parts.push(cleanRaion);
+      if (cleanOblast) parts.push(cleanOblast);
+      const fullGeoText = parts.join(' ').replace(/[()]/g, '').replace(/\s+/g, ' ').trim() + ' ';
 
       suggestions.push({
         mode: 'city',
@@ -2584,6 +2630,20 @@
         continue;
       }
 
+      // 0.1. КАТЕГОРИЧНА ІЗОЛЯЦІЯ ОБЛАСТІ ТА РАЙОНУ (Захист від змішування міст і столиці):
+      // Якщо в запиті присутні назва району або області, КАТЕГОРИЧНО ЗАБОРОНЕНО повертати відділення іншої області чи чужого району!
+      if (queryOblastClean && bOblast && !bOblast.includes(queryOblastClean)) {
+        continue;
+      }
+      if (facets.raion) {
+        if (b.raion && !areRaionsCompatible(facets.raion || queryRaionStem, b.raion)) {
+          continue;
+        }
+        if (!b.raion && queryOblastClean && bOblast && !bOblast.includes(queryOblastClean)) {
+          continue;
+        }
+      }
+
       // Landmark / Central branch bonus: якщо користувач шукає "центральна / центр / головне"
       if (isCentralKeyword && bNum === '1') {
         score += 500;
@@ -2796,6 +2856,14 @@
         const b = branches[i];
         let score = 0;
         let matchCount = 0;
+
+        const bOblast = (b.oblast || '').toLowerCase();
+        if (queryOblastClean && bOblast && !bOblast.includes(queryOblastClean)) {
+          continue;
+        }
+        if (facets.raion && b.raion && !areRaionsCompatible(facets.raion || queryRaionStem, b.raion)) {
+          continue;
+        }
 
         const isPostomat = b.typeClass === 'poshtomat' || b.type === 'poshtomat' || (b.name && b.name.toLowerCase().includes('поштомат'));
         const bNum = (b.number || '').toString();
