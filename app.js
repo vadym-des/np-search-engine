@@ -761,7 +761,7 @@
     } else {
       state.selectedBranch = null;
     }
-    if (isExplicitSubmit || results.length === 0) {
+    if (isExplicitSubmit || (results.length === 0 && /\d/.test(rawQuery))) {
       closeAutocomplete();
     }
     renderSearchResults(results, rawQuery, didYouMeanText, missingTargetBranch, missingSettlement);
@@ -2955,26 +2955,21 @@
       clearTimeout(liveSearchDebounceTimer);
 
       if (val.length >= 2) {
-        if (!/\d/.test(val)) {
-          dom.searchResultsSection.classList.add('hidden');
+        // Миттєвий показ підказок автокомпліту при введенні (дебаунс 120мс)
+        autocompleteDebounceTimer = setTimeout(() => {
+          if (currentSignal.aborted) return;
+          triggerAutocomplete(val);
+        }, 120);
 
-          // Дебаунс 300мс для підказок міст або відділень по вулиці (напр. "Львів наукова")
-          autocompleteDebounceTimer = setTimeout(() => {
-            if (currentSignal.aborted) return;
-            triggerAutocomplete(val);
-          }, 300);
-        } else {
-          // Коли в інпуті є розпізнане місто та цифра (напр. "Київ 1", "Київ 100"):
-          // Дропдаун перебудовується в режим відділень (Branch Suggestion Mode), а результати оновлюються паралельно
-          autocompleteDebounceTimer = setTimeout(() => {
-            if (currentSignal.aborted) return;
-            triggerAutocomplete(val);
-          }, 300);
+        if (/\d/.test(val)) {
+          // Якщо в запиті є цифра (напр. "Озерянка 1", "Київ 100"), паралельно оновлюємо результати
           liveSearchDebounceTimer = setTimeout(() => {
             if (!currentSignal.aborted) {
               executeSearch(val, false, false); // isExplicitSubmit = false
             }
-          }, 300);
+          }, 250);
+        } else {
+          dom.searchResultsSection.classList.add('hidden');
         }
       } else {
         closeAutocomplete();

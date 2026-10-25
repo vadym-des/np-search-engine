@@ -1503,8 +1503,8 @@
       targetBranchNumber,
       isPostomat,
       postalCode,
-      detectedOblast: detectedOblast ? detectedOblast.name : (matchedSettlement ? matchedSettlement.oblast : (facets ? facets.oblast : null)),
-      detectedRaion: detectedRaion || (matchedSettlement ? matchedSettlement.raion : (facets ? facets.raion : null)),
+      detectedOblast: detectedOblast ? detectedOblast.name : (facets && facets.oblast ? facets.oblast : null),
+      detectedRaion: detectedRaion || (facets && facets.raion ? facets.raion : null),
       detectedStreet,
       matchedSettlement,
       confidence: highestScore,
@@ -1885,13 +1885,18 @@
       }
 
       if (found.length < 10) {
-        const scored = searchBranches(normalizedQuery, cityBranches, 10).filter(b => (b._canonCity || canonCity(b.city)) === cityKey);
-        for (let i = 0; i < scored.length && found.length < 10; i++) {
-          const b = scored[i];
-          const bKey = b.id || `${b._canonCity || canonCity(b.city)}|${b.number}|${b.street}`;
-          if (!seenBranchKeys.has(bKey)) {
-            seenBranchKeys.add(bKey);
-            found.push(b);
+        // Якщо введено номер без вулиці і його не знайдено (напр. "київ 99999"),
+        // не підтягуємо випадкові інші відділення міста
+        const hasStreetInQuery = (facets.streetTokens && facets.streetTokens.length > 0);
+        if (!facets.number || hasStreetInQuery || found.length > 0) {
+          const scored = searchBranches(normalizedQuery, cityBranches, 10).filter(b => (b._canonCity || canonCity(b.city)) === cityKey);
+          for (let i = 0; i < scored.length && found.length < 10; i++) {
+            const b = scored[i];
+            const bKey = b.id || `${b._canonCity || canonCity(b.city)}|${b.number}|${b.street}`;
+            if (!seenBranchKeys.has(bKey)) {
+              seenBranchKeys.add(bKey);
+              found.push(b);
+            }
           }
         }
       }
@@ -2451,17 +2456,39 @@
           for (let c of cityCandidates) {
             const cObl = (c.s.oblast || '').toLowerCase();
             const cStem = c.s.name.toLowerCase().slice(0, 4);
-            const matchingVar = v.s.allVariants.find(cand => {
+            const branchSet = getActiveBranchSettlementSet();
+
+            const scoredVars = v.s.allVariants.map(cand => {
+              let score = 0;
               const candObl = (cand.oblast || '').toLowerCase();
               const candRaion = (cand.raion || '').toLowerCase();
-              return (cObl && (candObl.includes(cObl) || cObl.includes(candObl))) || (cStem && candRaion.includes(cStem));
-            });
-            if (matchingVar) {
+              const oblMatch = cObl && (candObl.includes(cObl) || cObl.includes(candObl));
+              if (oblMatch) score += 10;
+              // Якщо район села безпосередньо відповідає місту-центру (наприклад, Житомирський район для м. Житомир)
+              if (candRaion && cStem && (candRaion.includes(cStem) || cStem.includes(candRaion.slice(0, 4)))) {
+                score += 100;
+              }
+              // Пріоритет варіанта, який реально має діючі відділення у базі Нової пошти!
+              if (branchSet) {
+                const cKey = canonCity(cand.cleanName || v.s.name);
+                const oKey = (cand.oblast || '').toLowerCase().slice(0, 5);
+                const rKey = getRaionStem(cand.raion || '');
+                if (rKey && branchSet.has(cKey + '|' + oKey + '|' + rKey)) {
+                  score += 60;
+                } else if (branchSet.has(cKey + '|' + oKey)) {
+                  score += 30;
+                }
+              }
+              return { cand, score };
+            }).sort((a, b) => b.score - a.score);
+
+            if (scoredVars.length > 0 && scoredVars[0].score > 0) {
+              const bestVar = scoredVars[0].cand;
               v.s = {
-                name: matchingVar.cleanName,
-                oblast: matchingVar.oblast,
-                raion: matchingVar.raion,
-                type: matchingVar.type || 'смт',
+                name: bestVar.cleanName || v.s.name,
+                oblast: bestVar.oblast,
+                raion: bestVar.raion,
+                type: bestVar.type || v.s.type || 'село',
                 allVariants: v.s.allVariants
               };
               break;
@@ -2529,28 +2556,40 @@
       for (let m of effectiveSettlements) {
         if (m !== selectedMatch) {
           // 1. Чи є однойменний населений пункт для selectedMatch в області кандидата m? (наприклад, Олександрія Рівне)
-          let sameNameInOtherOblast = UKRAINE_SETTLEMENTS.find(s =>
-            s.name.toLowerCase() === selectedMatch.s.name.toLowerCase() &&
-            s.oblast.toLowerCase() === (m.s.oblast || '').toLowerCase()
-          );
-          if (!sameNameInOtherOblast && Array.isArray(selectedMatch.s.allVariants)) {
-            const vMatch = selectedMatch.s.allVariants.find(v =>
-              (v.oblast || '').toLowerCase() === (m.s.oblast || '').toLowerCase()
+          const isDifferentOblast = (m.s.oblast || '').toLowerCase() !== (selectedMatch.s.oblast || '').toLowerCase();
+          if (isDifferentOblast) {
+            let sameNameInOtherOblast = UKRAINE_SETTLEMENTS.find(s =>
+              s.name.toLowerCase() === selectedMatch.s.name.toLowerCase() &&
+              s.oblast.toLowerCase() === (m.s.oblast || '').toLowerCase()
             );
-            if (vMatch) {
-              sameNameInOtherOblast = {
-                name: vMatch.cleanName,
-                oblast: vMatch.oblast,
-                raion: vMatch.raion,
-                type: vMatch.type || 'село'
-              };
+            if (!sameNameInOtherOblast && Array.isArray(selectedMatch.s.allVariants)) {
+              const mObl = (m.s.oblast || '').toLowerCase();
+              const mStem = m.s.name.toLowerCase().slice(0, 4);
+              const branchSet = getActiveBranchSettlementSet();
+              const scoredOther = selectedMatch.s.allVariants
+                .filter(v => (v.oblast || '').toLowerCase() === mObl)
+                .map(v => {
+                  let s = 10;
+                  if (v.raion && mStem && v.raion.toLowerCase().includes(mStem)) s += 100;
+                  if (branchSet && branchSet.has(canonCity(v.cleanName) + '|' + mObl.slice(0, 5))) s += 50;
+                  return { v, s };
+                }).sort((a, b) => b.s - a.s);
+              if (scoredOther.length > 0) {
+                const vMatch = scoredOther[0].v;
+                sameNameInOtherOblast = {
+                  name: vMatch.cleanName,
+                  oblast: vMatch.oblast,
+                  raion: vMatch.raion,
+                  type: vMatch.type || 'село'
+                };
+              }
             }
-          }
-          if (sameNameInOtherOblast) {
-            selectedMatch = { ...selectedMatch, s: sameNameInOtherOblast };
-            oblast = sameNameInOtherOblast.oblast;
-            if (sameNameInOtherOblast.raion) raion = sameNameInOtherOblast.raion;
-            continue;
+            if (sameNameInOtherOblast) {
+              selectedMatch = { ...selectedMatch, s: sameNameInOtherOblast };
+              oblast = sameNameInOtherOblast.oblast;
+              if (sameNameInOtherOblast.raion) raion = sameNameInOtherOblast.raion;
+              continue;
+            }
           }
 
           // 2. Чи є m родинним регіоном для selectedMatch (та сама область або однойменний район)?
@@ -2594,8 +2633,28 @@
         let sFound = UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === city.toLowerCase() && matchesTargetRegion(s));
         if (!sFound && _allSettlementsByName.has(city.toLowerCase())) {
           const list = _allSettlementsByName.get(city.toLowerCase());
-          const vFound = list.find(s => matchesTargetRegion(s));
-          if (vFound) {
+          const matchedList = list.filter(s => matchesTargetRegion(s));
+          if (matchedList.length > 0) {
+            const branchSet = getActiveBranchSettlementSet();
+            const scoredList = matchedList.map(s => {
+              let score = 0;
+              const sR = (s.raion || '').toLowerCase();
+              const sRStem = getRaionStem(s.raion);
+              if (rStem && (sRStem === rStem || sR.includes(rStem))) score += 100;
+              if (branchSet) {
+                const cKey = canonCity(s.cleanName || city);
+                const oKey5 = (s.oblast || '').toLowerCase().slice(0, 5);
+                const rKey = sRStem;
+                if (rKey && branchSet.has(cKey + '|' + oKey5 + '|' + rKey)) {
+                  score += 60;
+                } else if (branchSet.has(cKey + '|' + oKey5)) {
+                  score += 30;
+                }
+              }
+              return { s, score };
+            }).sort((a, b) => b.score - a.score);
+
+            const vFound = scoredList[0].s;
             sFound = {
               name: vFound.cleanName,
               oblast: vFound.oblast,
@@ -3073,17 +3132,25 @@
 
         // 2. Номер або індекс
         if (hasExplicitNumber) {
+          let anyNumMatch = false;
           for (let t = 0; t < numTokens.length; t++) {
             const numTok = numTokens[t];
             if (bNum === numTok || bPostal === numTok) {
               score += 1200;
               matchCount++;
+              anyNumMatch = true;
             } else if (bNum.startsWith(numTok)) {
               score += 500;
               matchCount++;
+              anyNumMatch = true;
             } else if (bStreet.includes(numTok)) {
               score += 250;
+              anyNumMatch = true;
             }
+          }
+          // Якщо користувач шукав номер відділення без вулиці, а цей номер не збігся:
+          if (!anyNumMatch && uniqueStreetTokens.length === 0) {
+            continue;
           }
         }
 
