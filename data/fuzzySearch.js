@@ -1375,6 +1375,53 @@
     return t;
   }
 
+  // 6.2. ОЧИЩЕННЯ ТА ПРИВЕДЕННЯ ДО НАЗИВНОГО ВІДМІНКА ГЕОГРАФІЧНИХ СУТНОСТЕЙ
+  function cleanOblastName(raw) {
+    if (!raw) return '';
+    let o = String(raw)
+      .replace(/\\n|\r?\n/g, ' ')
+      .replace(/[()[\]{}«»"']/g, ' ')
+      .replace(/\s*(?:область|області|областю|обл\.?)$/i, '')
+      .trim();
+    if (/(?:ської|ській|ською|ську)$/i.test(o)) {
+      o = o.replace(/(?:ської|ській|ською|ську)$/i, 'ська');
+    } else if (/(?:цької|цькій|цькою|цьку)$/i.test(o)) {
+      o = o.replace(/(?:цької|цькій|цькою|цьку)$/i, 'цька');
+    } else if (/(?:зької|зькій|зькою|зьку)$/i.test(o)) {
+      o = o.replace(/(?:зької|зькій|зькою|зьку)$/i, 'зька');
+    }
+    return o.replace(/[-–—.,;:]+$/, '').trim();
+  }
+
+  function cleanRaionName(raw) {
+    if (!raw) return '';
+    let r = String(raw)
+      .replace(/\\n|\r?\n/g, ' ')
+      .replace(/[()[\]{}«»"']/g, ' ')
+      .replace(/\s*(?:район|району|районом|районі|р-н|р-ну|міськрада|громада)$/i, '')
+      .trim();
+    if (/(?:ського|ському|ським|ськом|ська|ської|ській|ською)$/i.test(r)) {
+      r = r.replace(/(?:ського|ському|ським|ськом|ська|ської|ській|ською)$/i, 'ський');
+    } else if (/(?:цького|цькому|цьким|цьком|цька|цької|цькій|цькою)$/i.test(r)) {
+      r = r.replace(/(?:цького|цькому|цьким|цьком|цька|цької|цькій|цькою)$/i, 'цький');
+    } else if (/(?:зького|зькому|зьким|зьком|зька|зької|зькій|зькою)$/i.test(r)) {
+      r = r.replace(/(?:зького|зькому|зьким|зьком|зька|зької|зькій|зькою)$/i, 'зький');
+    }
+    return r.replace(/[-–—.,;:]+$/, '').trim();
+  }
+
+  function cleanSettlementName(raw) {
+    if (!raw) return '';
+    let s = String(raw)
+      .replace(/\\n|\r?\n/g, ' ')
+      .replace(/\s*\([^)]*\)\s*$/, '')
+      .replace(/[()[\]{}«»"']/g, ' ')
+      .replace(/^(?:місто|селище міського типу|смт|селище|село|м\.|с\.|сел\.)\s+/i, '')
+      .replace(/[-–—.,;:]+$/, '')
+      .trim();
+    return s;
+  }
+
   // Кеш наявності відділень у населених пунктах (city|oblast) для пріоритизації в автокомпліті
   let _activeBranchSettlementSet = null;
   function getActiveBranchSettlementSet(pool) {
@@ -1487,20 +1534,13 @@
     function formatSettlementSubtitle(s) {
       const parts = [];
       if (s.raion) {
-        let rClean = String(s.raion).replace(/\\n|\r?\n/g, ' ').replace(/\s*(?:район|р-н|міськрада|громада)$/i, '').trim();
-        if (/ська$/i.test(rClean)) {
-          rClean = rClean.replace(/ська$/i, 'ський');
-        } else if (/цька$/i.test(rClean)) {
-          rClean = rClean.replace(/цька$/i, 'цький');
-        } else if (/зька$/i.test(rClean)) {
-          rClean = rClean.replace(/зька$/i, 'зький');
-        }
+        const rClean = cleanRaionName(s.cleanRaion || s.raion);
         if (rClean) {
           parts.push(`${rClean} р-н`);
         }
       }
       if (s.oblast) {
-        const oClean = String(s.oblast).replace(/\\n|\r?\n/g, ' ').replace(/\s*(?:область|обл\.?)$/i, '').trim();
+        const oClean = cleanOblastName(s.cleanOblast || s.oblast);
         if (oClean) {
           parts.push(`${oClean} обл.`);
         }
@@ -1510,16 +1550,25 @@
 
     // Допоміжний метод: додавання підказки населеного пункту (City Suggestion Mode)
     function pushSettlementSuggestion(s, customTextToFill) {
-      const cleanName = (s.cleanName || (s.name || '').replace(/^(?:місто|селище міського типу|смт|селище|село)\s+/i, '')).replace(/\\n|\r?\n/g, ' ').trim();
+      const cleanName = cleanSettlementName(s.cleanName || s.name);
       if (!cleanName) return false;
       const badgeType = normalizeSettlementBadge(s.type);
-      const sKey = `${canonText(cleanName)}-${canonText(s.raion || '')}-${canonText(s.oblast || '')}`;
+      const cleanRaion = cleanRaionName(s.cleanRaion || s.raion);
+      const cleanOblast = cleanOblastName(s.cleanOblast || s.oblast);
+      const sKey = `${canonText(cleanName)}-${canonText(cleanRaion)}-${canonText(cleanOblast)}`;
       if (seen.has(sKey)) return false;
       seen.add(sKey);
-      const normObj = { ...s, name: cleanName, cleanName, type: badgeType };
-      const sOblast = (s.oblast || '').replace(/\s*(?:область|обл\.?)$/i, '').trim();
-      const sRaion = (s.raion || '').replace(/\s*(?:район|р-н)$/i, '').trim();
-      const fullGeoText = `${cleanName} ${sRaion} ${sOblast} `.replace(/\s+/g, ' ');
+      const normObj = {
+        ...s,
+        name: cleanName,
+        cleanName,
+        raion: cleanRaion,
+        cleanRaion,
+        oblast: cleanOblast,
+        cleanOblast,
+        type: badgeType
+      };
+      const fullGeoText = `${cleanName} ${cleanRaion} ${cleanOblast} `.replace(/\s+/g, ' ');
 
       suggestions.push({
         mode: 'city',
@@ -1527,7 +1576,7 @@
         title: cleanName,
         subtitle: formatSettlementSubtitle(normObj),
         value: cleanName,
-        textToFill: customTextToFill || fullGeoText,
+        textToFill: fullGeoText,
         badge: badgeType,
         icon: '📍',
         settlementObj: normObj
@@ -2877,6 +2926,9 @@
     getUkrainianStem,
     matchStreetOrAddress,
     parseQuery,
+    cleanSettlementName,
+    cleanRaionName,
+    cleanOblastName,
     getAutocompleteSuggestions,
     buildNormalizedSearchText,
     searchBranches,

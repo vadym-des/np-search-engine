@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.3.9';
+  const APP_VERSION = '1.4.0';
 
   // ==========================================================================
   // СТАН ДОДАТКУ (STATE)
@@ -758,11 +758,69 @@
     'Черкаси': 'Черкаський'
   };
 
-  // Географічна прив'язка (Район, область) для швидкої звірки з клієнтом
+  // Очищення та приведення до називного відмінка географічних сутностей
+  function cleanOblastName(raw) {
+    if (window.SmartSearchEngine && window.SmartSearchEngine.cleanOblastName) {
+      return window.SmartSearchEngine.cleanOblastName(raw);
+    }
+    if (!raw) return '';
+    let o = String(raw)
+      .replace(/\\n|\r?\n/g, ' ')
+      .replace(/[()[\]{}«»"']/g, ' ')
+      .replace(/\s*(?:область|області|областю|обл\.?)$/i, '')
+      .trim();
+    if (/(?:ської|ській|ською|ську)$/i.test(o)) {
+      o = o.replace(/(?:ської|ській|ською|ську)$/i, 'ська');
+    } else if (/(?:цької|цькій|цькою|цьку)$/i.test(o)) {
+      o = o.replace(/(?:цької|цькій|цькою|цьку)$/i, 'цька');
+    } else if (/(?:зької|зькій|зькою|зьку)$/i.test(o)) {
+      o = o.replace(/(?:зької|зькій|зькою|зьку)$/i, 'зька');
+    }
+    return o.replace(/[-–—.,;:]+$/, '').trim();
+  }
+
+  function cleanRaionName(raw) {
+    if (window.SmartSearchEngine && window.SmartSearchEngine.cleanRaionName) {
+      return window.SmartSearchEngine.cleanRaionName(raw);
+    }
+    if (!raw) return '';
+    let r = String(raw)
+      .replace(/\\n|\r?\n/g, ' ')
+      .replace(/[()[\]{}«»"']/g, ' ')
+      .replace(/\s*(?:район|району|районом|районі|р-н|р-ну|міськрада|громада)$/i, '')
+      .trim();
+    if (/(?:ського|ському|ським|ськом|ська|ської|ській|ською)$/i.test(r)) {
+      r = r.replace(/(?:ського|ському|ським|ськом|ська|ської|ській|ською)$/i, 'ський');
+    } else if (/(?:цького|цькому|цьким|цьком|цька|цької|цькій|цькою)$/i.test(r)) {
+      r = r.replace(/(?:цького|цькому|цьким|цьком|цька|цької|цькій|цькою)$/i, 'цький');
+    } else if (/(?:зького|зькому|зьким|зьком|зька|зької|зькій|зькою)$/i.test(r)) {
+      r = r.replace(/(?:зького|зькому|зьким|зьком|зька|зької|зькій|зькою)$/i, 'зький');
+    }
+    return r.replace(/[-–—.,;:]+$/, '').trim();
+  }
+
+  function cleanSettlementName(raw) {
+    if (window.SmartSearchEngine && window.SmartSearchEngine.cleanSettlementName) {
+      return window.SmartSearchEngine.cleanSettlementName(raw);
+    }
+    if (!raw) return '';
+    let s = String(raw)
+      .replace(/\\n|\r?\n/g, ' ')
+      .replace(/\s*\([^)]*\)\s*$/, '')
+      .replace(/[()[\]{}«»"']/g, ' ')
+      .replace(/^(?:місто|селище міського типу|смт|селище|село|м\.|с\.|сел\.)\s+/i, '')
+      .replace(/[-–—.,;:]+$/, '')
+      .trim();
+    return s;
+  }
+
+  // Географічна прив'язка (Район, область) для картки відділення у стилі попапу:
+  // (Район р-н, Область обл.)
   function formatGeoSub(branch) {
+    if (!branch) return '';
     let oblast = branch.oblast || '';
     let raion = branch.raion || '';
-    const city = branch.city || '';
+    const city = cleanSettlementName(branch.city || '');
 
     if (!raion && OBLAST_CENTER_RAIONS[city]) {
       raion = OBLAST_CENTER_RAIONS[city];
@@ -775,21 +833,14 @@
       }
     }
 
-    let oblClean = (oblast || '').replace(/\s*(?:область|обл\.?)$/i, '').trim();
-    let raionClean = (raion || '').replace(/\s*(?:район|р-н|міськрада|громада)$/i, '').trim();
-    if (/ська$/i.test(raionClean)) {
-      raionClean = raionClean.replace(/ська$/i, 'ський');
-    } else if (/цька$/i.test(raionClean)) {
-      raionClean = raionClean.replace(/цька$/i, 'цький');
-    } else if (/зька$/i.test(raionClean)) {
-      raionClean = raionClean.replace(/зька$/i, 'зький');
-    }
+    const oblClean = cleanOblastName(oblast);
+    const raionClean = cleanRaionName(raion);
 
     const parts = [];
     if (raionClean) parts.push(`${raionClean} р-н`);
     if (oblClean) parts.push(`${oblClean} обл.`);
 
-    return parts.length > 0 ? parts.join(', ') : '';
+    return parts.length > 0 ? `(${parts.join(', ')})` : '';
   }
 
   // Уніфікована перевірка поштомату (без урахування регістру) за всіма можливими полями
@@ -912,8 +963,8 @@
       }
     }
 
-    const raionClean = (raion || '').replace(/\s*(?:район|р-н)$/i, '').trim();
-    const oblClean = (oblast || '').replace(/\s*(?:область|обл\.?)$/i, '').trim();
+    const raionClean = cleanRaionName(raion);
+    const oblClean = cleanOblastName(oblast);
 
     const geoParts = [];
     if (raionClean) {
@@ -1074,7 +1125,8 @@
     const branchNumber = (branch.number || branch.Number || branch.postalCode || branch.PostalCode || '').toString().trim();
     const primaryLineText = `${sType} ${branch.city || ''} - ${typeDisplay} №${branchNumber}: ${cleanStreet}`;
 
-    const hlCity = highlightMatch(branch.city || '', query);
+    const cleanCity = cleanSettlementName(branch.city || '');
+    const hlCity = highlightMatch(cleanCity, query);
     const hlNumber = highlightMatch(branchNumber, query);
     const hlStreet = highlightMatch(cleanStreet, query);
     const hlGeoSub = geoSub ? highlightMatch(geoSub, query) : '';
@@ -1091,9 +1143,9 @@
       </div>
 
       <!-- Рядок 2: Населений пункт (район, область) -->
-      <div class="card-geo-line" title="Населений пункт: ${escapeHtml(sType)} ${escapeHtml(branch.city || '')}${geoSub ? ', ' + escapeHtml(geoSub) : ''}">
+      <div class="card-geo-line" title="Населений пункт: ${escapeHtml(sType)} ${escapeHtml(cleanCity)}${geoSub ? ' ' + escapeHtml(geoSub) : ''}">
         <span class="geo-label">Населений пункт:</span>
-        <span class="geo-val">${escapeHtml(sType)} ${hlCity}${hlGeoSub ? ', ' + hlGeoSub : ''}</span>
+        <span class="geo-val">${escapeHtml(sType)} ${hlCity}${hlGeoSub ? ' ' + hlGeoSub : ''}</span>
       </div>
 
       ${renamingHtml}
@@ -1381,13 +1433,14 @@
         typeDisplay = 'Відділення';
       }
 
+      const cleanCity = cleanSettlementName(branch.city || '');
       const hlNumber = highlightMatch(branchNumber, query || state.searchQuery);
       const hlStreet = highlightMatch(cleanStreet, query || state.searchQuery);
-      const hlCity = highlightMatch(branch.city || '', query || state.searchQuery);
+      const hlCity = highlightMatch(cleanCity, query || state.searchQuery);
       const hlGeoSub = geoSub ? highlightMatch(geoSub, query || state.searchQuery) : '';
 
       const branchTitle = `${typeDisplay} №${hlNumber}: <span class="street-part">${hlStreet}</span>`;
-      const locationSub = `${escapeHtml(sType)} ${hlCity}${hlGeoSub ? ', ' + hlGeoSub : ''}`;
+      const locationSub = `${escapeHtml(sType)} ${hlCity}${hlGeoSub ? ' ' + hlGeoSub : ''}`;
 
       row.innerHTML = `
         <div class="address-match-left">
@@ -2493,9 +2546,9 @@
 
     if (isSettlement) {
       const settlement = item.settlementObj || item;
-      const sName = (settlement.name || settlement.cleanName || item.title || item.value || '').replace(/^(?:місто|селище міського типу|смт|селище|село)\s+/i, '').trim();
-      const sRaion = (settlement.raion || '').replace(/\s*(?:район|р-н)$/i, '').trim();
-      const sOblast = (settlement.oblast || '').replace(/\s*(?:область|обл\.?)$/i, '').trim();
+      const sName = cleanSettlementName(settlement.cleanName || settlement.name || item.title || item.value || '');
+      const sRaion = cleanRaionName(settlement.cleanRaion || settlement.raion || '');
+      const sOblast = cleanOblastName(settlement.cleanOblast || settlement.oblast || '');
       fill = `${sName} ${sRaion} ${sOblast} `.replace(/\s+/g, ' ');
     }
 
@@ -2537,9 +2590,9 @@
         matchedVillageBranches = engine.filterBranchesByNormalizedSearch(fill.trim(), searchPool, 10);
       } else {
         const settlement = item.settlementObj || item;
-        const sName = (settlement.name || settlement.cleanName || item.title || '').replace(/^(?:місто|селище міського типу|смт|селище|село)\s+/i, '').trim().toLowerCase();
-        const sOblast = (settlement.oblast || '').replace(/\s*(?:область|обл\.?)$/i, '').trim().toLowerCase();
-        const sRaion = (settlement.raion || '').replace(/\s*(?:район|р-н)$/i, '').trim().toLowerCase();
+        const sName = cleanSettlementName(settlement.cleanName || settlement.name || item.title || '').toLowerCase();
+        const sOblast = cleanOblastName(settlement.cleanOblast || settlement.oblast || '').toLowerCase();
+        const sRaion = cleanRaionName(settlement.cleanRaion || settlement.raion || '').toLowerCase();
         matchedVillageBranches = searchPool.filter(b => {
           const bCity = (b.city || '').toLowerCase();
           if (bCity !== sName) return false;
@@ -3029,9 +3082,14 @@
   window.onSuggestionClick = onSuggestionClick;
   window.highlightMatch = highlightMatch;
   window.createFullBranchCard = createFullBranchCard;
+  window.renderBranchCard = createFullBranchCard;
   window.renderSelectedBranch = renderSelectedBranch;
   window.selectBranch = renderSelectedBranch;
   window.resetBranchSelection = resetBranchSelection;
+  window.formatGeoSub = formatGeoSub;
+  window.cleanSettlementName = cleanSettlementName;
+  window.cleanRaionName = cleanRaionName;
+  window.cleanOblastName = cleanOblastName;
   window.setMarkerHighlightedOnMap = setMarkerHighlightedOnMap;
   window.updateMapTileLayerTheme = updateMapTileLayerTheme;
   window.formatClassicCopyString = formatClassicCopyString;
