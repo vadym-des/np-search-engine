@@ -254,7 +254,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.4.1</span>
+          <span class="version-tag">v1.4.2</span>
           
         </button>
       </div>
@@ -283,8 +283,24 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.4.1 -->
+        <!-- Версія 1.4.2 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.4.2</span>
+            <span class="version-state">Google-like Smart Intent Engine & Address Classifier</span>
+            <span class="version-date">25 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Класифікатор адреси («Номер будинку» vs «Номер відділення»):</strong> запити на кшталт <code>запоріжжя поштомат михайлова 46</code> більше не плутають номер будинку з номером поштомату — автоматично знаходиться поштомат №56140 за адресою вул. Михайлова, 46.</li>
+            <li><strong>Нормалізація біграм і складених назв:</strong> швидкісне розпізнавання популярних скорочень і опечаток (<code>кри ріг</code>, <code>степан город 1</code>, <code>велика доб</code>, <code>нвоа пошат</code>).</li>
+            <li><strong>Фонетична та суфіксальна толерантність:</strong> миттєвий пошук для варіантів із чергуванням приголосних (<code>брацке 1 миколаїв</code> ➔ <code>Братське №1</code>, <code>спацьке 1</code> ➔ <code>Спаське №1</code>, <code>нихаївка</code> ➔ <code>Нехаївка</code>, <code>ананїв</code> ➔ <code>Ананьїв</code>).</li>
+            <li><strong>Адмінреформа 2020:</strong> розширено таблицю об'єднаних районів (35+ нових районів у <code>CONSOLIDATED_RAION_MAP</code>), усунуто блокування відділень через невідповідність старих районів новим.</li>
+            <li><strong>Розумний міжвкладочний fallback:</strong> автоматичне підтягування точного відділення з повного пулу при помилково активній сусідній вкладці («Відділення» або «Поштомати»).</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.4.1 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.4.1</span>
             <span class="version-state">Strict Settlement Isolation & Clean Brackets Fix</span>

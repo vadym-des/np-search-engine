@@ -2,11 +2,11 @@
 
 > **Високопродуктивний клієнтський рушій миттєвого пошуку, дезамбігуації та уніфікації поштових відділень і поштоматів по всій Україні.**
 
-[![Версія](https://img.shields.io/badge/version-v1.4.0-blue?style=flat-square)](https://github.com/vadym-des/np-search-engine/releases)
+[![Версія](https://img.shields.io/badge/version-v1.4.2-blue?style=flat-square)](https://github.com/vadym-des/np-search-engine/releases)
 [![База населених пунктів](https://img.shields.io/badge/settlements-26%2C588-orange?style=flat-square)](./data/all_settlements.js)
 [![База відділень](https://img.shields.io/badge/warehouses%20%26%20postomats-55%2C185-success?style=flat-square)](./data/all_warehouses.js)
 [![Швидкість відгуку](https://img.shields.io/badge/latency-%3C%202ms-brightgreen?style=flat-square)](#-технічна-архітектура-та-алгоритми)
-[![Тести](https://img.shields.io/badge/tests-39%2F39%20passing%20(100%25)-success?style=flat-square)](./tests/test_autocomplete.js)
+[![Тести](https://img.shields.io/badge/tests-40%2F40%20%2B%2015%2F15%20passing%20(100%25)-success?style=flat-square)](./tests/test_autocomplete.js)
 [![Архітектура](https://img.shields.io/badge/architecture-100%25%20Client--Side%20PWA-blueviolet?style=flat-square)](#-технічна-архітектура-та-алгоритми)
 [![Ліцензія](https://img.shields.io/badge/license-MIT-green?style=flat-square)](./LICENSE)
 
@@ -234,7 +234,9 @@ node scripts/download_all_warehouses.js
 ## 🗺️ Історія релізів (Changelog Summary) та Roadmap
 
 ### Історія версій (SemVer):
-* **v1.4.0 (Current Stable):** Чистий автокомпліт рядка пошуку (`${settlement.cleanName} ${settlement.cleanRaion} ${settlement.cleanOblast} `) без закриваючих дужок `)` та з гарантованим називним відмінком («Одеська», «Закарпатська» замість «Одеської»), синхронізація картки відділення у стилі попапу (`тип Назва (Район р-н, Область обл.)`, `село Широке (Виноградівський р-н, Закарпатська обл.)`, 39/39 автотестів).
+* **v1.4.2 (Current Stable):** Google-like Smart Intent Engine: розпізнавання адресних запитів («номер будинку» vs «номер відділення/поштомату»), біграми та складені назви міст (`кри ріг`, `велика доб`), фонетична стійкість (`-цьке` $\leftrightarrow$ `-тське`), розширення карти адмінреформи 2020 (35+ районів) та міжвкладочний fallback (15/15 нових тестів).
+* **v1.4.1:** Усунення змішування міст і сіл-тезок (ізоляція с. Київ Вознесенського р-ну від столиці), видалення дужок з інпуту та синхронізація рядка «Населений пункт:».
+* **v1.4.0:** Чистий автокомпліт рядка пошуку (`${settlement.cleanName} ${settlement.cleanRaion} ${settlement.cleanOblast} `) без закриваючих дужок `)` та з гарантованим називним відмінком («Одеська», «Закарпатська» замість «Одеської»), синхронізація картки відділення у стилі попапу (`тип Назва (Район р-н, Область обл.)`, `село Широке (Виноградівський р-н, Закарпатська обл.)`, 39/39 автотестів).
 * **v1.3.9:** Уніфікація географічного формату («Район ➔ Область») між автокомплітом та карткою відділення.
 * **v1.3.8:** Auto-fill розширеного географічного контексту при виборі населеного пункту з автокомпліту, миттєве відкриття картки єдиного відділення з кнопкою копіювання для CRM, повна ізоляція сіл-тезок.
 * **v1.3.7:** Пріоритет номера відділення над номером будинку (`+5000` балів, `Городок 1` ➔ №1), строга ізоляція населеного пункту при 100% Exact Match (`Борщів Чортківський Бандери 1` без домішування с. Садки) та маппінг укрупнених районів КАТОТТГ 2020 ↔ стара база НП (`Тарасівка Фастівський` ↔ `Києво-Святошинський`, 38/38 автотестів).

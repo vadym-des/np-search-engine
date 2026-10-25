@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.4.0';
+  const APP_VERSION = '1.4.2';
 
   // ==========================================================================
   // СТАН ДОДАТКУ (STATE)
@@ -3201,7 +3201,7 @@
 
     if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
       navigator.serviceWorker
-        .register('./sw.js?v=8.26.9', { updateViaCache: 'none' })
+        .register('./sw.js?v=1.4.2', { updateViaCache: 'none' })
         .then((reg) => {
           // Примусова перевірка наявності оновлення
           reg.update();
@@ -3240,7 +3240,7 @@
     if ('caches' in window) {
       caches.keys().then((keys) => {
         keys.forEach((key) => {
-          if (key !== 'np-ukr-cache-v8.26.9') {
+          if (key !== 'np-ukr-cache-v1.4.2') {
             caches.delete(key);
           }
         });
