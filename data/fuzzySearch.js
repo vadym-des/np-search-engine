@@ -70,12 +70,17 @@
 
   // 1.01 Уніфікація всіх видів апострофів: ' ` ʼ ʻ ʽ ’ ‘ ʹ ′ ´ ˈ
   // Для порівняння апостроф повністю видаляється, тому "пʼятихатки" == "п'ятихатки" == "пятихатки"
-  const APOS_TEST_RE = /['`ʼʻʽ’‘ʹ′´ˈ]/;
-  const APOS_ALL_RE = /['`ʼʻʽ’‘ʹ′´ˈ]/g;
+  const APOS_TEST_RE = /[`'’ʼʹʻʽ‘′´ˈ\u2018\u2019\u02BC]/;
+  const APOS_ALL_RE = /[`'’ʼʹʻʽ‘′´ˈ\u2018\u2019\u02BC]/g;
+
+  function normalizeApostrophes(str) {
+    if (!str) return str || '';
+    return String(str).replace(APOS_ALL_RE, "'");
+  }
 
   // Канонічна форма рядка для порівняння (нижній регістр, без апострофів)
   function canonText(s) {
-    return (s == null ? '' : String(s)).toLowerCase().replace(APOS_ALL_RE, '');
+    return (s == null ? '' : String(s)).toLowerCase().replace(APOS_ALL_RE, '').trim();
   }
 
   // Канонічна назва населеного пункту відділення: без апострофів та без суфікса області
@@ -1065,6 +1070,7 @@
   // 5.2. ІНТЕЛЕКТУАЛЬНА НОРМАЛІЗАЦІЯ ПОШУКОВОГО ЗАПИТУ (Smart Spellcheck & Fuzzy Normalization)
   function normalizeSearchTokens(rawQuery) {
     if (!rawQuery) return { tokens: [], cleanText: '', hasPostomatKeyword: false, hasBranchKeyword: false, detectedCity: null };
+    rawQuery = String(rawQuery).trim().replace(/\s+/g, ' ');
 
     let text = sanitizeChatQuery(rawQuery);
 
@@ -1260,6 +1266,7 @@
         facets: { city: null, number: null, oblast: null, raion: null, streetTokens: [], settlementOblast: null }
       };
     }
+    rawQuery = String(rawQuery).trim().replace(/\s+/g, ' ');
 
     // Крок 1. Перемикання розкладки та очищення чат-синтаксису
     const sanitized = sanitizeChatQuery(rawQuery);
@@ -1628,9 +1635,11 @@
     if (!raw) return '';
     let r = String(raw)
       .replace(/\\n|\r?\n/g, ' ')
-      .replace(/[()[\]{}«»"']/g, ' ')
+      .replace(/[()[\]{}«»"]/g, ' ')
       .replace(/\s*(?:район|району|районом|районі|р-н|р-ну|міськрада|громада)$/i, '')
       .trim();
+    r = normalizeApostrophes(r);
+    r = r.replace(/^['"`«»]+|['"`«»]+$/g, '').trim();
     if (/(?:ського|ському|ським|ськом|ська|ської|ській|ською)$/i.test(r)) {
       r = r.replace(/(?:ського|ському|ським|ськом|ська|ської|ській|ською)$/i, 'ський');
     } else if (/(?:цького|цькому|цьким|цьком|цька|цької|цькій|цькою)$/i.test(r)) {
@@ -1646,10 +1655,12 @@
     let s = String(raw)
       .replace(/\\n|\r?\n/g, ' ')
       .replace(/\s*\([^)]*\)\s*$/, '')
-      .replace(/[()[\]{}«»"']/g, ' ')
+      .replace(/[()[\]{}«»"]/g, ' ')
       .replace(/^(?:місто|селище міського типу|смт|селище|село|м\.|с\.|сел\.)\s+/i, '')
       .replace(/[-–—.,;:]+$/, '')
       .trim();
+    s = normalizeApostrophes(s);
+    s = s.replace(/^['"`«»]+|['"`«»]+$/g, '').trim();
     return s;
   }
 
@@ -1709,7 +1720,8 @@
 
   // 7. LP-CRM ІНТЕРАКТИВНИЙ АВТОКОМПЛІТ (Режим топонімів City Mode + Режим відділень Branch Mode)
   function getAutocompleteSuggestions(query, currentService, liveCityBranches = null, staticBranches = null) {
-    if (!query || query.trim().length < 1) return [];
+    if (!query || String(query).trim().length < 1) return [];
+    query = String(query).trim().replace(/\s+/g, ' ');
     let qClean = fixKeyboardLayout(sanitizeChatQuery(query));
 
     // М'яка нормалізація пунктуації та скорочень
@@ -2542,6 +2554,7 @@
     if (!query) {
       return { city: null, number: null, oblast: null, raion: null, streetTokens: [], settlementOblast: null };
     }
+    query = String(query).trim().replace(/\s+/g, ' ');
     let text = fixKeyboardLayout(sanitizeChatQuery(query))
       .replace(/(\b\d{2})\s+(\d{3}\b)/g, '$1$2')
       .replace(/(?<!\p{L})п\/м(?!\p{L})/giu, 'пм');
@@ -2985,6 +2998,8 @@
 
   function searchBranches(rawQuery, branches, limit = 20) {
     if (!rawQuery || !Array.isArray(branches) || branches.length === 0) return [];
+    rawQuery = String(rawQuery).trim().replace(/\s+/g, ' ');
+    if (!rawQuery) return [];
 
     // Швидкісний In-Memory LRU Cache (0 ms відгук при Backspace або повторі запиту)
     const isUkrposhta = (branches[0] && branches[0].id && branches[0].id.startsWith('up-')) || false;
@@ -3533,6 +3548,9 @@
     findSettlementByNameOrFuzzy,
     normalizeSearchTokens,
     extractFacets,
+    normalizeApostrophes,
+    canonText,
+    canonCity,
     getUkrainianStem,
     matchStreetOrAddress,
     parseQuery,

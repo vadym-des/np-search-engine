@@ -656,7 +656,7 @@
 
   async function executeSearch(query, shouldRecordAnalytics = true, isExplicitSubmit = false) {
     try {
-      const rawQuery = (query || '').trim();
+      const rawQuery = (query || '').trim().replace(/\s+/g, ' ');
       if (!rawQuery) return;
 
       if (state.currentService === 'ukrposhta' && !_ukrposhtaLoaded) {
@@ -671,8 +671,10 @@
       const currentSignal = activeSearchAbortController.signal;
 
     state.searchQuery = rawQuery;
-    if (dom.searchInput.value.trim() !== rawQuery) {
-      dom.searchInput.value = rawQuery;
+    if (dom.searchInput) {
+      if (dom.searchInput.value.startsWith(' ') || dom.searchInput.value.trim() !== rawQuery) {
+        dom.searchInput.value = rawQuery;
+      }
     }
     dom.btnClearSearch.classList.remove('hidden');
 
@@ -734,11 +736,11 @@
 
     // Якщо зафіксовано точний населений пункт або в запиті є область чи район — фільтруємо за гео-контекстом
     if (state.selectedSettlement) {
-      const selName = state.selectedSettlement.cleanName.toLowerCase();
-      const selObl = state.selectedSettlement.cleanOblast.toLowerCase().slice(0, 4);
-      const selRaion = state.selectedSettlement.cleanRaion.toLowerCase().slice(0, 4);
+      const selName = canonCity(state.selectedSettlement.cleanName);
+      const selObl = cleanOblastName(state.selectedSettlement.cleanOblast).toLowerCase().slice(0, 4);
+      const selRaion = cleanRaionName(state.selectedSettlement.cleanRaion).toLowerCase().slice(0, 4);
       staticMatches = staticMatches.filter(b => {
-        const bc = (b._canonCity || (b.city || '').toLowerCase()).trim();
+        const bc = b._canonCity || canonCity(b.city);
         if (bc !== selName) return false;
         if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
         if (selRaion && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaion, b.raion)) return false;
@@ -1056,6 +1058,25 @@
     return o.replace(/[-–—.,;:]+$/, '').trim();
   }
 
+  function normalizeApostrophes(str) {
+    if (!str) return str || '';
+    return String(str).replace(/[`'’ʼʹʻʽ‘′´ˈ\u2018\u2019\u02BC]/g, "'");
+  }
+
+  function canonText(s) {
+    if (window.SmartSearchEngine && window.SmartSearchEngine.canonText) {
+      return window.SmartSearchEngine.canonText(s);
+    }
+    return (s == null ? '' : String(s)).toLowerCase().replace(/[`'’ʼʹʻʽ‘′´ˈ\u2018\u2019\u02BC]/g, '').trim();
+  }
+
+  function canonCity(s) {
+    if (window.SmartSearchEngine && window.SmartSearchEngine.canonCity) {
+      return window.SmartSearchEngine.canonCity(s);
+    }
+    return canonText(s).replace(/\s*\([^)]*\)\s*$/, '').trim();
+  }
+
   function cleanRaionName(raw) {
     if (window.SmartSearchEngine && window.SmartSearchEngine.cleanRaionName) {
       return window.SmartSearchEngine.cleanRaionName(raw);
@@ -1063,9 +1084,11 @@
     if (!raw) return '';
     let r = String(raw)
       .replace(/\\n|\r?\n/g, ' ')
-      .replace(/[()[\]{}«»"']/g, ' ')
+      .replace(/[()[\]{}«»"]/g, ' ')
       .replace(/\s*(?:район|району|районом|районі|р-н|р-ну|міськрада|громада)$/i, '')
       .trim();
+    r = normalizeApostrophes(r);
+    r = r.replace(/^['"`«»]+|['"`«»]+$/g, '').trim();
     if (/(?:ського|ському|ським|ськом|ська|ської|ській|ською)$/i.test(r)) {
       r = r.replace(/(?:ського|ському|ським|ськом|ська|ської|ській|ською)$/i, 'ський');
     } else if (/(?:цького|цькому|цьким|цьком|цька|цької|цькій|цькою)$/i.test(r)) {
@@ -1094,10 +1117,12 @@
     let s = String(raw)
       .replace(/\\n|\r?\n/g, ' ')
       .replace(/\s*\([^)]*\)\s*$/, '')
-      .replace(/[()[\]{}«»"']/g, ' ')
+      .replace(/[()[\]{}«»"]/g, ' ')
       .replace(/^(?:місто|селище міського типу|смт|селище|село|м\.|с\.|сел\.)\s+/i, '')
       .replace(/[-–—.,;:]+$/, '')
       .trim();
+    s = normalizeApostrophes(s);
+    s = s.replace(/^['"`«»]+|['"`«»]+$/g, '').trim();
     return s;
   }
 
@@ -1905,17 +1930,21 @@
     // Відображення Google-style підказки (лише якщо є реальна помилка та не обрано конкретне відділення)
     if (didYouMeanText && dom.didYouMeanBox && !state.selectedBranch) {
       dom.didYouMeanBox.classList.remove('hidden');
+      dom.didYouMeanBox.style.cursor = 'pointer';
       dom.didYouMeanBox.innerHTML = `
         <span>💡 Можливо, ви мали на увазі:</span>
-        <a class="did-you-mean-link" id="linkDidYouMean">${escapeHtml(didYouMeanText)}</a>
+        <a class="did-you-mean-link" id="linkDidYouMean" href="#">${escapeHtml(didYouMeanText)}</a>
       `;
 
-      document.getElementById('linkDidYouMean').addEventListener('click', (e) => {
-        e.preventDefault();
+      const handleDidYouMeanClick = (e) => {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
         let currentVal = dom.searchInput ? dom.searchInput.value : '';
 
         // 1. Прибираємо паразитарні символи на початку рядка (~, -, --, =, +, *, #, №, /, \ тощо)
-        let cleaned = currentVal.replace(/^[\s=+\-*•—–~#№\\\/]+/, '');
+        let cleaned = currentVal.trim().replace(/^[\s=+\-*•—–~#№\\\/]+/, '').trim();
 
         // 2. Точкова заміна помилкового токена на виправлену назву міста/села
         let newVal = cleaned;
@@ -1932,7 +1961,12 @@
             if (simpleRegex.test(newVal)) {
               newVal = newVal.replace(simpleRegex, correctedToken);
             } else {
-              newVal = `${correctedToken} ${newVal}`;
+              const numMatch = newVal.match(/\d+/);
+              if (numMatch) {
+                newVal = `${correctedToken} ${numMatch[0]}`;
+              } else {
+                newVal = correctedToken;
+              }
             }
           }
         } else if (correctedToken) {
@@ -1946,12 +1980,26 @@
         if (dom.btnClearSearch) {
           dom.btnClearSearch.classList.remove('hidden');
         }
+        dom.didYouMeanBox.classList.add('hidden');
+        closeAutocomplete();
         executeSearch(newVal, true, true);
-        focusSearchInputAtEnd(true);
-        setTimeout(() => focusSearchInputAtEnd(true), 25);
-      });
+        if (dom.searchInput) {
+          suppressNextFocusActivation = true;
+          dom.searchInput.focus();
+          suppressNextFocusActivation = false;
+          const len = dom.searchInput.value.length;
+          dom.searchInput.setSelectionRange(len, len);
+        }
+      };
+
+      dom.didYouMeanBox.onclick = handleDidYouMeanClick;
+      const link = document.getElementById('linkDidYouMean');
+      if (link) {
+        link.onclick = handleDidYouMeanClick;
+      }
     } else if (dom.didYouMeanBox) {
       dom.didYouMeanBox.classList.add('hidden');
+      dom.didYouMeanBox.onclick = null;
     }
 
     // EMPTY STATE: Якщо нічого не знайдено
@@ -3220,7 +3268,7 @@
     }
 
     const isSettlement = item.mode === 'city' || item.mode === 'settlement' || item.type === 'місто' || item.type === 'смт' || item.type === 'село' || item.type === 'селище';
-    let fill = item.textToFill || item.title || '';
+    let fill = (item.textToFill || item.title || '').trim();
 
     if (isSettlement) {
       const settlement = item.settlementObj || item;
@@ -3230,7 +3278,8 @@
       const parts = [sName];
       if (sRaion) parts.push(sRaion);
       if (sOblast) parts.push(sOblast);
-      fill = parts.join(' ').replace(/[()]/g, '').replace(/\s+/g, ' ').trim() + ' ';
+      fill = parts.filter(Boolean).join(' ').replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
+      fill = fill ? fill + ' ' : '';
 
       state.selectedSettlement = {
         cleanName: sName,
@@ -3243,14 +3292,11 @@
         settlementRef: settlement.settlementRef || settlement.ref || settlement.Ref || null
       };
     } else {
-      fill = fill.replace(/[()]/g, '').trim();
+      fill = fill.replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
       state.selectedSettlement = null;
     }
 
-    if (isSettlement && !fill.endsWith(' ')) {
-      fill += ' ';
-    }
-    dom.searchInput.value = fill;
+    dom.searchInput.value = fill.trimStart();
     dom.btnClearSearch.classList.remove('hidden');
     closeAutocomplete();
 
@@ -3283,12 +3329,12 @@
         matchedVillageBranches = engine.filterBranchesByNormalizedSearch(fill.trim(), searchPool, 10);
       } else {
         const settlement = item.settlementObj || item;
-        const sName = cleanSettlementName(settlement.cleanName || settlement.name || item.title || '').toLowerCase();
+        const sNameCanon = canonCity(settlement.cleanName || settlement.name || item.title || '');
         const sOblast = cleanOblastName(settlement.cleanOblast || settlement.oblast || '').toLowerCase();
         const sRaion = cleanRaionName(settlement.cleanRaion || settlement.raion || '').toLowerCase();
         matchedVillageBranches = searchPool.filter(b => {
-          const bCity = (b.city || '').toLowerCase();
-          if (bCity !== sName) return false;
+          const bCityCanon = b._canonCity || canonCity(b.city);
+          if (bCityCanon !== sNameCanon) return false;
           if (sOblast && b.oblast && !b.oblast.toLowerCase().includes(sOblast.slice(0, 4))) return false;
           if (sRaion && b.raion && !b.raion.toLowerCase().includes(sRaion.slice(0, 4))) return false;
           return true;
@@ -3297,12 +3343,12 @@
 
       // Додатковий фільтр за точним обраним населеним пунктом (захист від домішування тезок та столиці)
       if (state.selectedSettlement) {
-        const selName = state.selectedSettlement.cleanName.toLowerCase();
-        const selObl = state.selectedSettlement.cleanOblast.toLowerCase().slice(0, 4);
-        const selRaion = state.selectedSettlement.cleanRaion.toLowerCase().slice(0, 4);
+        const selNameCanon = canonCity(state.selectedSettlement.cleanName);
+        const selObl = cleanOblastName(state.selectedSettlement.cleanOblast).toLowerCase().slice(0, 4);
+        const selRaion = cleanRaionName(state.selectedSettlement.cleanRaion).toLowerCase().slice(0, 4);
         matchedVillageBranches = matchedVillageBranches.filter(b => {
-          const bc = (b._canonCity || (b.city || '').toLowerCase()).trim();
-          if (bc !== selName) return false;
+          const bc = b._canonCity || canonCity(b.city);
+          if (bc !== selNameCanon) return false;
           if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
           if (selRaion && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaion, b.raion)) return false;
           return true;
@@ -3402,8 +3448,8 @@
 
     function hasFixedSettlementContext(query) {
       if (state.selectedSettlement) {
-        const sLower = state.selectedSettlement.cleanName.toLowerCase();
-        if (query && query.toLowerCase().startsWith(sLower)) {
+        const sLower = canonText(state.selectedSettlement.cleanName);
+        if (query && canonText(query).startsWith(sLower)) {
           return true;
         }
       }
@@ -3474,8 +3520,9 @@
     dom.searchInput.addEventListener('input', () => {
       const val = dom.searchInput.value.trim();
       if (state.selectedSettlement) {
-        const sLower = state.selectedSettlement.cleanName.toLowerCase();
-        if (!val.toLowerCase().startsWith(sLower)) {
+        const sLower = canonText(state.selectedSettlement.cleanName);
+        const valCanon = canonText(val);
+        if (!valCanon.startsWith(sLower)) {
           state.selectedSettlement = null;
         }
       }
