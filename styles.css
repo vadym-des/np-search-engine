@@ -1657,6 +1657,35 @@ mark.hl-match,
   font-size: 0.95rem;
 }
 
+/* Історична довідка про старий район / колишню назву (Адмінреформа 2020) */
+.settlement-history-hint {
+  font-size: 12.5px;
+  color: var(--text-muted, #6b7280);
+  line-height: 1.4;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.settlement-history-hint .history-icon {
+  font-size: 13px;
+  opacity: 0.85;
+  display: inline-flex;
+  align-items: center;
+}
+
+.settlement-history-hint strong {
+  color: var(--text-main, #374151);
+  font-weight: 600;
+}
+
+.settlement-history-hint .history-separator {
+  color: var(--text-subtle, #9ca3af);
+  margin: 0 1px;
+}
+
 /* Перейменування (тільки якщо було) */
 .branch-renamed-note {
   font-size: 11.5px;

@@ -820,7 +820,31 @@
     'тетіївський': 'білоцерківський',
     'горохівський': 'луцький',
     'рожищенський': 'луцький',
-    'ківерцівський': 'луцький'
+    'ківерцівський': 'луцький',
+    // Додаткові райони адмінреформи 2020
+    'п\'ятихатський': 'кам\'янський', 'пятихатський': 'кам\'янський', 'верхньодніпровський': 'кам\'янський',
+    'томаківський': 'нікопольський', 'покровський': 'синельниківський', 'межівський': 'синельниківський',
+    'петропавлівський': 'синельниківський', 'юр\'ївський': 'павлоградський', 'юрївський': 'павлоградський',
+    'великомихайлівський': 'роздільнянський', 'захарівський': 'роздільнянський', 'тарутинський': 'болградський',
+    'арцизький': 'болградський', 'саратський': 'білгород-дністровський', 'татарбунарський': 'білгород-дністровський',
+    'кілійський': 'ізмаїльський', 'ренійський': 'ізмаїльський',
+    'андрушівський': 'бердичівський', 'ружинський': 'бердичівський', 'малинський': 'коростенський',
+    'овруцький': 'коростенський', 'олевський': 'коростенський', 'лугинський': 'коростенський',
+    'народицький': 'коростенський', 'баранівський': 'звягельський', 'ємільчинський': 'звягельський',
+    'новоград-волинський': 'звягельський',
+    'бродівський': 'золочівський', 'буський': 'золочівський', 'сокальський': 'червоноградський', 'радехівський': 'червоноградський',
+    'маневицький': 'камінь-каширський', 'любешівський': 'камінь-каширський', 'ратнівський': 'ковельський',
+    'старовижівський': 'ковельський', 'турійський': 'ковельський', 'шацький': 'ковельський', 'любомльський': 'ковельський',
+    'іваничівський': 'володимирський',
+    'гадяцький': 'миргородський', 'шишацький': 'миргородський', 'великобагачанський': 'миргородський',
+    'глобинський': 'кременчуцький', 'козельщинський': 'кременчуцький', 'хорольський': 'лубенський',
+    'оржицький': 'лубенський', 'пирятинський': 'лубенський', 'гребінківський': 'лубенський',
+    'чорнухинський': 'лубенський', 'кобеляцький': 'полтавський', 'новосанжарський': 'полтавський',
+    'решетилівський': 'полтавський', 'диканський': 'полтавський', 'зіньківський': 'полтавський',
+    'котелевський': 'полтавський', 'карлівський': 'полтавський', 'машівський': 'полтавський', 'чутівський': 'полтавський',
+    'козелецький': 'чернігівський', 'ріпкинський': 'чернігівський', 'городнянський': 'чернігівський',
+    'куликівський': 'чернігівський', 'сновський': 'корюківський', 'щорський': 'корюківський',
+    'носівський': 'ніжинський', 'носовський': 'ніжинський'
   };
 
   // Маппінг укрупнених районів КАТОТТГ (Нові райони 2020 <-> стара база НП)
@@ -893,6 +917,98 @@
       }
     }
     return false;
+  }
+
+  // 4.3. РЕЄСТР ІСТОРИЧНИХ НАЗВ ТА ЛІКВІДОВАНИХ РАЙОНІВ (Адмінреформа 2020 / КАТОТТГ)
+  const HISTORICAL_SETTLEMENTS = [
+    { name: 'Буялик', old_name: 'Петрівка', new_raion: 'Березівський', old_raion: 'Іванівський', oblast: 'Одеська' },
+    { name: 'Великий Буялик', old_name: 'Благоєве', new_raion: 'Березівський', old_raion: 'Іванівський', oblast: 'Одеська' },
+    { name: 'Березнегувате', new_raion: 'Баштанський', old_raion: 'Березнегуватський', oblast: 'Миколаївська' },
+    { name: 'Попільня', new_raion: 'Житомирський', old_raion: 'Попільнянський', oblast: 'Житомирська' },
+    { name: 'Братське', new_raion: 'Вознесенський', old_raion: 'Братський', oblast: 'Миколаївська' },
+    { name: 'Самар', old_name: 'Новомосковськ', new_raion: 'Самарівський', old_raion: 'Новомосковський', oblast: 'Дніпропетровська' },
+    { name: 'Шептицький', old_name: 'Червоноград', new_raion: 'Червоноградський', old_raion: 'Червоноградський', oblast: 'Львівська' },
+    { name: 'Південне', old_name: 'Южне', new_raion: 'Одеський', old_raion: 'Лиманський', oblast: 'Одеська' },
+    { name: 'Багачеве', old_name: 'Ватутіне', new_raion: 'Звенигородський', old_raion: 'Звенигородський', oblast: 'Черкаська' },
+    { name: 'Південноукраїнськ', old_name: 'Южноукраїнськ', new_raion: 'Вознесенський', old_raion: 'Вознесенський', oblast: 'Миколаївська' },
+    { name: 'Звягель', old_name: 'Новоград-Волинський', new_raion: 'Звягельський', old_raion: 'Новоград-Волинський', oblast: 'Житомирська' },
+    { name: 'Чорноморськ', old_name: 'Іллічівськ', new_raion: 'Одеський', old_raion: 'Овідіопольський', oblast: 'Одеська' },
+    { name: 'Горішні Плавні', old_name: 'Комсомольськ', new_raion: 'Кременчуцький', old_raion: 'Кременчуцький', oblast: 'Полтавська' },
+    { name: 'Кам\'янське', old_name: 'Дніпродзержинськ', new_raion: 'Кам\'янський', old_raion: 'Кам\'янський', oblast: 'Дніпропетровська' },
+    { name: 'Покров', old_name: 'Орджонікідзе', new_raion: 'Нікопольський', old_raion: 'Нікопольський', oblast: 'Дніпропетровська' },
+    { name: 'Олешки', old_name: 'Цюрупинськ', new_raion: 'Херсонський', old_raion: 'Олешківський', oblast: 'Херсонська' },
+    { name: 'Доброслав', old_name: 'Комінтернівське', new_raion: 'Одеський', old_raion: 'Комінтернівський', oblast: 'Одеська' }
+  ];
+
+  function getHistoricalGeoInfo(cityName, rawRaion, rawOblast) {
+    if (!cityName && !rawRaion) return null;
+    const cleanCity = cleanSettlementName(cityName || '');
+    const cleanR = cleanRaionName(rawRaion || '');
+    const cleanO = cleanOblastName(rawOblast || '');
+
+    const cLower = cleanCity.toLowerCase();
+    const rLower = cleanR.toLowerCase();
+    const oLower = cleanO.toLowerCase();
+
+    let actualRaion = cleanR;
+    let oldRaion = null;
+    let oldName = null;
+
+    // 1. Пошук у точковому реєстрі історичних населених пунктів
+    const sMatch = HISTORICAL_SETTLEMENTS.find(item => {
+      const nameMatch = item.name.toLowerCase() === cLower || (item.old_name && item.old_name.toLowerCase() === cLower);
+      if (!nameMatch) return false;
+      if (cleanO && item.oblast && !item.oblast.toLowerCase().includes(oLower) && !oLower.includes(item.oblast.toLowerCase())) {
+        return false;
+      }
+      return true;
+    });
+
+    if (sMatch) {
+      if (sMatch.new_raion) actualRaion = sMatch.new_raion;
+      if (sMatch.old_raion && sMatch.old_raion.toLowerCase() !== actualRaion.toLowerCase()) {
+        oldRaion = sMatch.old_raion;
+      }
+      if (sMatch.old_name && sMatch.name.toLowerCase() === cLower) {
+        oldName = sMatch.old_name;
+      }
+    }
+
+    // 2. Якщо oldRaion ще не визначено, але вхідний район є ліквідованим у CONSOLIDATED_RAION_MAP
+    if (!oldRaion && rLower && CONSOLIDATED_RAION_MAP[rLower]) {
+      const mappedNew = CONSOLIDATED_RAION_MAP[rLower];
+      const capNew = mappedNew.charAt(0).toUpperCase() + mappedNew.slice(1);
+      if (cleanR.toLowerCase() !== mappedNew.toLowerCase()) {
+        oldRaion = cleanR;
+        actualRaion = capNew;
+      }
+    }
+
+    // 3. Якщо район уже новий (наприклад, Баштанський), але населений пункт був райцентром ліквідованого району
+    if (!oldRaion && actualRaion && cLower) {
+      const actStem = getRawRaionStem(actualRaion);
+      const oldList = KATOTTG_RAION_MAP[actStem] || KATOTTG_RAION_MAP[actualRaion.toLowerCase()];
+      if (oldList) {
+        const cStem = cLower.slice(0, 5);
+        const foundOld = oldList.find(oR => oR.startsWith(cStem) || cLower.startsWith(oR.slice(0, 5)));
+        if (foundOld) {
+          const capOld = foundOld.charAt(0).toUpperCase() + foundOld.slice(1);
+          if (capOld.toLowerCase() !== actualRaion.toLowerCase()) {
+            oldRaion = capOld;
+          }
+        }
+      }
+    }
+
+    const hasHistory = Boolean(oldRaion || oldName);
+    return {
+      cleanCity,
+      actualRaion,
+      oldRaion,
+      oldName,
+      oblast: cleanO,
+      hasHistory
+    };
   }
 
   // 5.1. РОЗПІЗНАВАННЯ МІСТА (Точне O(1) або нечітке Levenshtein Distance <= 2)
@@ -2437,6 +2553,20 @@
     if (item.raion) {
       parts.push(item.raion, item.raion + ' район', item.raion + ' р-н');
     }
+
+    // 2.1. Історичні назви та ліквідовані райони (Адмінреформа 2020)
+    const hist = getHistoricalGeoInfo(item.city, item.raion, item.oblast);
+    if (hist && hist.hasHistory) {
+      if (hist.oldName) {
+        parts.push(hist.oldName, 'кол ' + hist.oldName, 'раніше ' + hist.oldName);
+      }
+      if (hist.oldRaion) {
+        parts.push(hist.oldRaion, hist.oldRaion + ' район', hist.oldRaion + ' р-н');
+      }
+      if (hist.actualRaion && hist.actualRaion.toLowerCase() !== (item.raion || '').toLowerCase()) {
+        parts.push(hist.actualRaion, hist.actualRaion + ' район', hist.actualRaion + ' р-н');
+      }
+    }
     if (item.settlementType) {
       parts.push(item.settlementType);
     }
@@ -3577,6 +3707,8 @@
     areRaionsCompatible,
     CONSOLIDATED_RAION_MAP,
     KATOTTG_RAION_MAP,
+    HISTORICAL_SETTLEMENTS,
+    getHistoricalGeoInfo,
     setAllSettlementsData,
     getAllSettlementsCount: () => _allSettlementsByName.size
   };

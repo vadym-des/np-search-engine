@@ -1152,7 +1152,14 @@
     }
 
     const oblClean = cleanOblastName(oblast);
-    const raionClean = cleanRaionName(raion);
+    let raionClean = cleanRaionName(raion);
+
+    if (window.SmartSearchEngine && window.SmartSearchEngine.getHistoricalGeoInfo) {
+      const hist = window.SmartSearchEngine.getHistoricalGeoInfo(city, raionClean, oblClean);
+      if (hist && hist.actualRaion) {
+        raionClean = hist.actualRaion;
+      }
+    }
 
     const parts = [];
     if (raionClean) parts.push(`${raionClean} р-н`);
@@ -1436,8 +1443,15 @@
       }
     }
 
-    const raionClean = cleanRaionName(raion);
+    let raionClean = cleanRaionName(raion);
     const oblClean = cleanOblastName(oblast);
+
+    if (window.SmartSearchEngine && window.SmartSearchEngine.getHistoricalGeoInfo) {
+      const hist = window.SmartSearchEngine.getHistoricalGeoInfo(city, raionClean, oblClean);
+      if (hist && hist.actualRaion) {
+        raionClean = hist.actualRaion;
+      }
+    }
 
     const geoParts = [];
     if (raionClean) {
@@ -1553,8 +1567,15 @@
       }
     }
 
-    const raionClean = cleanRaionName(raion).trim();
+    let raionClean = cleanRaionName(raion).trim();
     const oblClean = cleanOblastName(oblast).trim();
+
+    if (window.SmartSearchEngine && window.SmartSearchEngine.getHistoricalGeoInfo) {
+      const hist = window.SmartSearchEngine.getHistoricalGeoInfo(cityVal, raionClean, oblClean);
+      if (hist && hist.actualRaion) {
+        raionClean = hist.actualRaion;
+      }
+    }
     const raionVal = raionClean ? (options.shortRegion ? `${raionClean} р-н` : `${raionClean} район`).trim() : '';
     const oblVal = oblClean ? (options.shortRegion ? `${oblClean} обл.` : `${oblClean} область`).trim() : '';
 
@@ -1849,7 +1870,15 @@
       }
     }
     const oblClean = cleanOblastName(oblast);
-    const raionClean = cleanRaionName(raion);
+    let raionClean = cleanRaionName(raion);
+
+    let histGeo = null;
+    if (window.SmartSearchEngine && window.SmartSearchEngine.getHistoricalGeoInfo) {
+      histGeo = window.SmartSearchEngine.getHistoricalGeoInfo(cleanCity, raionClean, oblClean);
+      if (histGeo && histGeo.actualRaion) {
+        raionClean = histGeo.actualRaion;
+      }
+    }
 
     const geoParts = [];
     if (raionClean) geoParts.push(`${raionClean} р-н`);
@@ -1863,6 +1892,23 @@
 
     const fullSettlementText = `${sType} ${cleanCity}${geoSub ? ' ' + geoSub : ''}`;
     const hlSettlement = `${escapeHtml(sType)} ${hlCity}${hlGeoSub ? ' ' + hlGeoSub : ''}`;
+
+    let historyHtml = '';
+    if (histGeo && (histGeo.oldRaion || histGeo.oldName)) {
+      const hParts = [];
+      if (histGeo.oldRaion) {
+        hParts.push(`<span>До 2020 року: <strong>${escapeHtml(histGeo.oldRaion)} р-н</strong></span>`);
+      }
+      if (histGeo.oldName) {
+        hParts.push(`<span>кол. назва: <strong>${escapeHtml(histGeo.oldName)}</strong></span>`);
+      }
+      historyHtml = `
+      <div class="settlement-history-hint" title="Адміністративна реформа 2020 року (КАТОТТГ)">
+        <span class="history-icon">ℹ️</span> 
+        ${hParts.join('\n        <span class="history-separator">•</span> ')}
+      </div>
+      `;
+    }
 
     card.innerHTML = `
       <!-- Рядок 1: місто [Місто] - [Тип] №[Номер]: [Вулиця] (одне речення без іконок та крапок) -->
@@ -1878,6 +1924,8 @@
         <span class="geo-label">Населений пункт:</span>
         <span class="geo-val">${hlSettlement}</span>
       </div>
+
+      ${historyHtml}
 
       ${renamingHtml}
 
@@ -4476,6 +4524,7 @@
   window.onSuggestionClick = onSuggestionClick;
   window.highlightMatch = highlightMatch;
   window.createFullBranchCard = createFullBranchCard;
+  window.renderResultCard = createFullBranchCard;
   window.renderBranchCard = createFullBranchCard;
   window.renderSelectedBranch = renderSelectedBranch;
   window.selectBranch = renderSelectedBranch;
