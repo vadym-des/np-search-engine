@@ -228,6 +228,30 @@ runTest('Автоматичне очищення рядка (відсутніс�
   assert.strictEqual(res, 'Фантазія-Тест, вул. Центральна, 1');
 });
 
+// 9. Перетягування (Drag-and-Drop) та зміна порядку тегів
+runTest('Плавне перетягування тегів (Drag-and-Drop): [Служба] перед [Номер]', () => {
+  const initialTags = ['city', 'number', 'service', 'street'];
+  // Симуляція перетягування: перетягнути 'service' (sourceIdx = 2) перед 'number' (targetIdx = 1, insertIndex = 1)
+  const sourceIdx = 2;
+  const targetIdx = 1;
+  const insertBefore = true;
+  let insertIndex = insertBefore ? targetIdx : targetIdx + 1;
+  if (sourceIdx < insertIndex) insertIndex--;
+
+  const tags = initialTags.slice();
+  const moved = tags.splice(sourceIdx, 1)[0];
+  tags.splice(insertIndex, 0, moved);
+
+  assert.deepStrictEqual(tags, ['city', 'service', 'number', 'street'], 'Порядок тегів має бути city, service, number, street');
+
+  const config = {
+    tags,
+    options: { smtShort: true, noBranchWord: false, shortRegion: true, noStreetPrefix: false }
+  };
+  const res = window.assembleCopyStringFromPreset(standardBranch, config);
+  assert(res.startsWith('Київ, Нова Пошта, №15'), `Очікувалось що [Служба] стоїть перед [Номер]: "${res}"`);
+});
+
 console.log('===============================================================');
 console.log(`📊 РЕЗУЛЬТАТ: ${passedTests} / ${totalTests} ТЕСТІВ ПРОЙДЕНО УСПІШНО!`);
 console.log('===============================================================\n');

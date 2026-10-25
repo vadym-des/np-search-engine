@@ -3678,7 +3678,7 @@
       });
     }
 
-    // 3. Рендер активних чіпів
+    // 3. Рендер активних чіпів з підтримкою HTML5 Drag-and-Drop
     if (dom.presetActiveChips) {
       dom.presetActiveChips.innerHTML = '';
       const tags = currentConfig.tags || [];
@@ -3686,13 +3686,14 @@
         const meta = COPY_PRESET_TAGS.find(t => t.id === tagId);
         const chip = document.createElement('div');
         chip.className = 'preset-chip';
+        chip.setAttribute('draggable', 'true');
         chip.dataset.index = index;
         chip.dataset.tag = tagId;
+        chip.title = 'Перетягніть мишкою для зміни порядку';
         chip.innerHTML = `
-          <button type="button" class="chip-move-btn chip-move-left" data-index="${index}" title="Посунути ліворуч" aria-label="Посунути ліворуч" ${index === 0 ? 'disabled' : ''}>←</button>
+          <span class="chip-grip" aria-hidden="true" title="Перетягнути">⋮⋮</span>
           <span class="chip-label">${escapeHtml(meta ? meta.label : tagId)}</span>
-          <button type="button" class="chip-move-btn chip-move-right" data-index="${index}" title="Посунути праворуч" aria-label="Посунути праворуч" ${index === tags.length - 1 ? 'disabled' : ''}>→</button>
-          <button type="button" class="chip-del-btn" data-index="${index}" title="Видалити елемент" aria-label="Видалити елемент">✕</button>
+          <button type="button" class="chip-del-btn" data-index="${index}" title="Видалити елемент" aria-label="Видалити елемент" draggable="false">✕</button>
         `;
         dom.presetActiveChips.appendChild(chip);
       });
@@ -3815,34 +3816,130 @@
       });
     }
 
-    // Переміщення та видалення активних чіпів
+    // Нативний Drag-and-Drop для сортування та видалення активних чіпів
     if (dom.presetActiveChips) {
-      dom.presetActiveChips.addEventListener('click', e => {
-        const leftBtn = e.target.closest('.chip-move-left');
-        const rightBtn = e.target.closest('.chip-move-right');
-        const delBtn = e.target.closest('.chip-del-btn');
-        const tags = draftCopyPresets[activePresetTab].tags;
+      let draggedChipIndex = null;
 
-        if (leftBtn && !leftBtn.disabled) {
-          const idx = parseInt(leftBtn.dataset.index, 10);
-          if (idx > 0) {
-            const tmp = tags[idx];
-            tags[idx] = tags[idx - 1];
-            tags[idx - 1] = tmp;
+      // 1. Початок перетягування (dragstart)
+      dom.presetActiveChips.addEventListener('dragstart', (e) => {
+        const chip = e.target.closest('.preset-chip');
+        if (!chip || e.target.closest('.chip-del-btn')) {
+          e.preventDefault();
+          return;
+        }
+        draggedChipIndex = parseInt(chip.dataset.index, 10);
+        chip.classList.add('dragging');
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', String(draggedChipIndex));
+        }
+      });
+
+      // 2. Наведення під час перетягування (dragover): індикатор лінії вставки
+      dom.presetActiveChips.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (e.dataTransfer) {
+          e.dataTransfer.dropEffect = 'move';
+        }
+
+        const chip = e.target.closest('.preset-chip');
+        dom.presetActiveChips.querySelectorAll('.preset-chip').forEach(c => {
+          if (c !== chip) {
+            c.classList.remove('drag-over-left', 'drag-over-right');
+          }
+        });
+
+        if (chip && !chip.classList.contains('dragging')) {
+          const rect = chip.getBoundingClientRect();
+          const midX = rect.left + rect.width / 2;
+          if (e.clientX < midX) {
+            chip.classList.add('drag-over-left');
+            chip.classList.remove('drag-over-right');
+          } else {
+            chip.classList.add('drag-over-right');
+            chip.classList.remove('drag-over-left');
+          }
+        }
+      });
+
+      // 3. Вихід курсора з чіпа (dragleave)
+      dom.presetActiveChips.addEventListener('dragleave', (e) => {
+        const chip = e.target.closest('.preset-chip');
+        if (chip && !chip.contains(e.relatedTarget)) {
+          chip.classList.remove('drag-over-left', 'drag-over-right');
+        }
+      });
+
+      // 4. Завершення скидання (drop): оновлення порядку в стані
+      dom.presetActiveChips.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const chip = e.target.closest('.preset-chip');
+        const tags = draftCopyPresets && draftCopyPresets[activePresetTab] ? draftCopyPresets[activePresetTab].tags : null;
+
+        const rawSource = e.dataTransfer ? e.dataTransfer.getData('text/plain') : null;
+        const sourceIdx = draggedChipIndex !== null ? draggedChipIndex : (rawSource !== null ? parseInt(rawSource, 10) : -1);
+
+        dom.presetActiveChips.querySelectorAll('.preset-chip').forEach(c => {
+          c.classList.remove('drag-over-left', 'drag-over-right', 'dragging');
+        });
+        draggedChipIndex = null;
+
+        if (!tags || isNaN(sourceIdx) || sourceIdx < 0 || sourceIdx >= tags.length) return;
+
+        if (chip) {
+          const targetIdx = parseInt(chip.dataset.index, 10);
+          const rect = chip.getBoundingClientRect();
+          const midX = rect.left + rect.width / 2;
+          let insertIndex = e.clientX < midX ? targetIdx : targetIdx + 1;
+          if (sourceIdx < insertIndex) insertIndex--;
+
+          if (sourceIdx !== insertIndex && insertIndex >= 0 && insertIndex <= tags.length) {
+            const moved = tags.splice(sourceIdx, 1)[0];
+            tags.splice(insertIndex, 0, moved);
+            draftCopyPresets[activePresetTab].presetName = 'custom';
             renderPresetModalUI();
           }
-        } else if (rightBtn && !rightBtn.disabled) {
-          const idx = parseInt(rightBtn.dataset.index, 10);
-          if (idx < tags.length - 1) {
-            const tmp = tags[idx];
-            tags[idx] = tags[idx + 1];
-            tags[idx + 1] = tmp;
+        } else {
+          // Якщо скинули на вільний простір контейнера (в кінець списку)
+          if (sourceIdx !== tags.length - 1) {
+            const moved = tags.splice(sourceIdx, 1)[0];
+            tags.push(moved);
+            draftCopyPresets[activePresetTab].presetName = 'custom';
             renderPresetModalUI();
           }
-        } else if (delBtn) {
+        }
+      });
+
+      // 5. Завершення перетягування (dragend)
+      dom.presetActiveChips.addEventListener('dragend', () => {
+        draggedChipIndex = null;
+        dom.presetActiveChips.querySelectorAll('.preset-chip').forEach(c => {
+          c.classList.remove('drag-over-left', 'drag-over-right', 'dragging');
+        });
+      });
+
+      // 6. Захист від випадкового старту перетягування при кліку на хрестик ✕
+      dom.presetActiveChips.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.chip-del-btn')) {
+          e.stopPropagation();
+        }
+      });
+
+      // 7. Видалення чіпа при кліку на хрестик ✕
+      dom.presetActiveChips.addEventListener('click', (e) => {
+        const delBtn = e.target.closest('.chip-del-btn');
+        if (delBtn) {
+          e.stopPropagation();
+          e.preventDefault();
           const idx = parseInt(delBtn.dataset.index, 10);
-          tags.splice(idx, 1);
-          renderPresetModalUI();
+          const tags = draftCopyPresets && draftCopyPresets[activePresetTab] ? draftCopyPresets[activePresetTab].tags : null;
+          if (tags && !isNaN(idx) && idx >= 0 && idx < tags.length) {
+            tags.splice(idx, 1);
+            draftCopyPresets[activePresetTab].presetName = 'custom';
+            renderPresetModalUI();
+          }
         }
       });
     }
@@ -3853,8 +3950,11 @@
         const item = e.target.closest('.preset-palette-item');
         if (!item) return;
         const tagId = item.dataset.tag;
-        draftCopyPresets[activePresetTab].tags.push(tagId);
-        renderPresetModalUI();
+        if (draftCopyPresets && draftCopyPresets[activePresetTab]) {
+          draftCopyPresets[activePresetTab].tags.push(tagId);
+          draftCopyPresets[activePresetTab].presetName = 'custom';
+          renderPresetModalUI();
+        }
       });
     }
 
