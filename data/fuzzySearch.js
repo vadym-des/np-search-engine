@@ -1111,6 +1111,8 @@
 
     let mergedTokens = [];
     let detectedCity = null;
+    let rawCityToken = null;
+    let hasCityTypo = false;
 
     // 5. Виправлення розірваних слів (склеювання одиночних літер та частин слів)
     // Наприклад: ["коломи", "я"] -> "коломия", ["о", "деса"] -> "одеса"
@@ -1130,6 +1132,8 @@
         if (foundCombined) {
           if (!detectedCity) {
             detectedCity = foundCombined;
+            rawCityToken = cur + ' ' + next;
+            hasCityTypo = true;
             mergedTokens.push(foundCombined.name.toLowerCase());
           } else {
             // Region disambiguation: check if foundCombined is in detectedCity's oblast (e.g. Житомир -> Нові Білокоровичі)
@@ -1137,6 +1141,8 @@
             const combObl = (foundCombined.oblast || '').toLowerCase();
             if (combObl.includes(oblStem)) {
               detectedCity = foundCombined;
+              rawCityToken = cur + ' ' + next;
+              hasCityTypo = true;
               mergedTokens.push(foundCombined.name.toLowerCase());
             } else {
               mergedTokens.push(cur);
@@ -1152,8 +1158,17 @@
       if (!/^\d+$/.test(cur)) {
         const foundSingle = findSettlementByNameOrFuzzy(cur, contextOblast, contextRaion);
         if (foundSingle) {
+          const sLower = foundSingle.name.toLowerCase();
+          const curLower = cur.toLowerCase();
+          const isExact = (curLower === sLower) ||
+                          (normalizeLocativeCase(curLower) === sLower) ||
+                          (canonText(curLower) === canonText(sLower)) ||
+                          (foundSingle.aliases && foundSingle.aliases.some(a => a.toLowerCase() === curLower || canonText(a.toLowerCase()) === canonText(curLower)));
+
           if (!detectedCity) {
             detectedCity = foundSingle;
+            rawCityToken = cur;
+            hasCityTypo = !isExact;
             mergedTokens.push(foundSingle.name.toLowerCase());
           } else {
             // Малий населений пункт (село/смт) має безумовний пріоритет як цільове місто над містом/райцентром
@@ -1168,6 +1183,8 @@
                                    (detectedCity.oblast && foundSingle.oblast && detectedCity.oblast === foundSingle.oblast);
               if (isCompatible) {
                 detectedCity = foundSingle;
+                rawCityToken = cur;
+                hasCityTypo = !isExact;
                 mergedTokens.push(foundSingle.name.toLowerCase());
                 continue;
               }
@@ -1180,6 +1197,8 @@
             const targetOblastMatches = (detectedCity.oblast || '').toLowerCase().includes(foundSingle.name.toLowerCase().slice(0, 5));
             if (singleObl.includes(oblStem) && !isRegionalCenter) {
               detectedCity = foundSingle;
+              rawCityToken = cur;
+              hasCityTypo = !isExact;
               mergedTokens.push(foundSingle.name.toLowerCase());
             } else if (isRegionalCenter && targetOblastMatches) {
               // Захист села від поглинання обласним центром: залишаємо село якорем
@@ -1209,7 +1228,9 @@
       hasPostomatKeyword,
       hasBranchKeyword,
       hasCargoKeyword,
-      detectedCity
+      detectedCity,
+      rawCityToken,
+      hasCityTypo
     };
   }
 
@@ -1224,13 +1245,15 @@
         oblast: null,
         settlement: null,
         didYouMeanText: null,
+        didYouMean: null,
         facets: { city: null, number: null, oblast: null, raion: null, streetTokens: [], settlementOblast: null }
       };
     }
 
     // Крок 1. Перемикання розкладки та очищення чат-синтаксису
-    let corrected = fixKeyboardLayout(sanitizeChatQuery(rawQuery));
-    const isLayoutFixed = corrected.toLowerCase() !== rawQuery.trim().toLowerCase();
+    const sanitized = sanitizeChatQuery(rawQuery);
+    let corrected = fixKeyboardLayout(sanitized);
+    const isLayoutFixed = corrected.toLowerCase() !== sanitized.toLowerCase();
 
     // Склеювання розірваних поштових індексів ("79 049" -> "79049") та маркерів поштоматів
     corrected = corrected.replace(/(\b\d{2})\s+(\d{3}\b)/g, '$1$2')
@@ -1369,12 +1392,16 @@
 
     let matchedSettlement = null;
     let highestScore = 0;
+    let rawCityToken = null;
+    let hasRealTypo = false;
 
     // 7.0. Інтелектуальна нормалізація токенів за принципом Google
     const norm = normalizeSearchTokens(rawQuery);
     if (norm.detectedCity) {
       matchedSettlement = norm.detectedCity;
       highestScore = 0.98;
+      rawCityToken = norm.rawCityToken;
+      hasRealTypo = !!norm.hasCityTypo;
     }
 
     if (!targetBranchNumber) {
@@ -1400,12 +1427,16 @@
         if (item.name.toLowerCase() === stripped || item.name.toLowerCase() === normStripped) {
           matchedSettlement = item;
           highestScore = 1.0;
+          rawCityToken = stripped;
+          hasRealTypo = false;
           break;
         }
         for (let alias of item.aliases) {
           if (stripped === alias || normStripped === alias) {
             matchedSettlement = item;
             highestScore = 1.0;
+            rawCityToken = stripped;
+            hasRealTypo = false;
             break;
           }
           const escAlias = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1413,6 +1444,8 @@
               new RegExp(`(?<!\\p{L})${escAlias}(?!\\p{L})`, 'iu').test(normStripped)) {
             matchedSettlement = item;
             highestScore = 0.95;
+            rawCityToken = alias;
+            hasRealTypo = false;
             break;
           }
         }
@@ -1429,12 +1462,16 @@
           if (item.name.toLowerCase() === token || item.name.toLowerCase() === normTok) {
             matchedSettlement = item;
             highestScore = 0.95;
+            rawCityToken = token;
+            hasRealTypo = false;
             break;
           }
           for (let alias of item.aliases) {
             if (token === alias || normTok === alias) {
               matchedSettlement = item;
               highestScore = 0.90;
+              rawCityToken = token;
+              hasRealTypo = false;
               break;
             }
           }
@@ -1458,6 +1495,8 @@
             if (score > highestScore && score >= 0.70) {
               highestScore = score;
               matchedSettlement = item;
+              rawCityToken = word;
+              hasRealTypo = word.toLowerCase() !== item.name.toLowerCase();
             }
           }
         }
@@ -1465,22 +1504,29 @@
     }
     }
 
+    if (isLayoutFixed) {
+      hasRealTypo = true;
+      if (!rawCityToken) {
+        const enMatch = rawQuery.match(/[a-zA-Z]+/);
+        if (enMatch) rawCityToken = enMatch[0];
+      }
+    }
+
     // 7.5. Формування підказки did-you-mean
     let didYouMeanText = null;
-    if (matchedSettlement) {
-      const parts = [matchedSettlement.name];
-      if (detectedOblast && detectedOblast.name !== matchedSettlement.name) {
-        parts.push(`${detectedOblast.name} область`);
-      }
-      if (targetBranchNumber) {
-        parts.push(isPostomat ? `Поштомат №${targetBranchNumber}` : `Відділення №${targetBranchNumber}`);
-      }
-
-      const suggestion = parts.join(', ');
-      const normalizedRaw = rawQuery.trim().toLowerCase();
-      const normalizedSug = suggestion.toLowerCase();
-      if (isLayoutFixed || (normalizedRaw !== normalizedSug && highestScore < 0.95)) {
-        didYouMeanText = suggestion;
+    let didYouMean = null;
+    if (matchedSettlement && hasRealTypo) {
+      const correctName = matchedSettlement.cleanName || matchedSettlement.name;
+      // Захист: якщо токен збігається з назвою міста без урахування регістру (велика/маленька літера), це НЕ друкарська помилка
+      if (rawCityToken && rawCityToken.trim().toLowerCase() === correctName.trim().toLowerCase()) {
+        hasRealTypo = false;
+      } else {
+        didYouMeanText = correctName;
+        didYouMean = {
+          rawToken: rawCityToken,
+          correctedToken: correctName,
+          text: correctName
+        };
       }
     }
 
@@ -1492,6 +1538,27 @@
         const betterS = findSettlementByNameOrFuzzy(facets.city, ctxObl, ctxRaion);
         if (betterS) {
           matchedSettlement = betterS;
+          const sName = betterS.cleanName || betterS.name;
+          const fCity = facets.city.toLowerCase();
+          const sLower = sName.toLowerCase();
+          const isExact = (fCity === sLower) ||
+                          (normalizeLocativeCase(fCity) === sLower) ||
+                          (canonText(fCity) === canonText(sLower)) ||
+                          (betterS.aliases && betterS.aliases.some(a => a.toLowerCase() === fCity || canonText(a.toLowerCase()) === canonText(fCity)));
+          if (isExact) {
+            hasRealTypo = false;
+            didYouMeanText = null;
+            didYouMean = null;
+          } else {
+            hasRealTypo = true;
+            rawCityToken = facets.city;
+            didYouMeanText = sName;
+            didYouMean = {
+              rawToken: facets.city,
+              correctedToken: sName,
+              text: sName
+            };
+          }
         }
       }
     }
@@ -1509,6 +1576,7 @@
       matchedSettlement,
       confidence: highestScore,
       didYouMeanText,
+      didYouMean,
       facets,
       // Залишок запиту після топоніма/області/району/номера — фільтр за вулицею (street / ShortAddress)
       get streetQuery() { return ((this.facets && this.facets.streetTokens) || []).join(' '); }

@@ -549,6 +549,7 @@
     let results = [];
     let allCityBranches = [];
     let didYouMeanText = parsed.didYouMeanText;
+    let didYouMeanData = parsed.didYouMean;
 
     // Встановлення відповідного фільтру типів за ключовими словами
     if (/(?:вантажне|вантажний|вантаж)/i.test(rawQuery)) {
@@ -625,17 +626,20 @@
         if (exactMatches.length > 0) {
           results = exactMatches;
           didYouMeanText = null;
+          didYouMeanData = null;
         } else {
           const targetNumStr = parsed.targetBranchNumber.toString();
           const prefixMatches = staticMatches.filter(b => b.number && b.number.toString().startsWith(targetNumStr));
           if (prefixMatches.length > 0) {
             results = prefixMatches;
             didYouMeanText = null;
+            didYouMeanData = null;
           } else if (hasStreetInQuery && staticMatches.length > 0) {
             // Якщо точного номера немає серед результатів, але вказано слово-вулицю (випадок "145 драгоманов київ"),
             // відображаємо результат скорингового рушія за цією вулицею
             results = staticMatches;
             didYouMeanText = null;
+            didYouMeanData = null;
           }
         }
       } else {
@@ -760,6 +764,7 @@
         city: parsed.matchedSettlement ? parsed.matchedSettlement.name : ''
       };
       didYouMeanText = null;
+      didYouMeanData = null;
     }
 
     let missingSettlement = null;
@@ -780,7 +785,14 @@
     if (isExplicitSubmit || (results.length === 0 && /\d/.test(rawQuery))) {
       closeAutocomplete();
     }
-    renderSearchResults(results, rawQuery, didYouMeanText, missingTargetBranch, missingSettlement);
+
+    // Якщо в запиті немає реальної помилки або це прямий точний збіг / обране відділення
+    if (!parsed.didYouMeanText) {
+      didYouMeanText = null;
+      didYouMeanData = null;
+    }
+
+    renderSearchResults(results, rawQuery, didYouMeanText, missingTargetBranch, missingSettlement, didYouMeanData);
 
     // Запис у найчастіші запити та історію
     if (shouldRecordAnalytics) {
@@ -1724,7 +1736,7 @@
     }
   }
 
-  function renderSearchResults(branches, query, didYouMeanText, missingTargetBranch, missingSettlement) {
+  function renderSearchResults(branches, query, didYouMeanText, missingTargetBranch, missingSettlement, didYouMeanData) {
     dom.searchResultsSection.classList.remove('hidden');
 
     // 1. Фільтрація за типом (Всі | Вантажні | Відділення | Поштомати)
@@ -1748,8 +1760,8 @@
 
     dom.resultsList.innerHTML = '';
 
-    // Відображення Google-style підказки
-    if (didYouMeanText && dom.didYouMeanBox) {
+    // Відображення Google-style підказки (лише якщо є реальна помилка та не обрано конкретне відділення)
+    if (didYouMeanText && dom.didYouMeanBox && !state.selectedBranch) {
       dom.didYouMeanBox.classList.remove('hidden');
       dom.didYouMeanBox.innerHTML = `
         <span>💡 Можливо, ви мали на увазі:</span>
@@ -1758,9 +1770,41 @@
 
       document.getElementById('linkDidYouMean').addEventListener('click', (e) => {
         e.preventDefault();
-        dom.searchInput.value = didYouMeanText + ' ';
-        dom.btnClearSearch.classList.remove('hidden');
-        executeSearch(didYouMeanText, true, true);
+        let currentVal = dom.searchInput ? dom.searchInput.value : '';
+
+        // 1. Прибираємо паразитарні символи на початку рядка (~, -, --, =, +, *, #, №, /, \ тощо)
+        let cleaned = currentVal.replace(/^[\s=+\-*•—–~#№\\\/]+/, '');
+
+        // 2. Точкова заміна помилкового токена на виправлену назву міста/села
+        let newVal = cleaned;
+        const rawToken = didYouMeanData && didYouMeanData.rawToken ? didYouMeanData.rawToken.trim() : null;
+        const correctedToken = (didYouMeanData && didYouMeanData.correctedToken) || didYouMeanText;
+
+        if (rawToken && correctedToken) {
+          const esc = rawToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const wordRegex = new RegExp(`(^|\\s)${esc}(\\s|$)`, 'iu');
+          if (wordRegex.test(newVal)) {
+            newVal = newVal.replace(wordRegex, `$1${correctedToken}$2`);
+          } else {
+            const simpleRegex = new RegExp(esc, 'iu');
+            if (simpleRegex.test(newVal)) {
+              newVal = newVal.replace(simpleRegex, correctedToken);
+            } else {
+              newVal = `${correctedToken} ${newVal}`;
+            }
+          }
+        } else if (correctedToken) {
+          newVal = correctedToken;
+        }
+
+        newVal = newVal.replace(/\s+/g, ' ').trim();
+        if (dom.searchInput) {
+          dom.searchInput.value = newVal;
+        }
+        if (dom.btnClearSearch) {
+          dom.btnClearSearch.classList.remove('hidden');
+        }
+        executeSearch(newVal, true, true);
         focusSearchInputAtEnd(true);
         setTimeout(() => focusSearchInputAtEnd(true), 25);
       });
@@ -1770,7 +1814,7 @@
 
     // EMPTY STATE: Якщо нічого не знайдено
     if (filtered.length === 0) {
-      if (dom.didYouMeanBox) dom.didYouMeanBox.classList.add('hidden');
+      if (!didYouMeanText && dom.didYouMeanBox) dom.didYouMeanBox.classList.add('hidden');
       if (dom.limitSelector) dom.limitSelector.style.display = 'none';
       // Панель табів залишається видимою, щоб можна було переключитись на інший таб
       applyTypeFiltersVisibility();
@@ -1963,7 +2007,7 @@
 
       const selectThis = () => {
         state.selectedBranch = branch;
-        renderSearchResults(branches, query, didYouMeanText);
+        renderSearchResults(branches, query, null, null, null, null);
         if (state.isMapVisible && state.leafletMap && branch.lat && branch.lng) {
           state.leafletMap.flyTo([branch.lat, branch.lng], 15, { duration: 1.0 });
         }
