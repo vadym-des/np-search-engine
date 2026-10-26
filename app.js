@@ -741,12 +741,13 @@
     if (state.selectedSettlement) {
       const selName = canonCity(state.selectedSettlement.cleanName);
       const selObl = cleanOblastName(state.selectedSettlement.cleanOblast).toLowerCase().slice(0, 4);
-      const selRaion = cleanRaionName(state.selectedSettlement.cleanRaion).toLowerCase().slice(0, 4);
+      const selRaionClean = cleanRaionName(state.selectedSettlement.cleanRaion).toLowerCase();
+      const selRaion = selRaionClean.slice(0, 4);
       staticMatches = staticMatches.filter(b => {
         const bc = b._canonCity || canonCity(b.city);
         if (bc !== selName) return false;
         if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
-        if (selRaion && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaion, b.raion)) return false;
+        if (selRaionClean && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaionClean, b.raion)) return false;
         return true;
       });
     } else if (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast)) {
@@ -826,11 +827,12 @@
         if (currentSignal.aborted) return;
         if (liveData && liveData.length > 0) {
           if (state.selectedSettlement) {
-            const selObl = state.selectedSettlement.cleanOblast.toLowerCase().slice(0, 4);
-            const selRaion = state.selectedSettlement.cleanRaion.toLowerCase().slice(0, 4);
+            const selObl = (state.selectedSettlement.cleanOblast || '').toLowerCase().slice(0, 4);
+            const selRaionClean = (state.selectedSettlement.cleanRaion || '').toLowerCase();
+            const selRaion = selRaionClean.slice(0, 4);
             liveData = liveData.filter(b => {
               if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
-              if (selRaion && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaion, b.raion)) return false;
+              if (selRaionClean && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaionClean, b.raion)) return false;
               return true;
             });
           } else if (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast)) {
@@ -1080,7 +1082,10 @@
     if (window.SmartSearchEngine && window.SmartSearchEngine.canonCity) {
       return window.SmartSearchEngine.canonCity(s);
     }
-    return canonText(s).replace(/\s*\([^)]*\)\s*$/, '').trim();
+    return canonText(s)
+      .replace(/\s*\([^)]*\)\s*$/g, '')
+      .replace(/\s*\([^)]*$/g, '')
+      .trim();
   }
 
   function cleanRaionName(raw) {
@@ -1123,6 +1128,7 @@
     let s = String(raw)
       .replace(/\\n|\r?\n/g, ' ')
       .replace(/\s*\([^)]*\)\s*$/, '')
+      .replace(/\s*\([^)]*$/, '')
       .replace(/[()[\]{}«»"]/g, ' ')
       .replace(/^(?:місто|селище міського типу|смт|селище|село|м\.|с\.|сел\.)\s+/i, '')
       .replace(/[-–—.,;:]+$/, '')
@@ -3482,12 +3488,13 @@
       if (state.selectedSettlement) {
         const selNameCanon = canonCity(state.selectedSettlement.cleanName);
         const selObl = cleanOblastName(state.selectedSettlement.cleanOblast).toLowerCase().slice(0, 4);
-        const selRaion = cleanRaionName(state.selectedSettlement.cleanRaion).toLowerCase().slice(0, 4);
+        const selRaionClean = cleanRaionName(state.selectedSettlement.cleanRaion).toLowerCase();
+        const selRaion = selRaionClean.slice(0, 4);
         matchedVillageBranches = matchedVillageBranches.filter(b => {
           const bc = b._canonCity || canonCity(b.city);
           if (bc !== selNameCanon) return false;
           if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
-          if (selRaion && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaion, b.raion)) return false;
+          if (selRaionClean && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaionClean, b.raion)) return false;
           return true;
         });
       }

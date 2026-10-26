@@ -83,10 +83,14 @@
     return (s == null ? '' : String(s)).toLowerCase().replace(APOS_ALL_RE, '').trim();
   }
 
-  // Канонічна назва населеного пункту відділення: без апострофів та без суфікса області
-  // з API Нової Пошти, напр. "Городок (Рівненська обл.)" -> "городок"
+  // Канонічна назва населеного пункту відділення: без апострофів та без суфікса області/району
+  // з API Нової Пошти, напр. "Городок (Рівненська обл.)" -> "городок", "Петрове (Олександрійський..." -> "петрове"
   function canonCity(s) {
-    return canonText(s).replace(/\s*\([^)]*\)\s*$/, '').trim();
+    if (!s) return '';
+    return canonText(s)
+      .replace(/\s*\([^)]*\)\s*$/g, '')
+      .replace(/\s*\([^)]*$/g, '')
+      .trim();
   }
 
   // Видалення апострофів із запиту. Запити з латиницею не чіпаємо:
@@ -235,7 +239,7 @@
     { name: 'Рівненська', aliases: ['рівн', 'ровн'] },
     { name: 'Закарпатська', aliases: ['закарп', 'ужг'] },
     { name: 'Волинська', aliases: ['волин', 'вол'] },
-    { name: 'Кіровоградська', aliases: ['кіров', 'киров', 'кіровогр', 'кроп', 'кіровоград', 'кропивницький'] },
+    { name: 'Кіровоградська', aliases: ['кіров', 'киров', 'кіровогр', 'кіровогрда', 'кроп', 'кіровоград', 'кропивницький'] },
     { name: 'Київська', aliases: ['київськ', 'кв'] }
   ];
 
@@ -283,11 +287,16 @@
     ['велика доб', 'велика добронь'],
     ['великадоб', 'велика добронь'],
     ['бойовик', 'буялик'],
+    // Фонетичні одруківки та сленгові запити зі скріншотів
+    ['віціліново', 'веселинове'],
+    ['віцеліново', 'веселинове'],
+    ['веселиново', 'веселинове'],
+    ['рідники', 'рудники'],
+    ['кропивнийьцки', 'кропивницький'],
     // Перейменовані міста України (декомунізація та дерусифікація)
     ['новомосковськ', 'самар'],
     ['новомосковск', 'самар'],
     ['самар', 'самар'],
-    ['петрівка', 'буялик'],
     ['буялик', 'буялик'],
     ['южне', 'південне'],
     ['южный', 'південне'],
@@ -334,7 +343,6 @@
     ['новомосковськ', 'самар'],
     ['новомосковск', 'самар'],
     ['самар', 'новомосковськ'],
-    ['петрівка', 'буялик'],
     ['буялик', 'петрівка'],
     ['южне', 'південне'],
     ['южный', 'південне'],
@@ -624,7 +632,10 @@
     { name: 'Сенча', oblast: 'Полтавська', raion: 'Миргородський', type: 'село', lat: 50.2557, lng: 33.3450, postalCodes: ['37254'], aliases: ['сенча', 'сеньча', 'сенчі', 'сеньчі', 'сенчою', 'sencha'], streets: ['вул. Героїв України', 'вул. Миру'] },
     { name: 'Старокостянтинів', oblast: 'Хмельницька', raion: 'Хмельницький', type: 'місто', lat: 49.7551, lng: 27.1972, postalCodes: ['31100'], aliases: ['старокостянтинів', 'староконстантинов', 'староконстатинів', 'старокостянтинові', 'старокост', 'starokostiantyniv'], streets: ['вул. Миру', 'вул. Острозького', 'вул. Івана Франка', 'вул. Попова'] },
     { name: 'Перемога', oblast: 'Київська', raion: 'Броварський', type: 'село', lat: 50.4528, lng: 31.3361, postalCodes: ['07452'], aliases: ['перемога', 'победа', 'перемозі', 'перемогою', 'село перемога', 'peremoha'], streets: ['вул. Старокиївська', 'вул. Київська', 'вул. Заводська'] },
-    { name: 'Авдіївка', oblast: 'Чернігівська', raion: 'Корюківський', type: 'село', lat: 51.7761, lng: 32.7844, postalCodes: ['16100'], aliases: ['авдіївка', 'авдеевка', 'авдіївці', 'авдіївкою', 'avdiivka'], streets: ['вул. Сіверська'] }
+    { name: 'Авдіївка', oblast: 'Чернігівська', raion: 'Корюківський', type: 'село', lat: 51.7761, lng: 32.7844, postalCodes: ['16100'], aliases: ['авдіївка', 'авдеевка', 'авдіївці', 'авдіївкою', 'avdiivka'], streets: ['вул. Сіверська'] },
+    { name: 'Рудники', oblast: 'Львівська', raion: 'Стрийський', type: 'село', lat: 49.4531, lng: 23.9512, postalCodes: ['81644'], aliases: ['рудники', 'рідники', 'рудниках', 'рудниками', 'рудники стрий'], streets: ['вул. Шкільна', 'вул. Центральна'] },
+    { name: 'Веселинове', oblast: 'Миколаївська', raion: 'Вознесенський', type: 'селище', lat: 47.3589, lng: 31.2335, postalCodes: ['57001'], aliases: ['веселинове', 'веселиново', 'віціліново', 'віцеліново', 'веселиновому', 'veselynove'], streets: ['вул. Мозолевського', 'вул. Одеська'] },
+    { name: 'Петрівка-Роменська', oblast: 'Полтавська', raion: 'Миргородський', type: 'село', lat: 50.3667, lng: 33.7500, postalCodes: ['37333'], aliases: ['петрівка-роменська', 'петрівка роменська', 'петровка роменская', 'petrivka-romenska'], streets: ['вул. Козака Володимира', 'вул. Соборна', 'вул. Покровська'] }
   ];
 
   // O(1) індексація населених пунктів за назвою та аліасами для миттєвого пошуку
@@ -691,6 +702,15 @@
         _allSettlementsByName.set(key, list);
       }
       list.push(s);
+      if (key.includes('-')) {
+        const keySpace = key.replace(/-/g, ' ');
+        let listSpace = _allSettlementsByName.get(keySpace);
+        if (!listSpace) {
+          listSpace = [];
+          _allSettlementsByName.set(keySpace, listSpace);
+        }
+        listSpace.push(s);
+      }
       const keyNA = canonText(key);
       if (APOS_TEST_RE.test(key)) {
         let listNA = _allSettlementsByNameNA.get(keyNA);
@@ -823,7 +843,14 @@
     'прилуцьк': 'Прилуцький',
     'прилук': 'Прилуцький',
     'кременць': 'Кременецький',
-    'подільськ': 'Подільський'
+    'подільськ': 'Подільський',
+    'кропив': 'Кропивницький',
+    'кропивницьк': 'Кропивницький',
+    'баштан': 'Баштанський',
+    'баштанськ': 'Баштанський',
+    'олександрій': 'Олександрійський',
+    'олександрійськ': 'Олександрійський',
+    'вознесенськ': 'Вознесенський'
   };
 
   function detectRaion(text) {
@@ -832,12 +859,13 @@
     for (let w of words) {
       if (RAION_ROOT_MAP[w]) return RAION_ROOT_MAP[w];
     }
-    // Район як прикметник (-ський/цький/зький) або скорочення, лише якщо явно вказано район/р-н або прикметникове закінчення
-    const raionRegex = /(?<!\p{L})([А-Яа-яІіЇїЄєҐґ'-]+(?:ський|цький|зький|ського|цького|зького|ському|цькому|зькому))\b(?!\p{L})\s*(?:район|району|р-н)?|(?<!\p{L})([А-Яа-яІіЇїЄєҐґ'-]+(?:ськ|цьк|зьк|сь))\s+(?:район|району|р-н)\b/giu;
+    // Район як прикметник (-ський/цький/зький) або скорочення
+    const raionRegex = /(?<!\p{L})([А-Яа-яІіЇїЄєҐґ'-]+(?:ський|цький|зький|ського|цького|зького|ському|цькому|зькому))(?!\p{L})\s*(?:район|району|р-н)?|(?<!\p{L})([А-Яа-яІіЇїЄєҐґ'-]+(?:ськ|цьк|зьк|сь))\s+(?:район|району|р-н)(?!\p{L})/giu;
     const m = text.match(raionRegex);
     if (!m) return null;
     for (let cand of m) {
       let r = cand.replace(/(?:район|району|р-н)/gi, '').trim().toLowerCase();
+      if (isOblastToken(r)) continue;
       if (RAION_ROOT_MAP[r]) return RAION_ROOT_MAP[r];
       r = r.replace(/ського$/i, 'ський').replace(/цького$/i, 'цький').replace(/зького$/i, 'зький')
            .replace(/ському$/i, 'ський').replace(/цькому$/i, 'цький').replace(/зькому$/i, 'зький')
@@ -859,6 +887,12 @@
     'прилуки': 'прилуцький',
     'варвинський': 'прилуцький',
     'лохвицький': 'миргородський',
+    'гадяцький': 'миргородський',
+    'веселинівський': 'вознесенський',
+    'петрівський': 'олександрійський',
+    'олександрівський': 'кропивницький',
+    'кузнецовська': 'вараський',
+    'кузнецовський': 'вараський',
     'ананьївський': 'подільський',
     'старокостянтинівський': 'хмельницький',
     'городоцький': 'львівський',
@@ -973,7 +1007,14 @@
     'сарненський': ['рокитнівський', 'рокитновський', 'дубровицький', 'сарненський', 'сарнинський'],
     'рівненський': ['костопільський', 'березнівський', 'гощанський', 'корецький', 'острозький', 'здолбунівський', 'рівненський'],
     'дубенський': ['радивилівський', 'демидівський', 'млинівський', 'дубенський'],
-    'вараський': ['зарічненський', 'володимирецький', 'вараський'],
+    'вараський': ['зарічненський', 'володимирецький', 'вараський', 'кузнецовський', 'кузнецовська'],
+    'баштанський': ['баштанський', 'снігурівський', 'березнегуватський', 'казанківський', 'новобузький'],
+    'олександрійський': ['олександрійський', 'онуфріївський', 'петрівський', 'світловодський'],
+    'вознесенський': ['вознесенський', 'веселинівський', 'братський', 'єланецький', 'доманівський', 'южноукраїнський'],
+    'миргородський': ['миргородський', 'гадяцький', 'лохвицький', 'шишацький', 'великобагачанський'],
+    'кропивницький': ['кропивницький', 'бобринецький', 'долинський', 'знам\'янський', 'знамянський', 'компаніївський', 'новгородківський', 'олександрівський', 'устинівський'],
+    'новоукраїнський': ['новоукраїнський', 'добровеличківський', 'маловисківський', 'новомиргородський'],
+    'кам\'янський': ['кам\'янський', 'камʼянський', 'п\'ятихатський', 'пятихатський', 'верхньодніпровський', 'криничанський'],
     'стрийський': ['жидачівський', 'сколівський', 'миколаївський', 'стрийський'],
     'львівський': ['городоцький', 'жовківський', 'пустомитівський', 'кам\'янка-бузький', 'перемишлянський', 'львівський'],
     'луцький': ['горохівський', 'рожищенський', 'ківерцівський', 'луцький'],
@@ -983,7 +1024,7 @@
   function getRawRaionStem(raion) {
     if (!raion) return '';
     return canonText(raion).trim()
-      .replace(/(?:район|району|р-н|р-он)/gi, '')
+      .replace(/(?:район|району|районом|районі|р-н|р-он|міськрада|громада)/gi, '')
       .trim()
       .replace(/(?:енськ|инськ|івськ|овськ|ськ|цьк|зьк)(?:ий|ого|ому|им|е|а)?$/iu, '')
       .replace(/(?:ський|цький|зький)$/iu, '');
@@ -992,7 +1033,7 @@
   function getRaionStem(raion) {
     if (!raion) return '';
     let r = canonText(raion).trim()
-      .replace(/(?:район|району|р-н|р-он)/gi, '')
+      .replace(/(?:район|району|районом|районі|р-н|р-он|міськрада|громада)/gi, '')
       .trim();
     if (CONSOLIDATED_RAION_MAP[r]) {
       r = CONSOLIDATED_RAION_MAP[r];
@@ -1003,7 +1044,7 @@
 
   function areRaionsCompatible(r1, r2) {
     if (!r1 || !r2) return false;
-    const normR = (s) => canonText(s).replace(/\s*(?:район|району|р-н|р-он)\b/gi, '').trim();
+    const normR = (s) => canonText(s).replace(/\s*(?:район|району|районом|районі|р-н|р-он|міськрада|громада)\b/gi, '').trim();
     const n1 = normR(r1);
     const n2 = normR(r2);
     if (!n1 || !n2) return false;
@@ -1015,7 +1056,7 @@
 
     const cs1 = getRaionStem(n1);
     const cs2 = getRaionStem(n2);
-    if (cs1 && cs2 && cs1 === cs2) return true;
+    if (cs1 && cs2 && (cs1 === cs2 || (cs1.length >= 4 && cs2.length >= 4 && (cs1.startsWith(cs2) || cs2.startsWith(cs1))))) return true;
 
     for (const [newRaion, oldList] of Object.entries(KATOTTG_RAION_MAP)) {
       const newStem = getRawRaionStem(newRaion);
@@ -1124,6 +1165,15 @@
     };
   }
 
+  function consonantSkeleton(s) {
+    if (!s) return '';
+    return canonText(s)
+      .replace(/[аяоеєюіїиыэ]/gu, '')
+      .replace(/ц/gu, 'с')
+      .replace(/щ/gu, 'ш')
+      .replace(/дз/gu, 'з');
+  }
+
   // 5.1. РОЗПІЗНАВАННЯ МІСТА (Точне O(1) або нечітке Levenshtein Distance <= 2)
   function findSettlementByNameOrFuzzy(word, contextOblast, contextRaion) {
     if (!word || word.length < 2) return null;
@@ -1133,13 +1183,18 @@
     }
     if (isOblastToken(w) && w !== 'дніпро' && w !== 'днепр') return null;
     const wNorm = normalizeLocativeCase(w);
+    // Варіанти дефісних/пробільних назв ("петрівка роменська" <-> "петрівка-роменська")
+    const wHyphen = w.includes(' ') ? w.replace(/\s+/g, '-') : (w.includes('-') ? w.replace(/-/g, ' ') : null);
+    const wHyphenNorm = wHyphen ? normalizeLocativeCase(wHyphen) : null;
     // Форми без апострофів ("пятихатки" -> П'ятихатки, "пʼятихатки" -> П'ятихатки)
     const wA = canonText(w);
     const wANorm = normalizeLocativeCase(wA);
 
     // 1. Точний збіг назви або аліасу у пріоритетному словнику UKRAINE_SETTLEMENTS (185 міст) - O(1)
     const exactBase = _settlementsByName.get(w) || _settlementsByName.get(wNorm) ||
+                      (wHyphen ? (_settlementsByName.get(wHyphen) || _settlementsByName.get(wHyphenNorm)) : null) ||
                       _settlementsByAlias.get(w) || _settlementsByAlias.get(wNorm) ||
+                      (wHyphen ? (_settlementsByAlias.get(wHyphen) || _settlementsByAlias.get(wHyphenNorm)) : null) ||
                       _settlementsByNameNA.get(wA) || _settlementsByAliasNA.get(wA);
     if (exactBase) {
       if (!contextOblast && !contextRaion) {
@@ -1161,6 +1216,7 @@
 
     // 2. Точний збіг у повному реєстрі ALL_SETTLEMENTS (26 000+ сіл, смт, селищ, міст) - O(1)
     const candidates = _allSettlementsByName.get(w) || _allSettlementsByName.get(wNorm) ||
+                       (wHyphen ? (_allSettlementsByName.get(wHyphen) || _allSettlementsByName.get(wHyphenNorm)) : null) ||
                        _allSettlementsByNameNA.get(wA) || _allSettlementsByNameNA.get(wANorm);
     if (candidates && candidates.length > 0) {
       let chosen = candidates[0];
@@ -1248,14 +1304,14 @@
       }
     }
 
-    // 3. Нечітке зіставлення (Levenshtein Distance <= 2):
+    // 3. Нечітке зіставлення (Levenshtein Distance <= 2 для коротких, <= 3 для довгих слів):
     // Згідно з правилом js-memory-perf-optimizer:
     // НЕ проганяти 26k населених пунктів через важкі цикли!
     // Нечіткий пошук виконується ВИКЛЮЧНО по UKRAINE_SETTLEMENTS (185 міст)
     // Захист: точний збіг назви населеного пункту має абсолютний пріоритет над префіксами довших назв.
     // Заборонено замінювати точну назву "Славута" на "Славутич" тощо.
     if (w.length >= 4) {
-      const maxAllowedDist = w.length >= 5 ? 2 : 1;
+      const maxAllowedDist = w.length >= 8 ? 3 : (w.length >= 5 ? 2 : 1);
       let bestMatch = null;
       let minDistance = 999;
 
@@ -1290,6 +1346,53 @@
 
       if (bestMatch) {
         return bestMatch;
+      }
+    }
+
+    // 3.5. Локальний нечіткий пошук сіл/смт у межах відомого району чи області
+    if ((contextRaion || contextOblast) && w.length >= 4 && _allSettlementsRaw && _allSettlementsRaw.length > 0) {
+      const cObl = (contextOblast || '').toLowerCase();
+      const cRaion = (contextRaion || '').toLowerCase();
+      const skW = consonantSkeleton(w);
+      let localBest = null;
+      let localMinDist = 999;
+      const maxAllowed = w.length >= 8 ? 3 : (w.length >= 6 ? 2 : 1);
+
+      for (let i = 0; i < _allSettlementsRaw.length; i++) {
+        const item = _allSettlementsRaw[i];
+        const sObl = (item.oblast || '').toLowerCase();
+        const sRaion = (item.raion || '').toLowerCase();
+        const oblOk = !cObl || sObl.includes(cObl) || cObl.includes(sObl);
+        const raionOk = !cRaion || sRaion.includes(cRaion) || cRaion.includes(sRaion) || areRaionsCompatible(cRaion, sRaion);
+        if (!oblOk || !raionOk) continue;
+
+        const sNameClean = (item.cleanName || item.name).toLowerCase();
+        if (Math.abs(w.length - sNameClean.length) > 2) continue;
+
+        // Збіг за кістяком приголосних (напр. віціліново -> веселинове)
+        if (skW.length >= 4 && consonantSkeleton(sNameClean) === skW) {
+          return {
+            name: item.cleanName || item.name,
+            oblast: item.oblast,
+            raion: item.raion,
+            type: item.type || 'село'
+          };
+        }
+
+        const d = damerauLevenshtein(w, sNameClean);
+        if (d <= maxAllowed && d < localMinDist) {
+          localMinDist = d;
+          localBest = item;
+        }
+      }
+
+      if (localBest) {
+        return {
+          name: localBest.cleanName || localBest.name,
+          oblast: localBest.oblast,
+          raion: localBest.raion,
+          type: localBest.type || 'село'
+        };
       }
     }
 
@@ -1374,6 +1477,7 @@
 
       if (next && !/^\d+$/.test(cur) && !/^\d+$/.test(next)) {
         const foundCombined = findSettlementByNameOrFuzzy(cur + ' ' + next, contextOblast, contextRaion) ||
+                              findSettlementByNameOrFuzzy(cur + '-' + next, contextOblast, contextRaion) ||
                               findSettlementByNameOrFuzzy((cur + next).replace(/-/g, ''), contextOblast, contextRaion);
         if (foundCombined) {
           if (!detectedCity) {
@@ -1402,7 +1506,7 @@
 
       // Якщо слово не склеїлося, перевіряємо нечітке зіставлення одиночного токена
       if (!/^\d+$/.test(cur)) {
-        const foundSingle = findSettlementByNameOrFuzzy(cur, contextOblast, contextRaion);
+        const foundSingle = findSettlementByNameOrFuzzy(cur, contextOblast || (detectedCity ? detectedCity.oblast : null), contextRaion);
         if (foundSingle) {
           const sLower = foundSingle.name.toLowerCase();
           const curLower = cur.toLowerCase();
@@ -1417,16 +1521,17 @@
             hasCityTypo = !isExact;
             mergedTokens.push(foundSingle.name.toLowerCase());
           } else {
-            // Малий населений пункт (село/смт) має безумовний пріоритет як цільове місто над містом/райцентром
+            // Малий населений пункт (село/смт) має безумовний пріоритет як цільове місто над містом/райцентром ТІЛЬКИ якщо назва села точна (без одруківок)
             const isVillage = foundSingle.type === 'село' || foundSingle.type === 'смт' || foundSingle.type === 'селище';
             const prevIsCity = !detectedCity.type || detectedCity.type === 'місто';
 
-            if (isVillage && prevIsCity) {
+            if (isVillage && prevIsCity && isExact) {
               const singleObl = (foundSingle.oblast || '').toLowerCase();
               const oblStem = detectedCity.name.toLowerCase().slice(0, 4);
               const singleRaion = (foundSingle.raion || '').toLowerCase();
               const isCompatible = singleObl.includes(oblStem) || singleRaion.includes(oblStem) ||
-                                   (detectedCity.oblast && foundSingle.oblast && detectedCity.oblast === foundSingle.oblast);
+                                   (detectedCity.oblast && foundSingle.oblast && (detectedCity.oblast === foundSingle.oblast || singleObl.includes(detectedCity.oblast.toLowerCase().slice(0, 4)))) ||
+                                   areRaionsCompatible(detectedCity.name, foundSingle.raion);
               if (isCompatible) {
                 detectedCity = foundSingle;
                 rawCityToken = cur;
@@ -1436,12 +1541,12 @@
               }
             }
 
-            // Region disambiguation: check if foundSingle is in detectedCity's oblast
+            // Region disambiguation: check if foundSingle is in detectedCity's oblast (лише за точним збігом назви села)
             const oblStem = detectedCity.name.toLowerCase().slice(0, 5);
             const singleObl = (foundSingle.oblast || '').toLowerCase();
             const isRegionalCenter = REGIONAL_CENTERS.has(foundSingle.name.toLowerCase());
             const targetOblastMatches = (detectedCity.oblast || '').toLowerCase().includes(foundSingle.name.toLowerCase().slice(0, 5));
-            if (singleObl.includes(oblStem) && !isRegionalCenter) {
+            if (singleObl.includes(oblStem) && !isRegionalCenter && isExact) {
               detectedCity = foundSingle;
               rawCityToken = cur;
               hasCityTypo = !isExact;
@@ -1884,6 +1989,7 @@
     let s = String(raw)
       .replace(/\\n|\r?\n/g, ' ')
       .replace(/\s*\([^)]*\)\s*$/, '')
+      .replace(/\s*\([^)]*$/, '')
       .replace(/[()[\]{}«»"]/g, ' ')
       .replace(/^(?:місто|селище міського типу|смт|селище|село|м\.|с\.|сел\.)\s+/i, '')
       .replace(/[-–—.,;:]+$/, '')
@@ -3302,11 +3408,17 @@
     if (tokens.length === 0) return [];
 
     const facets = extractFacets(rawQuery);
-    const hasPostomatKeyword = norm.hasPostomatKeyword;
+    const parsed = parseQuery(rawQuery);
+    const hasPostomatKeyword = norm.hasPostomatKeyword || parsed.isPostomat;
     const hasBranchKeyword = norm.hasBranchKeyword;
     const hasCargoKeyword = norm.hasCargoKeyword || isCargoKeyword(rawQuery);
-    const detectedCityName = facets.city ? canonText(facets.city) : (norm.detectedCity ? canonText(norm.detectedCity.name) : null);
-    const targetOblast = facets.oblast ? facets.oblast.toLowerCase() : (facets.settlementOblast ? facets.settlementOblast.toLowerCase() : null);
+    const detectedCityName = facets.city ? canonText(facets.city) :
+      (norm.detectedCity ? canonText(norm.detectedCity.name) :
+      (parsed.matchedSettlement ? canonText(parsed.matchedSettlement.name) : null));
+    const targetOblast = facets.oblast ? facets.oblast.toLowerCase() :
+      (facets.settlementOblast ? facets.settlementOblast.toLowerCase() :
+      (parsed.detectedOblast ? parsed.detectedOblast.name.toLowerCase() :
+      (parsed.matchedSettlement && parsed.matchedSettlement.oblast ? parsed.matchedSettlement.oblast.toLowerCase() : null)));
 
     // Підготовка числових токенів та Strict Warehouse Number Parsing
     const numTokens = tokens.filter(t => /^\d+$/.test(t));
