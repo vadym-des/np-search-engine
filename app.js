@@ -724,7 +724,7 @@
       const tf = state.typeFilter;
       const searchPool = getTabFilteredPool(allStaticBranches, tf);
       const isFilteredTab = tf && tf !== 'all';
-      staticMatches = engine.filterBranchesByNormalizedSearch(rawQuery, searchPool, isFilteredTab ? 200 : 20);
+      staticMatches = engine.filterBranchesByNormalizedSearch(rawQuery, searchPool, 20);
 
       // Relaxed Smart Fallback (як у Google):
       // Якщо обраний таб-фільтр повернув 0 результатів (наприклад шукали "коломи я 6" з табом "Поштомат"),
@@ -2248,7 +2248,9 @@
     const toDisplay = filtered.slice(0, maxNodes);
 
     // DocumentFragment для єдиної атомарної вставки без Layout Thrashing та Browser Reflow
-    const fragment = document.createDocumentFragment();
+    const fragment = (typeof document !== 'undefined' && typeof document.createDocumentFragment === 'function')
+      ? document.createDocumentFragment()
+      : document.createElement('div');
 
     toDisplay.forEach(branch => {
       const row = document.createElement('div');
@@ -2481,6 +2483,10 @@
       return;
     }
 
+    const fragment = (typeof document !== 'undefined' && typeof document.createDocumentFragment === 'function')
+      ? document.createDocumentFragment()
+      : document.createElement('div');
+
     list.slice(0, 5).forEach(item => {
       const card = document.createElement('div');
       card.className = 'history-card-item';
@@ -2516,8 +2522,10 @@
         setTimeout(() => focusSearchInputAtEnd(true), 25);
       });
 
-      dom.recentHistoryList.appendChild(card);
+      fragment.appendChild(card);
     });
+
+    dom.recentHistoryList.appendChild(fragment);
   }
 
   // ==========================================================================
@@ -3298,6 +3306,10 @@
     const isBranchMode = suggestions.some(s => s.mode === 'branch' || s.type === 'branch' || s.type === 'postomat');
     dom.autocompleteDropdown.setAttribute('data-mode', isBranchMode ? 'branch' : 'city');
 
+    const fragment = (typeof document !== 'undefined' && typeof document.createDocumentFragment === 'function')
+      ? document.createDocumentFragment()
+      : document.createElement('div');
+
     suggestions.forEach((item, idx) => {
       const el = document.createElement('div');
       const itemIsBranch = item.mode === 'branch' || item.type === 'branch' || item.type === 'postomat';
@@ -3392,8 +3404,10 @@
       el.addEventListener('pointerdown', handleSelect);
       el.addEventListener('click', handleSelect);
 
-      dom.autocompleteDropdown.appendChild(el);
+      fragment.appendChild(el);
     });
+
+    dom.autocompleteDropdown.appendChild(fragment);
 
     dom.autocompleteDropdown.style.display = '';
     dom.autocompleteDropdown.classList.remove('hidden');
@@ -3733,34 +3747,34 @@
           // спливаючий дропдаун автокомпліту під інпутом НЕ відкривається і миттєво ховається
           closeAutocomplete();
 
-          // 2. Живий фільтр основного списку карток (мікро-тротлінг 60ms + safeRAF для 60fps)
+          // 2. Живий фільтр основного списку карток (debounce 200ms + safeRAF для 60fps)
           liveSearchDebounceTimer = setTimeout(() => {
             if (!currentSignal.aborted) {
               safeRAF(() => {
                 executeSearch(val, false, false); // isExplicitSubmit = false
               });
             }
-          }, 60);
+          }, 200);
         } else {
-          // Звичайний режим вводу міста з клавіатури: показ підказок автокомпліту (мікро-дебаунс 80мс + safeRAF)
+          // Звичайний режим вводу міста з клавіатури: показ підказок автокомпліту (debounce 180ms + safeRAF)
           autocompleteDebounceTimer = setTimeout(() => {
             if (currentSignal.aborted) return;
             safeRAF(() => {
               triggerAutocomplete(val);
             });
-          }, 80);
+          }, 180);
 
           if (/\d/.test(val)) {
-            // Якщо в запиті є цифра (напр. "Озерянка 1", "Київ 100"), паралельно оновлюємо результати (мікро-тротлінг 60мс + safeRAF)
+            // Якщо в запиті є цифра (напр. "Озерянка 1", "Київ 100"), паралельно оновлюємо результати (debounce 200ms + safeRAF)
             liveSearchDebounceTimer = setTimeout(() => {
               if (!currentSignal.aborted) {
                 safeRAF(() => {
                   executeSearch(val, false, false); // isExplicitSubmit = false
                 });
               }
-            }, 60);
+            }, 200);
           } else {
-            // Оновлення результатів без перезавантаження при зміні/стиранні тексту до рівня міста:
+            // Оновлення результатів без перезавантаження при зміні/стиранні тексту до рівня міста (debounce 200ms):
             // паралельно оновлюємо результати, щоб усунути залипання в "відділень не знайдено"
             liveSearchDebounceTimer = setTimeout(() => {
               if (!currentSignal.aborted) {
@@ -3768,7 +3782,7 @@
                   executeSearch(val, false, false);
                 });
               }
-            }, 120);
+            }, 200);
           }
         }
       } else {

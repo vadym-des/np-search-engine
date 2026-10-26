@@ -38,6 +38,11 @@ function createMockElement(id) {
     },
     children: [],
     appendChild(child) {
+      if (child && Array.isArray(child.children) && child.isFragment) {
+        this.children.push(...child.children);
+        child.children = [];
+        return child;
+      }
       this.children.push(child);
       return child;
     },
@@ -79,6 +84,7 @@ global.document = {
   querySelectorAll() { return []; },
   createDocumentFragment() {
     return {
+      isFragment: true,
       children: [],
       appendChild(child) {
         this.children.push(child);
@@ -210,8 +216,8 @@ async function runAll() {
     searchInput.value = 'Березнегувате';
     searchInput.dispatchEvent({ type: 'input' });
 
-    // Очікуємо завершення дебаунсу автокомпліту (80ms)
-    await new Promise(r => setTimeout(r, 120));
+    // Очікуємо завершення дебаунсу автокомпліту (180ms)
+    await new Promise(r => setTimeout(r, 220));
 
     // Перевірка 1: selectedSettlement має бути скинуто
     const appState = window._appStateForTesting || null;

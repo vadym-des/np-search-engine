@@ -40,6 +40,10 @@ global.document = {
     blur: () => {}
   }),
   querySelectorAll: () => [],
+  createDocumentFragment: () => ({
+    appendChild: () => {},
+    children: []
+  }),
   createElement: () => ({
     dataset: {},
     classList: { add: () => {}, remove: () => {}, toggle: () => {} },
