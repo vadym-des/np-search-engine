@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.8">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.9">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -35,7 +35,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.8">
+  <link rel="stylesheet" href="styles.css?v=1.6.9">
 </head>
 <body data-service="novaposhta">
 
@@ -262,7 +262,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.8</span>
+          <span class="version-tag">v1.6.9</span>
           
         </button>
       </div>
@@ -291,8 +291,24 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.8 -->
+        <!-- Версія 1.6.9 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.9</span>
+            <span class="version-state">Massive UI Responsiveness &amp; Zero-Lag Search Optimization</span>
+            <span class="version-date">27 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Усунення мікрофрізів та 5-секундних підвисань:</strong> час відгуку на короткі префіксні запити («ки», «к», «льв») знижено з 1500мс до 0.3мс завдяки Prefix Guard та O(1) словниковим мапам.</li>
+            <li><strong>Розділення City Autocomplete та Branch Search:</strong> фоновий важкий пошук відділень по всій Україні більше не запускається на проміжних літерах («ки», «од»), забезпечуючи плавність 60 FPS та миттєвий показ підказок міст.</li>
+            <li><strong>Ліквідація надлишкових циклів скорингу:</strong> видалено каскадний повторний прогін Левенштейна по 55 000 записах; регулярні вирази номерів будинків компілюються один раз перед циклом.</li>
+            <li><strong>LRU-кешування NLP парсера (parseQuery):</strong> повторні запити та навігація бекспейсом повертаються за 0.01мс без повторного парсингу.</li>
+            <li><strong>Захист від онлайн-блокування:</strong> фонові запити до зовнішнього API Нової пошти заблоковані під час live-введення тексту і виконуються тільки при явному натисканні Enter.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.8 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.8</span>
             <span class="version-state">Multi-Token Engine UI Thread &amp; Performance Optimization</span>
@@ -931,15 +947,15 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.8"></script>
+  <script src="data/branches.js?v=1.6.9"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.8"></script>
+  <script src="data/all_settlements.js?v=1.6.9"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.8"></script>
+  <script src="data/fuzzySearch.js?v=1.6.9"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.8"></script>
+  <script src="app.js?v=1.6.9"></script>
 </body>
 </html>

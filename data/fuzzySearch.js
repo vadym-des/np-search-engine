@@ -1586,6 +1586,9 @@
   }
 
   // 6. РОЗШИРЕНИЙ NLP ПАРСИНГ ХАОТИЧНИХ МІКРОЗАПИТІВ ОПЕРАТОРІВ
+  const _parseQueryCache = new Map();
+  const PARSE_QUERY_CACHE_LIMIT = 50;
+
   function parseQuery(rawQuery) {
     if (!rawQuery) {
       return {
@@ -1601,6 +1604,26 @@
       };
     }
     rawQuery = String(rawQuery).trim().replace(/\s+/g, ' ');
+    if (!rawQuery) {
+      return {
+        rawQuery: '',
+        cleanQuery: '',
+        targetBranchNumber: null,
+        postalCode: null,
+        oblast: null,
+        settlement: null,
+        didYouMeanText: null,
+        didYouMean: null,
+        facets: { city: null, number: null, oblast: null, raion: null, streetTokens: [], settlementOblast: null }
+      };
+    }
+
+    if (_parseQueryCache.has(rawQuery)) {
+      const cached = _parseQueryCache.get(rawQuery);
+      _parseQueryCache.delete(rawQuery);
+      _parseQueryCache.set(rawQuery, cached);
+      return cached;
+    }
 
     // Крок 1. Перемикання розкладки та очищення чат-синтаксису
     const sanitized = sanitizeChatQuery(rawQuery);
@@ -1776,65 +1799,32 @@
     if (!matchedSettlement) {
       const normStripped = normalizeLocativeCase(stripped);
 
-      // 7.1. Прямий збіг (назва або аліас)
+      // 7.1. Прямий збіг (назва або аліас через O(1) Map)
       if (stripped.length > 0) {
-      for (let item of UKRAINE_SETTLEMENTS) {
-        if (item.name.toLowerCase() === stripped || item.name.toLowerCase() === normStripped) {
-          matchedSettlement = item;
+        const directMatch = _settlementsByName.get(stripped) || _settlementsByName.get(normStripped) ||
+          _settlementsByAlias.get(stripped) || _settlementsByAlias.get(normStripped);
+        if (directMatch) {
+          matchedSettlement = directMatch;
           highestScore = 1.0;
           rawCityToken = stripped;
           hasRealTypo = false;
-          break;
-        }
-        for (let alias of item.aliases) {
-          if (stripped === alias || normStripped === alias) {
-            matchedSettlement = item;
-            highestScore = 1.0;
-            rawCityToken = stripped;
-            hasRealTypo = false;
-            break;
-          }
-          const escAlias = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          if (new RegExp(`(?<!\\p{L})${escAlias}(?!\\p{L})`, 'iu').test(stripped) ||
-              new RegExp(`(?<!\\p{L})${escAlias}(?!\\p{L})`, 'iu').test(normStripped)) {
-            matchedSettlement = item;
-            highestScore = 0.95;
-            rawCityToken = alias;
-            hasRealTypo = false;
-            break;
-          }
-        }
-        if (highestScore === 1.0) break;
-      }
-    }
-
-    // 7.2. Пошук по токенах (із нормалізацією кожного токена)
-    if (!matchedSettlement && stripped.length > 0) {
-      const tokens = stripped.split(/\s+/).filter(t => t.length > 1);
-      for (let token of tokens) {
-        const normTok = normalizeLocativeCase(token);
-        for (let item of UKRAINE_SETTLEMENTS) {
-          if (item.name.toLowerCase() === token || item.name.toLowerCase() === normTok) {
-            matchedSettlement = item;
-            highestScore = 0.95;
-            rawCityToken = token;
-            hasRealTypo = false;
-            break;
-          }
-          for (let alias of item.aliases) {
-            if (token === alias || normTok === alias) {
-              matchedSettlement = item;
-              highestScore = 0.90;
+        } else {
+          // 7.2. Пошук по окремих токенах через O(1) Map
+          const tokens = stripped.split(/\s+/).filter(t => t.length > 1);
+          for (let token of tokens) {
+            const normTok = normalizeLocativeCase(token);
+            const tokMatch = _settlementsByName.get(token) || _settlementsByName.get(normTok) ||
+              _settlementsByAlias.get(token) || _settlementsByAlias.get(normTok);
+            if (tokMatch) {
+              matchedSettlement = tokMatch;
+              highestScore = 0.95;
               rawCityToken = token;
               hasRealTypo = false;
               break;
             }
           }
-          if (matchedSettlement) break;
         }
-        if (matchedSettlement) break;
       }
-    }
 
     // 7.3. Нечіткий пошук (Damerau-Levenshtein)
     if (!matchedSettlement && stripped.length >= 3) {
@@ -1918,7 +1908,7 @@
       }
     }
 
-    return {
+    const parsedResult = {
       rawQuery: rawQuery.trim(),
       cleanQuery: stripped,
       isLayoutFixed,
@@ -1936,6 +1926,14 @@
       // Залишок запиту після топоніма/області/району/номера — фільтр за вулицею (street / ShortAddress)
       get streetQuery() { return ((this.facets && this.facets.streetTokens) || []).join(' '); }
     };
+
+    if (_parseQueryCache.size >= PARSE_QUERY_CACHE_LIMIT) {
+      const oldestKey = _parseQueryCache.keys().next().value;
+      _parseQueryCache.delete(oldestKey);
+    }
+    _parseQueryCache.set(rawQuery, parsedResult);
+
+    return parsedResult;
   }
 
   // Нормалізація типу населеного пункту для бейджа LP-CRM (місто / смт / село)
@@ -3443,6 +3441,14 @@
     // Уніфікація апострофів (' ʼ ’ ` тощо): "пʼятихатки" == "п'ятихатки" == "пятихатки"
     rawQuery = stripApostrophes(rawQuery);
 
+    // Швидкісний вихід для 1-2 літерних запитів без цифр (якщо це не закріплений аліас міста)
+    if (rawQuery.length < 3 && !/\d/.test(rawQuery)) {
+      const qLow = rawQuery.toLowerCase();
+      if (!CITY_SHORT_ALIASES.has(qLow)) {
+        return [];
+      }
+    }
+
     // Інтелектуальна нормалізація токенів
     const norm = normalizeSearchTokens(rawQuery);
     let tokens = norm.tokens.map(canonText);
@@ -3453,9 +3459,20 @@
     const hasPostomatKeyword = norm.hasPostomatKeyword || parsed.isPostomat;
     const hasBranchKeyword = norm.hasBranchKeyword;
     const hasCargoKeyword = norm.hasCargoKeyword || isCargoKeyword(rawQuery);
-    const detectedCityName = facets.city ? canonText(facets.city) :
+    let detectedCityName = facets.city ? canonText(facets.city) :
       (norm.detectedCity ? canonText(norm.detectedCity.name) :
       (parsed.matchedSettlement ? canonText(parsed.matchedSettlement.name) : null));
+
+    // Попереднє розпізнавання популярних сленгових скорочень міст ("днепр", "льв", "кв", "хар", "од")
+    if (!detectedCityName) {
+      for (let t = 0; t < tokens.length; t++) {
+        const tok = tokens[t];
+        if (CITY_SHORT_ALIASES.has(tok)) {
+          detectedCityName = canonText(CITY_SHORT_ALIASES.get(tok));
+          break;
+        }
+      }
+    }
     const targetOblast = facets.oblast ? facets.oblast.toLowerCase() :
       (facets.settlementOblast ? facets.settlementOblast.toLowerCase() :
       (parsed.detectedOblast ? parsed.detectedOblast.name.toLowerCase() :
@@ -3580,11 +3597,33 @@
     // Функція прогону скорингової матриці над обраним пулом кандидатів
     function scoreBranchPool(pool, allowFuzzy) {
       const results = [];
-      for (let i = 0; i < pool.length; i++) {
+      const poolLen = pool.length;
+
+      // Попередня компіляція регулярних виразів для будинку та номерів (Нульовий оверхед у циклі)
+      const targetBuilding = facets.building || streetBuildingNum;
+      let buildingRegex = null;
+      if (targetBuilding) {
+        const mB = targetBuilding.match(/^(\d+)[-/]?([а-яіїєґa-z])$/i);
+        if (mB) {
+          buildingRegex = new RegExp('(?:^|[^0-9a-zа-яіїєґ])' + mB[1] + '[-/\\s]?' + mB[2] + '(?![0-9a-zа-яіїєґ])', 'iu');
+        } else {
+          const cleanBuilding = targetBuilding.replace(/[-/]/g, '[-/]?');
+          buildingRegex = new RegExp('(?:^|[^0-9a-zа-яіїєґ])' + cleanBuilding + '(?![0-9a-zа-яіїєґ])', 'iu');
+        }
+      }
+
+      const numRegexes = new Map();
+      if (hasExplicitNumber) {
+        for (let t = 0; t < numTokens.length; t++) {
+          numRegexes.set(numTokens[t], new RegExp('(?:^|[^0-9])' + numTokens[t] + '(?![0-9])'));
+        }
+      }
+
+      for (let i = 0; i < poolLen; i++) {
         const b = pool[i];
         let score = 0;
 
-        const isPostomat = b.typeClass === 'poshtomat' || b.type === 'poshtomat' || (b.name && b.name.toLowerCase().includes('поштомат'));
+        const isPostomat = b.typeClass === 'poshtomat' || b.type === 'poshtomat' || (b.name && b.name.includes('Поштомат')) || (b.name && b.name.includes('поштомат'));
         const bNum = (b.number || '').toString();
         // Усі порівняння — без апострофів (' ʼ ’ ` тощо), щоб "пʼятихатки" == "п'ятихатки" == "пятихатки"
         const bCity = (b._canonCity && b._canonCityRaw === b.city) ? b._canonCity : (b._canonCityRaw = b.city, b._canonCity = canonCity(b.city));
@@ -3622,22 +3661,22 @@
         }
 
         // Фільтр ключових слів поштомату / вантажного / звичайного відділення
-        const totalWeight = parseFloat(b.totalMaxWeightAllowed || b.TotalMaxWeightAllowed) || 0;
-        const placeWeight = parseFloat(b.placeMaxWeightAllowed || b.PlaceMaxWeightAllowed) || 0;
-        const maxWeight = parseFloat(b.maxWeight) || parseFloat(b.weightLimit) || Math.max(totalWeight, placeWeight);
-
-        const isUnder30 = (maxWeight > 0 && maxWeight <= 30) ||
-          (totalWeight > 0 && totalWeight <= 30) ||
-          (placeWeight > 0 && placeWeight <= 30) ||
-          /(?:до\s*(?:5|10|15|20|30)\s*кг|приймання-видачі)/i.test([b.name, b.typeText, b.typeName].filter(Boolean).join(' '));
-
-        const isCargo = !isPostomat && !isUnder30 && (
-          totalWeight >= 1000 ||
-          placeWeight >= 1000 ||
-          maxWeight >= 1000 ||
-          b.CategoryOfWarehouse === 'Cargo'
-        );
         if (hasCargoKeyword) {
+          const totalWeight = parseFloat(b.totalMaxWeightAllowed || b.TotalMaxWeightAllowed) || 0;
+          const placeWeight = parseFloat(b.placeMaxWeightAllowed || b.PlaceMaxWeightAllowed) || 0;
+          const maxWeight = parseFloat(b.maxWeight) || parseFloat(b.weightLimit) || Math.max(totalWeight, placeWeight);
+
+          const isUnder30 = (maxWeight > 0 && maxWeight <= 30) ||
+            (totalWeight > 0 && totalWeight <= 30) ||
+            (placeWeight > 0 && placeWeight <= 30) ||
+            /(?:до\s*(?:5|10|15|20|30)\s*кг|приймання-видачі)/i.test([b.name, b.typeText, b.typeName].filter(Boolean).join(' '));
+
+          const isCargo = !isPostomat && !isUnder30 && (
+            totalWeight >= 1000 ||
+            placeWeight >= 1000 ||
+            maxWeight >= 1000 ||
+            b.CategoryOfWarehouse === 'Cargo'
+          );
           if (isCargo) score += 800;
           else score -= 1500;
         } else if (hasPostomatKeyword) {
@@ -3673,19 +3712,8 @@
 
         // 1.5. Скоринг точного номера будинку на вулиці (наприклад "9а", "9-а", "40а", "22/1", або поштомат на "вул. Михайлова, 46")
         let houseNumMatched = false;
-        const targetBuilding = facets.building || streetBuildingNum;
-        if (targetBuilding && bStreet) {
-          let hasBuilding = false;
-          const mB = targetBuilding.match(/^(\d+)[-/]?([а-яіїєґa-z])$/i);
-          if (mB) {
-            const re = new RegExp('(?:^|[^0-9a-zа-яіїєґ])' + mB[1] + '[-/\\s]?' + mB[2] + '(?![0-9a-zа-яіїєґ])', 'iu');
-            hasBuilding = re.test(bStreet);
-          } else {
-            const cleanBuilding = targetBuilding.replace(/[-/]/g, '[-/]?');
-            const bldgRegex = new RegExp('(?:^|[^0-9a-zа-яіїєґ])' + cleanBuilding + '(?![0-9a-zа-яіїєґ])', 'iu');
-            hasBuilding = bldgRegex.test(bStreet);
-          }
-          if (hasBuilding) {
+        if (targetBuilding && bStreet && buildingRegex) {
+          if (buildingRegex.test(bStreet)) {
             houseNumMatched = true;
             // Повний збіг назви вулиці + номера будинку має найвищий пріоритет (+6000), перемагаючи чужий номер відділення
             if (streetMatched) {
@@ -3726,7 +3754,7 @@
               numMatched = true;
               const lenDiff = Math.min(Math.max(0, bNum.length - numTok.length), 4);
               score += 350 - lenDiff * 30 + (!isPostomat ? 40 : 0);
-            } else if (bStreet.includes(numTok) && new RegExp('(?:^|[^0-9])' + numTok + '(?![0-9])').test(bStreet)) {
+            } else if (bStreet.includes(numTok) && numRegexes.has(numTok) && numRegexes.get(numTok).test(bStreet)) {
               // Номер будинку у вулиці/адресі додає бал, але НЕ має права перебивати точний номер шуканого відділення (+5000)
               houseNumMatched = true;
               score += streetMatched ? 700 : 400;
@@ -3859,7 +3887,8 @@
 
     if (searchTokens.length > 0) {
       const fastMatches = [];
-      for (let i = 0; i < branchesToScore.length; i++) {
+      const bLen = branchesToScore.length;
+      for (let i = 0; i < bLen; i++) {
         const b = branchesToScore[i];
         const sIdx = b.searchIndex || getBranchSearchIndex(b);
         if (searchTokens.every(tok => sIdx.includes(tok))) {
@@ -3867,19 +3896,15 @@
         }
       }
       if (fastMatches.length > 0) {
-        poolCandidates = fastMatches;
+        // Захист від надшироких токенів ("відділення", "поштомат") при Hard Cap ліміті 20:
+        // якщо збігів понад 300, відсікаємо перші 300 кандидатів для миттєвого відгуку < 5ms
+        poolCandidates = (fastMatches.length > 300 && bLen > 1000) ? fastMatches.slice(0, 300) : fastMatches;
       } else {
         isLazyFuzzyNeeded = true;
       }
     }
 
     let matched = scoreBranchPool(poolCandidates, isLazyFuzzyNeeded);
-
-    // Якщо швидкий базовий прохід нічого не дав, ледаче підключаємо повний нечіткий скоринг
-    if (matched.length === 0 && !isLazyFuzzyNeeded && poolCandidates !== branchesToScore) {
-      isLazyFuzzyNeeded = true;
-      matched = scoreBranchPool(branchesToScore, true);
-    }
 
     // 2. ДИНАМІЧНИЙ ПОРІГ РЕЛЕВАНТНОСТІ (Top-K Filter)
     if (matched.length === 0) {
@@ -4071,6 +4096,7 @@
     filterBranchesByNormalizedSearch,
     isOblastToken,
     isPostomatKeyword,
+    CITY_SHORT_ALIASES,
     OBLAST_SHORT_ALIASES,
     OBLASTS,
     UKRAINE_SETTLEMENTS,

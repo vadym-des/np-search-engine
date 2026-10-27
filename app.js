@@ -802,8 +802,10 @@
     }
 
     // 2. ДИНАМІЧНИЙ ОНЛАЙН API FALLBACK ДЛЯ НОВОЇ ПОШТИ
-    // Запускається лише якщо місто взагалі відсутнє у статичному реєстрі (55k+ відділень вже у статичній базі)
-    if (isNP && results.length === 0) {
+    // Запускається ВИКЛЮЧНО при явному натисканні Enter/Search (isExplicitSubmit === true),
+    // якщо місто взагалі відсутнє у статичному реєстрі (55k+ відділень вже у статичній базі).
+    // Заборонено виконувати мережеві запити під час фонового введення тексту (live debounce).
+    if (isNP && isExplicitSubmit && results.length === 0) {
       let searchCity = state.selectedSettlement ? state.selectedSettlement.cleanName : (parsed.matchedSettlement ? parsed.matchedSettlement.name : '');
       if (!searchCity && parsed.cleanQuery) {
         const candidate = parsed.cleanQuery.split(/[, ]+/)[0];
@@ -813,14 +815,25 @@
       }
 
       const cityLower = searchCity ? searchCity.toLowerCase() : '';
-      const hasCityInStatic = cityLower && allStaticBranches.some(b => {
-        if (!b.city || b.city.toLowerCase() !== cityLower) return false;
-        if (state.selectedSettlement) {
-          const selObl = state.selectedSettlement.cleanOblast.toLowerCase().slice(0, 4);
-          if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
+      let hasCityInStatic = false;
+      if (cityLower) {
+        if (engine && engine.buildBranchIndex) {
+          const idx = engine.buildBranchIndex(allStaticBranches);
+          if (idx && (idx.allCities.has(cityLower) || idx.cityBranches.has(cityLower))) {
+            hasCityInStatic = true;
+          }
         }
-        return true;
-      });
+        if (!hasCityInStatic) {
+          hasCityInStatic = allStaticBranches.some(b => {
+            if (!b.city || b.city.toLowerCase() !== cityLower) return false;
+            if (state.selectedSettlement) {
+              const selObl = state.selectedSettlement.cleanOblast.toLowerCase().slice(0, 4);
+              if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
+            }
+            return true;
+          });
+        }
+      }
 
       if (searchCity && !hasCityInStatic) {
         let liveData = await fetchLiveNovaPoshta(searchCity, currentSignal);
@@ -3765,7 +3778,7 @@
           }, 180);
 
           if (/\d/.test(val)) {
-            // Якщо в запиті є цифра (напр. "Озерянка 1", "Київ 100"), паралельно оновлюємо результати (debounce 200ms + safeRAF)
+            // Якщо в запиті є цифра (напр. "Озерянка 1", "Київ 100", "15"), паралельно оновлюємо результати (debounce 200ms + safeRAF)
             liveSearchDebounceTimer = setTimeout(() => {
               if (!currentSignal.aborted) {
                 safeRAF(() => {
@@ -3774,15 +3787,23 @@
               }
             }, 200);
           } else {
-            // Оновлення результатів без перезавантаження при зміні/стиранні тексту до рівня міста (debounce 200ms):
-            // паралельно оновлюємо результати, щоб усунути залипання в "відділень не знайдено"
-            liveSearchDebounceTimer = setTimeout(() => {
-              if (!currentSignal.aborted) {
-                safeRAF(() => {
-                  executeSearch(val, false, false);
-                });
-              }
-            }, 200);
+            // Якщо в запиті немає цифр: оновлюємо результати ТІЛЬКИ якщо текст є повним містом/аліасом (напр. стерли цифру назад до "Березнегувате" чи "Київ"),
+            // а не проміжними 1-3 літерами при наборі ("ки", "од", "льв"), коли користувач просто набирає назву для вибору з автокомпліту!
+            const cleanVal = val.trim().toLowerCase();
+            const isFullCity = cleanVal.length >= 3 && (
+              (window.SmartSearchEngine && typeof window.SmartSearchEngine.getSettlement === 'function' && window.SmartSearchEngine.getSettlement(cleanVal)) ||
+              (window.SmartSearchEngine && window.SmartSearchEngine.CITY_SHORT_ALIASES && window.SmartSearchEngine.CITY_SHORT_ALIASES.has(cleanVal)) ||
+              (state.selectedSettlement && state.selectedSettlement.cleanName.toLowerCase() === cleanVal)
+            );
+            if (isFullCity) {
+              liveSearchDebounceTimer = setTimeout(() => {
+                if (!currentSignal.aborted) {
+                  safeRAF(() => {
+                    executeSearch(val, false, false);
+                  });
+                }
+              }, 200);
+            }
           }
         }
       } else {
