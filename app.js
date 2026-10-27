@@ -3495,33 +3495,22 @@
 
       const engine = window.SmartSearchEngine;
       let matchedVillageBranches = [];
-      if (engine && engine.filterBranchesByNormalizedSearch) {
-        matchedVillageBranches = engine.filterBranchesByNormalizedSearch(fill.trim(), searchPool, 10);
+      const settlement = item.settlementObj || item;
+      const sNameCanon = canonCity(settlement.cleanName || settlement.name || item.title || '');
+      const sOblast = cleanOblastName(settlement.cleanOblast || settlement.oblast || '').toLowerCase();
+      const sRaion = cleanRaionName(settlement.cleanRaion || settlement.raion || '').toLowerCase();
+
+      // Швидкісна перевірка через індекс міста O(1) замість важкого подвійного пошуку по 55k відділеннях
+      if (engine && engine.getCityBranchesFromPool) {
+        matchedVillageBranches = engine.getCityBranchesFromPool(searchPool, sNameCanon);
       } else {
-        const settlement = item.settlementObj || item;
-        const sNameCanon = canonCity(settlement.cleanName || settlement.name || item.title || '');
-        const sOblast = cleanOblastName(settlement.cleanOblast || settlement.oblast || '').toLowerCase();
-        const sRaion = cleanRaionName(settlement.cleanRaion || settlement.raion || '').toLowerCase();
-        matchedVillageBranches = searchPool.filter(b => {
-          const bCityCanon = b._canonCity || canonCity(b.city);
-          if (bCityCanon !== sNameCanon) return false;
-          if (sOblast && b.oblast && !b.oblast.toLowerCase().includes(sOblast.slice(0, 4))) return false;
-          if (sRaion && b.raion && !b.raion.toLowerCase().includes(sRaion.slice(0, 4))) return false;
-          return true;
-        });
+        matchedVillageBranches = searchPool.filter(b => (b._canonCity || canonCity(b.city)) === sNameCanon);
       }
 
-      // Додатковий фільтр за точним обраним населеним пунктом (захист від домішування тезок та столиці)
-      if (state.selectedSettlement) {
-        const selNameCanon = canonCity(state.selectedSettlement.cleanName);
-        const selObl = cleanOblastName(state.selectedSettlement.cleanOblast).toLowerCase().slice(0, 4);
-        const selRaionClean = cleanRaionName(state.selectedSettlement.cleanRaion).toLowerCase();
-        const selRaion = selRaionClean.slice(0, 4);
+      if (matchedVillageBranches.length > 0 && (sOblast || sRaion)) {
         matchedVillageBranches = matchedVillageBranches.filter(b => {
-          const bc = b._canonCity || canonCity(b.city);
-          if (bc !== selNameCanon) return false;
-          if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
-          if (selRaionClean && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaionClean, b.raion)) return false;
+          if (sOblast && b.oblast && !b.oblast.toLowerCase().includes(sOblast.slice(0, 4))) return false;
+          if (sRaion && b.raion && !b.raion.toLowerCase().includes(sRaion.slice(0, 4)) && !areRaionsCompatible(sRaion, b.raion)) return false;
           return true;
         });
       }

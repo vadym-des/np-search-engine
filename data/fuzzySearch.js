@@ -1182,6 +1182,19 @@
       w = CITY_SHORT_ALIASES.get(w);
     }
     if (isOblastToken(w) && w !== 'дніпро' && w !== 'днепр') return null;
+
+    // Захист від важких обчислень: прикметники районів/областей (напр. "вараський", "рівненська")
+    // ніколи не є містами, якщо вони відсутні в реєстрах населених пунктів O(1)
+    if (detectRaion(w) || /(?:ський|цький|зький)$/iu.test(w)) {
+      const wN = normalizeLocativeCase(w);
+      const wAn = canonText(w);
+      if (!_settlementsByName.has(w) && !_settlementsByName.has(wN) &&
+          !_allSettlementsByName.has(w) && !_allSettlementsByName.has(wN) &&
+          !_settlementsByAlias.has(w) && !_settlementsByAlias.has(wN) &&
+          !_settlementsByNameNA.has(wAn) && !_allSettlementsByNameNA.has(wAn)) {
+        return null;
+      }
+    }
     const wNorm = normalizeLocativeCase(w);
     // Варіанти дефісних/пробільних назв ("петрівка роменська" <-> "петрівка-роменська")
     const wHyphen = w.includes(' ') ? w.replace(/\s+/g, '-') : (w.includes('-') ? w.replace(/-/g, ' ') : null);
@@ -1400,9 +1413,16 @@
   }
 
   // 5.2. ІНТЕЛЕКТУАЛЬНА НОРМАЛІЗАЦІЯ ПОШУКОВОГО ЗАПИТУ (Smart Spellcheck & Fuzzy Normalization)
+  const _normalizeTokensCache = new Map();
+  const NORMALIZE_TOKENS_CACHE_LIMIT = 150;
+
   function normalizeSearchTokens(rawQuery) {
     if (!rawQuery) return { tokens: [], cleanText: '', hasPostomatKeyword: false, hasBranchKeyword: false, detectedCity: null };
     rawQuery = String(rawQuery).trim().replace(/\s+/g, ' ');
+
+    if (_normalizeTokensCache.has(rawQuery)) {
+      return _normalizeTokensCache.get(rawQuery);
+    }
 
     let text = sanitizeChatQuery(rawQuery);
 
@@ -1469,13 +1489,18 @@
       const cur = filteredTokens[i];
       const next = filteredTokens[i + 1];
 
-      // Якщо токен є скороченням області (наприклад "хмель", "терн", "зп"), зберігаємо його як є і не замінюємо на місто
-      if (isOblastToken(cur) && cur !== 'дніпро' && cur !== 'днепр') {
+      // Якщо токен є скороченням області або районом, зберігаємо його як є і не замінюємо на місто
+      const isCurRegion = (isOblastToken(cur) && cur !== 'дніпро' && cur !== 'днепр') ||
+        ((detectRaion(cur) || /(?:ський|цький|зький)$/iu.test(cur)) && !_settlementsByName.has(cur) && !_allSettlementsByName.has(cur));
+      if (isCurRegion) {
         mergedTokens.push(cur);
         continue;
       }
 
-      if (next && !/^\d+$/.test(cur) && !/^\d+$/.test(next)) {
+      const isNextRegion = next && ((isOblastToken(next) && next !== 'дніпро' && next !== 'днепр') ||
+        ((detectRaion(next) || /(?:ський|цький|зький)$/iu.test(next)) && !_settlementsByName.has(next) && !_allSettlementsByName.has(next)));
+
+      if (next && !/^\d+$/.test(cur) && !/^\d+$/.test(next) && !isNextRegion) {
         const foundCombined = findSettlementByNameOrFuzzy(cur + ' ' + next, contextOblast, contextRaion) ||
                               findSettlementByNameOrFuzzy(cur + '-' + next, contextOblast, contextRaion) ||
                               findSettlementByNameOrFuzzy((cur + next).replace(/-/g, ''), contextOblast, contextRaion);
@@ -1573,7 +1598,7 @@
       return normalizeLocativeCase(t);
     });
 
-    return {
+    const result = {
       tokens: mergedTokens,
       cleanText: mergedTokens.join(' '),
       hasPostomatKeyword,
@@ -1583,6 +1608,14 @@
       rawCityToken,
       hasCityTypo
     };
+
+    if (_normalizeTokensCache.size >= NORMALIZE_TOKENS_CACHE_LIMIT) {
+      const firstK = _normalizeTokensCache.keys().next().value;
+      _normalizeTokensCache.delete(firstK);
+    }
+    _normalizeTokensCache.set(rawQuery, result);
+
+    return result;
   }
 
   // 6. РОЗШИРЕНИЙ NLP ПАРСИНГ ХАОТИЧНИХ МІКРОЗАПИТІВ ОПЕРАТОРІВ
@@ -2165,9 +2198,21 @@
       const cleanName = cleanSettlementName(s.cleanName || s.name);
       if (!cleanName) return false;
       const badgeType = normalizeSettlementBadge(s.type);
-      const cleanRaion = cleanRaionName(s.cleanRaion || s.raion);
+      let cleanRaion = cleanRaionName(s.cleanRaion || s.raion);
       const cleanOblast = cleanOblastName(s.cleanOblast || s.oblast);
-      const sKey = `${canonText(cleanName)}-${canonText(cleanRaion)}-${canonText(cleanOblast)}`;
+
+      // Визначаємо канонічний/реформований район через довідник децентралізації 2020 року (KATOTTG) для дедуплікації
+      let canonicalRaion = cleanRaion;
+      if (typeof getHistoricalGeoInfo === 'function') {
+        const hist = getHistoricalGeoInfo(cleanName, cleanRaion, cleanOblast);
+        if (hist && hist.actualRaion) {
+          canonicalRaion = hist.actualRaion;
+        }
+      }
+
+      // Уніфікований ключ дедуплікації: одне місто/село в межах сучасного району показується ОДИН раз
+      const canonRaionStem = getRawRaionStem(canonicalRaion || cleanRaion);
+      const sKey = `${canonText(cleanName)}-${canonRaionStem}-${canonText(cleanOblast)}`;
       if (seen.has(sKey)) return false;
       seen.add(sKey);
       const normObj = {
