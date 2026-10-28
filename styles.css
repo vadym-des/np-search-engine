@@ -1538,10 +1538,9 @@ mark.hl-match,
   width: 100%;
 }
 
-/* Внутрішній скрол для списку знайдених відділень (Zero Page Jumps) */
+/* Внутрішній скрол для списку знайдених відділень (Zero Page Jumps: максимум 6 видимих рядків) */
 .results-grid.has-match-rows {
-  max-height: calc(100vh - 290px);
-  min-height: 120px;
+  max-height: 380px;
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-behavior: smooth;

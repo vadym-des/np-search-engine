@@ -31,6 +31,7 @@ console.log('▶ ТЕСТ 2: Перевірка стилів CSS (.input-shake-e
 assert.ok(stylesCss.includes('.search-box-card.input-shake-error'), 'styles.css повинен містити клас .input-shake-error');
 assert.ok(stylesCss.includes('@keyframes inputShake'), 'styles.css повинен містити keyframes inputShake');
 assert.ok(stylesCss.includes('.results-grid.has-match-rows'), 'styles.css повинен містити .results-grid.has-match-rows з max-height');
+assert.ok(stylesCss.includes('max-height: 380px;'), 'styles.css повинен обмежувати висоту списку до 380px (максимум 6 видимих рядків)');
 assert.ok(stylesCss.includes('.bottom-bar.hidden-during-search'), 'styles.css повинен містити .bottom-bar.hidden-during-search');
 assert.ok(stylesCss.includes('.card-foot-actions'), 'styles.css повинен містити .card-foot-actions');
 assert.ok(stylesCss.includes('.card-foot-meta'), 'styles.css повинен містити .card-foot-meta');
@@ -60,6 +61,12 @@ assert.ok(appJs.includes('function updateBottomBarVisibility'), 'app.js пови
 assert.ok(appJs.includes('hidden-during-search'), 'app.js повинен перемикати клас hidden-during-search');
 assert.ok(appJs.includes('dom.resultsList.addEventListener(\'scroll\''), 'app.js повинен мати scroll listener на dom.resultsList');
 console.log('  ✓ Успіх: updateBottomBarVisibility та скрол списку результатів налаштовані.\n');
+
+console.log('▶ ТЕСТ 6: Захист від стрибків екрана вниз (window.scrollTo) при кліку на фільтри типів');
+const typeFilterBlock = appJs.slice(appJs.indexOf('dom.resultsTypeFilters.addEventListener(\'click\''), appJs.indexOf('dom.resultsTypeFilters.addEventListener(\'click\'') + 500);
+assert.ok(!typeFilterBlock.includes('window.scrollTo'), 'resultsTypeFilters НЕ повинен викликати window.scrollTo при перемиканні табів');
+assert.ok(typeFilterBlock.includes('dom.resultsList.scrollTop = 0'), 'resultsTypeFilters повинен скидати внутрішній scrollTop списку до 0');
+console.log('  ✓ Успіх: Клік на фільтри не зсуває сторінку вниз, список скидається догори.\n');
 
 console.log('===============================================================');
 console.log('🎉 ВСІ UX-ТЕСТИ ПРОЙДЕНО УСПІШНО!');

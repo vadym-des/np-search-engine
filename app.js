@@ -2209,6 +2209,9 @@
         }
         if (dom.resultsList) {
           dom.resultsList.innerHTML = '';
+          if (typeof dom.resultsList.scrollTop !== 'undefined') {
+            dom.resultsList.scrollTop = 0;
+          }
         }
         if (state.isMapVisible && state.leafletMap) {
           updateVisibleMarkersFromViewport();
@@ -2260,6 +2263,9 @@
     filtered = typedFiltered;
 
     dom.resultsList.innerHTML = '';
+    if (typeof dom.resultsList.scrollTop !== 'undefined') {
+      dom.resultsList.scrollTop = 0;
+    }
 
     // Відображення Google-style підказки (лише якщо є реальна помилка та не обрано конкретне відділення)
     if (didYouMeanText && dom.didYouMeanBox && !state.selectedBranch) {
@@ -4605,9 +4611,9 @@
 
         updateTypeFilterUI();
 
-        if (dom.searchResultsSection && typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
-          const topPos = dom.searchResultsSection.offsetTop - 70;
-          window.scrollTo({ top: Math.max(0, topPos), behavior: 'smooth' });
+        // Скидаємо внутрішній скрол списку до початку без стрибків сторінки вниз
+        if (dom.resultsList && typeof dom.resultsList.scrollTop !== 'undefined') {
+          dom.resultsList.scrollTop = 0;
         }
 
         state.selectedBranch = null;
