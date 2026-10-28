@@ -157,7 +157,7 @@
 
       <!-- 3. ПЛАШКА ПОШУКУ ТА КНОПКА «ШУКАТИ» -->
       <section class="search-section">
-        <form id="searchForm" class="search-box-card" role="search">
+        <form id="searchForm" class="search-box-card" role="search" novalidate>
           <div class="search-input-wrapper">
             <span class="search-decor-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
@@ -173,7 +173,6 @@
               placeholder="Наприклад: 47501, Бережани, Київ, Відділення 1, вул. Хрещатик..." 
               autocomplete="off"
               spellcheck="false"
-              required
             >
 
             <button type="button" id="btnClearSearch" class="btn-clear-search hidden" title="Очистити поле" aria-label="Очистити">✕</button>
@@ -252,7 +251,7 @@
     </main>
 
     <!-- 6. НИЖНІ КУТИ (Footer Bar) -->
-    <footer class="bottom-bar">
+    <footer class="bottom-bar" id="bottomBar">
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">

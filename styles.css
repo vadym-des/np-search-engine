@@ -807,6 +807,12 @@ body[data-service="ukrposhta"] .custom-leaflet-marker.marker-hovered {
 /* ==========================================================================
    3. ПЛАШКА ПОШУКУ ТА КНОПКА «ШУКАТИ»
    ========================================================================== */
+@keyframes inputShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
 .search-box-card {
   display: flex;
   background: var(--bg-card);
@@ -814,8 +820,14 @@ body[data-service="ukrposhta"] .custom-leaflet-marker.marker-hovered {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   padding: 5px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   gap: 8px;
+}
+
+.search-box-card.input-shake-error {
+  animation: inputShake 0.45s ease-in-out;
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
 }
 
 .search-box-card:focus-within {
@@ -1526,6 +1538,35 @@ mark.hl-match,
   width: 100%;
 }
 
+/* Внутрішній скрол для списку знайдених відділень (Zero Page Jumps) */
+.results-grid.has-match-rows {
+  max-height: calc(100vh - 290px);
+  min-height: 120px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  padding-right: 4px;
+}
+
+/* Тонкий скролбар для контейнера видачі списку результатів */
+.results-grid.has-match-rows::-webkit-scrollbar {
+  width: 6px;
+}
+
+.results-grid.has-match-rows::-webkit-scrollbar-track {
+  background: var(--bg-card-subtle);
+  border-radius: var(--radius-full);
+}
+
+.results-grid.has-match-rows::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: var(--radius-full);
+}
+
+.results-grid.has-match-rows::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
 /* Оптимізація рендерингу карток та результатів (Infinite Scroll / Lazy Rendering) */
 .address-match-row,
 .branch-card,
@@ -1876,16 +1917,23 @@ body[data-theme="dark"] .branch-renamed-note strong {
   color: #bfdbfe;
 }
 
-/* Рівень 4 + 5: Низ картки (Кнопка Скопіювати зліва, індекс, тип/вага, статус) */
+/* Рівень 4 + 5: Низ картки (Дзеркальне відображення: кнопки дій ліворуч, мета/вага/статус праворуч) */
 .card-foot {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
   margin-top: 8px;
   padding-top: 10px;
   border-top: 1px solid var(--border-light);
+}
+
+.card-foot-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .card-foot-meta {
@@ -1893,6 +1941,36 @@ body[data-theme="dark"] .branch-renamed-note strong {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  white-space: nowrap;
+}
+
+body[data-theme="dark"] .status-pill {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+  display: inline-block;
 }
 
 .weight-pill {
@@ -2302,6 +2380,14 @@ body[data-theme="dark"] .branch-renamed-note strong {
   padding: 16px 24px;
   pointer-events: none;
   z-index: 100;
+  transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+}
+
+.bottom-bar.hidden-during-search {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: translateY(16px) !important;
 }
 
 .corner-left,

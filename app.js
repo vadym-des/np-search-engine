@@ -101,6 +101,11 @@
     btnCloseVersionModal: document.getElementById('btnCloseVersionModal'),
     btnDismissVersionModal: document.getElementById('btnDismissVersionModal'),
     onlineUsersCount: document.getElementById('onlineUsersCount'),
+    bottomBar: (typeof document !== 'undefined') ? (
+      (typeof document.getElementById === 'function' && document.getElementById('bottomBar')) ||
+      (typeof document.querySelector === 'function' && document.querySelector('.bottom-bar')) ||
+      null
+    ) : null,
 
     // Налаштування API
     btnApiSettings: document.getElementById('btnApiSettings'),
@@ -2099,17 +2104,21 @@
       ${renamingHtml}
 
       <div class="card-foot">
-        <button class="btn-copy-action btn-copy-short" type="button" title="Скопіювати класичний формат">
-          📋 Скопіювати
-        </button>
-        <button class="btn-copy-action btn-copy-detailed" type="button" title="Скопіювати розширений CRM-формат (з областю, районом та вагою)">
-          📋 Детально
-        </button>
-        <button class="btn-copy-action btn-copy-settings" type="button" title="Налаштування шаблону копіювання" aria-label="Налаштування шаблону копіювання">
-          ⚙️
-        </button>
-        <span class="weight-pill ${typeInfo.cls}">${escapeHtml(typeInfo.label)}</span>
-        <span class="status-pill"><span class="status-dot"></span> Працює</span>
+        <div class="card-foot-actions">
+          <button class="btn-copy-action btn-copy-short" type="button" title="Скопіювати класичний формат">
+            📋 Скопіювати
+          </button>
+          <button class="btn-copy-action btn-copy-detailed" type="button" title="Скопіювати розширений CRM-формат (з областю, районом та вагою)">
+            📋 Детально
+          </button>
+          <button class="btn-copy-action btn-copy-settings" type="button" title="Налаштування шаблону копіювання" aria-label="Налаштування шаблону копіювання">
+            ⚙️
+          </button>
+        </div>
+        <div class="card-foot-meta">
+          <span class="weight-pill ${typeInfo.cls}">${escapeHtml(typeInfo.label)}</span>
+          <span class="status-pill"><span class="status-dot"></span> Працює</span>
+        </div>
       </div>
     `;
 
@@ -2225,9 +2234,11 @@
   function renderSearchResults(branches, query, didYouMeanText, missingTargetBranch, missingSettlement, didYouMeanData) {
     if (isAutocompleteOpen && !missingSettlement && !missingTargetBranch) {
       dom.searchResultsSection.classList.add('hidden');
+      updateBottomBarVisibility();
       return;
     }
     dom.searchResultsSection.classList.remove('hidden');
+    updateBottomBarVisibility();
 
     // 1. Фільтрація за типом (Всі | Вантажні | Відділення | Поштомати)
     let filtered = branches || [];
@@ -2601,6 +2612,7 @@
     }
 
     if (typeof IntersectionObserver !== 'undefined') {
+      const isInternalScroll = dom.resultsList && dom.resultsList.classList.contains('has-match-rows');
       searchResultsIntersectionObserver = new IntersectionObserver((entries) => {
         for (let i = 0; i < entries.length; i++) {
           if (entries[i].isIntersecting && renderedSearchResultsCount < currentSearchResults.length) {
@@ -2608,7 +2620,7 @@
           }
         }
       }, {
-        root: null,
+        root: isInternalScroll ? dom.resultsList : null,
         rootMargin: '250px',
         threshold: 0.01
       });
@@ -3499,6 +3511,30 @@
   let autocompleteDebounceTimer = null;
   let liveSearchDebounceTimer = null;
 
+  function updateBottomBarVisibility() {
+    if (!dom.bottomBar || !dom.bottomBar.classList) return;
+    const hasSearchText = Boolean(dom.searchInput && dom.searchInput.value && dom.searchInput.value.trim().length > 0);
+    const isAutocompleteVisible = Boolean(
+      dom.autocompleteDropdown &&
+      dom.autocompleteDropdown.classList &&
+      typeof dom.autocompleteDropdown.classList.contains === 'function' &&
+      !dom.autocompleteDropdown.classList.contains('hidden') &&
+      (!dom.autocompleteDropdown.style || dom.autocompleteDropdown.style.display !== 'none')
+    );
+    const isResultsVisible = Boolean(
+      dom.searchResultsSection &&
+      dom.searchResultsSection.classList &&
+      typeof dom.searchResultsSection.classList.contains === 'function' &&
+      !dom.searchResultsSection.classList.contains('hidden')
+    );
+
+    if (hasSearchText || isAutocompleteVisible || isResultsVisible) {
+      dom.bottomBar.classList.add('hidden-during-search');
+    } else {
+      dom.bottomBar.classList.remove('hidden-during-search');
+    }
+  }
+
   function closeAutocomplete() {
     if (!dom.autocompleteDropdown) return;
     clearTimeout(autocompleteDebounceTimer);
@@ -3514,6 +3550,7 @@
     if (dom.searchResultsSection && state.currentResults && state.currentResults.length > 0 && dom.searchInput && dom.searchInput.value.trim().length >= 2) {
       dom.searchResultsSection.classList.remove('hidden');
     }
+    updateBottomBarVisibility();
   }
 
   const HIGHLIGHT_STOP_WORDS = new Set([
@@ -3715,6 +3752,7 @@
       dom.autocompleteDropdown.style.display = '';
       dom.autocompleteDropdown.classList.remove('hidden');
       isAutocompleteOpen = true;
+      updateBottomBarVisibility();
       return;
     }
 
@@ -3731,6 +3769,7 @@
     if (dom.searchResultsSection) {
       dom.searchResultsSection.classList.add('hidden');
     }
+    updateBottomBarVisibility();
   }
 
   const AUTOCOMPLETE_CHUNK_SIZE = 15;
@@ -4231,6 +4270,24 @@
         activeAutocompleteAbortController.abort();
         activeAutocompleteAbortController = null;
       }
+
+      const rawVal = (dom.searchInput ? dom.searchInput.value : '').trim();
+      if (!rawVal) {
+        const searchBoxCard = dom.searchForm;
+        if (searchBoxCard && searchBoxCard.classList) {
+          searchBoxCard.classList.remove('input-shake-error');
+          if (typeof searchBoxCard.offsetWidth !== 'undefined') void searchBoxCard.offsetWidth;
+          searchBoxCard.classList.add('input-shake-error');
+          setTimeout(() => {
+            if (searchBoxCard && searchBoxCard.classList) {
+              searchBoxCard.classList.remove('input-shake-error');
+            }
+          }, 600);
+        }
+        if (dom.searchInput && typeof dom.searchInput.focus === 'function') dom.searchInput.focus();
+        return;
+      }
+
       if (activeAutocompleteIndex >= 0 && activeAutocompleteIndex < autocompleteItems.length) {
         selectAutocompleteItem(autocompleteItems[activeAutocompleteIndex]);
         if (dom.searchInput) dom.searchInput.blur();
@@ -4243,7 +4300,7 @@
       }
 
       // Перевірка на вибір населеного пункту з омонімами (Disambiguation Priority)
-      const val = (dom.searchInput ? dom.searchInput.value : '').trim();
+      const val = rawVal;
       const engine = window.SmartSearchEngine;
       const isCityDisambiguation = autocompleteItems.length >= 2 && autocompleteItems.some(i => i.mode === 'city');
       const facets = engine && engine.extractFacets ? engine.extractFacets(val) : null;
@@ -4266,6 +4323,7 @@
 
     // Відкриття поп-апу при кліку або фокусі на інпуті з вже введеним текстом
     const handleInputActivation = () => {
+      updateBottomBarVisibility();
       if (suppressNextFocusActivation) return;
       const val = dom.searchInput.value.trim();
       if (val.length >= 2 && !isAutocompleteOpen) {
@@ -4403,6 +4461,7 @@
           dom.searchResultsSection.classList.add('hidden');
         }
       }
+      updateBottomBarVisibility();
     });
 
     // Навігація клавішами в autocomplete (ArrowUp, ArrowDown, Enter, Esc)
@@ -4560,6 +4619,22 @@
       });
     }
 
+    // Плавна підгрузка результатів видачі при скролі внутрішнього контейнера списку
+    if (dom.resultsList) {
+      dom.resultsList.addEventListener('scroll', () => {
+        if (renderedSearchResultsCount < currentSearchResults.length) {
+          const sentinel = document.getElementById('infiniteScrollSentinel');
+          if (sentinel) {
+            const containerRect = dom.resultsList.getBoundingClientRect();
+            const sentinelRect = sentinel.getBoundingClientRect();
+            if (sentinelRect.top <= containerRect.bottom + 250) {
+              appendNextSearchResultsChunk(SEARCH_RESULTS_CHUNK_SIZE);
+            }
+          }
+        }
+      }, { passive: true });
+    }
+
     // Fallback для плавної підгрузки результатів видачі при скролі сторінки
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('scroll', () => {
@@ -4580,6 +4655,7 @@
       dom.btnClearSearch.classList.add('hidden');
       dom.searchResultsSection.classList.add('hidden');
       closeAutocomplete();
+      updateBottomBarVisibility();
       state.searchQuery = '';
       state.currentResults = [];
       state.selectedBranch = null;
@@ -5214,6 +5290,7 @@
     prewarmBranchIndices();
     applyTheme(getStoredTheme(), false);
     initEventListeners();
+    updateBottomBarVisibility();
     checkServerApiStatus();
     renderFrequentChips();
     renderRecentHistory();
@@ -5235,6 +5312,7 @@
   }
 
   window.__executeSearchForTest = executeSearch;
+  window.updateBottomBarVisibility = updateBottomBarVisibility;
   window.selectAutocompleteItem = selectAutocompleteItem;
   window.selectSuggestion = selectSuggestion;
   window.onSuggestionClick = onSuggestionClick;
