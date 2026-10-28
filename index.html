@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.10">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.13">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -35,7 +35,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.10">
+  <link rel="stylesheet" href="styles.css?v=1.6.16">
 </head>
 <body data-service="novaposhta">
 
@@ -207,13 +207,7 @@
           </div>
 
           <div class="results-controls-group">
-            <div class="limit-selector" id="limitSelector" role="group" aria-label="Кількість відображуваних відділень">
-              <span class="limit-label">Відображати:</span>
-              <button type="button" class="limit-btn" data-limit="5">5</button>
-              <button type="button" class="limit-btn active" data-limit="10">10</button>
-              <button type="button" class="limit-btn" data-limit="20">20</button>
-              <button type="button" class="limit-btn" data-limit="all">Всі</button>
-            </div>
+            <div class="limit-selector" id="limitSelector" style="display:none;" aria-hidden="true"></div>
             <button type="button" id="btnResetSelectedBranch" class="btn-card-close-circle hidden" title="Скинути вибір" aria-label="Скинути вибір">✕</button>
           </div>
         </div>
@@ -262,7 +256,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.10</span>
+          <span class="version-tag">v1.6.16</span>
           
         </button>
       </div>
@@ -291,8 +285,92 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.10 -->
+        <!-- Версія 1.6.16 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.16</span>
+            <span class="version-state">Smooth Infinite Scroll, Content Visibility &amp; Real Total Count</span>
+            <span class="version-date">28 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Плавний нескінченний скрол результатів видачі (Infinite Scroll / Lazy Rendering):</strong> Знято обмеження в 20 карток для загального списку. У пам'яті зберігаються всі знайдені відділення населеного пункту (наприклад, 600+ для Києва), а рендеринг у DOM виконується порційно по 20 карток через <code>IntersectionObserver</code> та невидимий sentinel.</li>
+            <li><strong>Оптимізація рендерингу DOM:</strong> Для карток видачі (<code>.branch-card</code>, <code>.address-match-row</code>, <code>.result-item</code>) увімкнено <code>content-visibility: auto</code> та <code>contain-intrinsic-size: 0 100px</code>, що повністю усуває фрізи браузера при перегляді великих міст.</li>
+            <li><strong>Точний лічильник знайденого:</strong> У шапці результатів виводиться реальна повна кількість адрес («Знайдено: X адрес»).</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.15 -->
+        <div class="changelog-item">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.15</span>
+            <span class="version-state">LP-CRM Style Match Row Scrolling &amp; Renamed Street Indigo Callout</span>
+            <span class="version-date">28 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Ізольований скролбар списку відділень (LP-CRM UX):</strong> Контейнер збігів адрес отримав жорстке обмеження на 6 видимих рядків із власним скролбаром та <code>overscroll-behavior: contain</code> — при гортанні списку мишкою чи тачпадом крутиться виключно внутрішній список, а сторінка сайту залишається на місці.</li>
+            <li><strong>Варіант 2: Фірмовий CRM-блок перейменування:</strong> Блідо-жовту смужку замінено на стильний контрастний блок у м'яких індиго/синіх тонах («ℹ️ Попередня назва (для LP-CRM): ...») з підтримкою світлої та темної теми.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.14 -->
+        <div class="changelog-item">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.14</span>
+            <span class="version-state">Natural Branch Sorting №1..N, LP-CRM Scroll &amp; Virtualized Chunks</span>
+            <span class="version-date">28 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Природне сортування відділень (№1..N, далі поштомати):</strong> Відділення в усіх населених пунктах тепер сортуються природним чином від №1 до №N за зростанням, а поштомати йдуть наступними також за зростанням номерів без хаотичного розкиду.</li>
+            <li><strong>LP-CRM скролбар та 6 видимих рядків:</strong> Висота випадаючого списку оптимізована рівно під 6 рядків із плавною прокруткою та акуратним скролбаром без необхідності гортати всю сторінку сайту.</li>
+            <li><strong>Віртуальний рендеринг чанками (Progressive Lazy-Loading):</strong> Миттєве завантаження початкових 15 елементів та динамічна плавна підгрузка порцій при прокручуванні та навігації клавішами без навантаження на DOM і пам'ять браузера.</li>
+            <li><strong>Видалення селектора лімітів «5, 10, 20, Всі»:</strong> Прибрано застарілі кнопки лімітів для забезпечення чистого, сучасного та швидкого інтерфейсу.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.13 -->
+        <div class="changelog-item">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.13</span>
+            <span class="version-state">Concatenated Query Highlighting &amp; Space-Free Street Search</span>
+            <span class="version-date">28 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Повне підсвічування при злитому написанні ("Київ1" та "Київ 1"):</strong> інтелектуальне розділення літер та цифр забезпечує стабільне підсвічування як міста, так і номера відділення жовтим маркером у всіх режимах відображення.</li>
+            <li><strong>Пошук та маркування вулиць без пробілів ("хрещатик15", "пирогівськийшлях", "вул.Хрещатик"):</strong> пошуковий рушій та система маркування тепер бездоганно розпізнають складені назви вулиць, скорочення типів та номери будівель як з пробілами, так і в злитому форматі.</li>
+            <li><strong>Уніфікований парсинг мікрозапитів:</strong> оптимізовано роботу фасетного аналізатора та автокомпліту при швидкісному наборі тексту оператором.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.12 -->
+        <div class="changelog-item">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.12</span>
+            <span class="version-state">Smart Branch List on Erasing &amp; City Disambiguation</span>
+            <span class="version-date">28 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Миттєвий список відділень при стиранні номера:</strong> коли користувач стирає номер відділення (наприклад, з «Київ Київська 1» залишається «Київ Київська»), система більше не показує зайвий попап вибору міста, а одразу виводить повний список відділень цього міста.</li>
+            <li><strong>Інтелектуальне розпізнавання редагування міста:</strong> якщо оператор починає стирати саму назву міста (наприклад «Киї»), система миттєво пропонує відповідні населені пункти за префіксними збігами.</li>
+            <li><strong>Збереження геоконтексту:</strong> усунуто передчасне скидання зафіксованого міста при зміні чи видаленні номера відділення.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.11 -->
+        <div class="changelog-item">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.11</span>
+            <span class="version-state">Street-Token Ranking &amp; Instant Enter Branch Selection</span>
+            <span class="version-date">27 Жовтня 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Миттєвий перехід на картку при Enter:</strong> при натисканні Enter на запиті з точним відділенням/адресою система миттєво відкриває кінцеву картку відділення без зайвого зникнення попапу.</li>
+            <li><strong>Пріоритет вулиці в автокомпліті:</strong> при збігу кількох відділень з однаковим номером відділення з шуканою вулицею автоматично піднімається на першу позицію.</li>
+            <li><strong>Стабільність геоконтексту:</strong> виправлено регіональні прив'язки та відображення районів до 2020 року.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.10 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.10</span>
             <span class="version-state">Instant Toponym Routing &amp; Regional Autocomplete Deduplication</span>
@@ -962,15 +1040,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.10"></script>
+  <script src="data/branches.js?v=1.6.13"></script>
+
+  <!-- База 26 500+ відділень та індексів Укрпошти -->
+  <script src="data/ukrposhta_branches.js?v=1.6.13"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.10"></script>
+  <script src="data/all_settlements.js?v=1.6.13"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.10"></script>
+  <script src="data/fuzzySearch.js?v=1.6.16"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.10"></script>
+  <script src="app.js?v=1.6.16"></script>
 </body>
 </html>
