@@ -226,7 +226,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 42;
+  let totalTests = 43;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -2763,6 +2763,71 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 42:', err.message, '\n');
+  }
+
+  // -------------------------------------------------------------
+  // ТЕСТ 43: Пріоритет вибору для населених пунктів-омонімів (Disambiguation Priority: "Олександрія", "Миколаїв", "Кам'янка", "Березнегувате")
+  // -------------------------------------------------------------
+  try {
+    console.log('▶ ТЕСТ 43: Disambiguation Priority для одноіменних міст ("Олександрія", "Миколаїв", "Кам\'янка", "Березнегувате")');
+
+    const eng = window.SmartSearchEngine;
+
+    // 1. Перевірка findSettlementsByName
+    const olexMatches = eng.findSettlementsByName('Олександрія');
+    if (olexMatches.length < 2) {
+      throw new Error(`Очікувалось >= 2 населених пунктів для 'Олександрія', отримано ${olexMatches.length}`);
+    }
+
+    const mykMatches = eng.findSettlementsByName('Миколаїв');
+    if (mykMatches.length < 2) {
+      throw new Error(`Очікувалось >= 2 населених пунктів для 'Миколаїв', отримано ${mykMatches.length}`);
+    }
+
+    const kamMatches = eng.findSettlementsByName("Кам'янка");
+    if (kamMatches.length < 2) {
+      throw new Error(`Очікувалось >= 2 населених пунктів для "Кам'янка", отримано ${kamMatches.length}`);
+    }
+
+    const berMatches = eng.findSettlementsByName('Березнегувате');
+    if (berMatches.length < 2) {
+      throw new Error(`Очікувалось >= 2 населених пунктів для 'Березнегувате', отримано ${berMatches.length}`);
+    }
+
+    // 2. Отримання варіантів автокомпліту для "Олександрія" без зазначення району
+    const npBranches = (window.BRANCHES_DATA && window.BRANCHES_DATA.novaposhta) ? window.BRANCHES_DATA.novaposhta : [];
+    const suggestions = eng.getAutocompleteSuggestions('Олександрія', 'novaposhta', null, npBranches);
+    if (!Array.isArray(suggestions) || suggestions.length <= 1) {
+      throw new Error(`Для запиту 'Олександрія' очікувалось disambiguation list length > 1, отримано ${suggestions ? suggestions.length : 0}`);
+    }
+
+    // Перевіряємо наявність як Кіровоградської, так і Рівненської областей серед варіантів
+    const hasKirovohrad = suggestions.some(s => (s.subtitle && s.subtitle.includes('Кіровоградська')) || (s.oblast && s.oblast.includes('Кіровоградська')));
+    const hasRivne = suggestions.some(s => (s.subtitle && s.subtitle.includes('Рівненська')) || (s.oblast && s.oblast.includes('Рівненська')));
+    if (!hasKirovohrad || !hasRivne) {
+      throw new Error(`Серед варіантів 'Олександрія' мають бути і Кіровоградська, і Рівненська обл. Отримано: ${suggestions.map(s => s.subtitle).join('; ')}`);
+    }
+
+    // 3. UI перевірка: набір "Олександрія" в інпуті не ховає попап і не фіксує район примусово
+    const searchInput = elementsById['searchInput'];
+    const dropdown = elementsById['autocompleteDropdown'];
+    if (searchInput.focus) searchInput.focus();
+    searchInput.value = 'Олександрія';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(350);
+
+    if (dropdown.classList.contains('hidden')) {
+      throw new Error("Попап автокомпліту примусово закрився при введенні 'Олександрія'!");
+    }
+    const renderedItems = dropdown.querySelectorAll('.autocomplete-item');
+    if (renderedItems.length <= 1) {
+      throw new Error(`Попап повинен показувати кілька варіантів вибору для 'Олександрія', знайдено ${renderedItems.length}`);
+    }
+
+    console.log('  ✓ Успіх: "Олександрія" без зазначення району повертає повноцінний випадаючий список вибору (length > 1), не закриває попап і не фіксує один район автоматично!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 43:', err.message, '\n');
   }
 
   console.log('===============================================================');

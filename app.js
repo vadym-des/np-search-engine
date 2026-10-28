@@ -4127,13 +4127,43 @@
   function hasFixedSettlementContext(query) {
     if (!query || query.length < 2) return false;
 
+    const engine = window.SmartSearchEngine;
+
     // 1. Повний геоконтекст: у запиті розпізнано місто ТА область чи район
-    // (наприклад: "Київ Київська", "Софіївка Миколаївська", "Широке Виноградівський Закарпатська")
-    // Коли користувач стер номер або ввів повну географію, населений пункт 100% зафіксовано
-    if (window.SmartSearchEngine && window.SmartSearchEngine.extractFacets) {
-      const facets = window.SmartSearchEngine.extractFacets(query);
-      if (facets && facets.city && (facets.oblast || facets.raion)) {
-        return true;
+    // (наприклад: "Київ Київська", "Олександрія Кіровоградська", "Миколаїв Стрийський")
+    let hasExplicitRegion = false;
+    let detectedCity = '';
+    if (engine && engine.extractFacets) {
+      const facets = engine.extractFacets(query);
+      if (facets && facets.city) {
+        detectedCity = facets.city;
+        if (facets.oblast || facets.raion) {
+          hasExplicitRegion = true;
+        }
+      }
+    }
+
+    if (hasExplicitRegion) {
+      return true;
+    }
+
+    // Перевірка на одноіменні населені пункти (Disambiguation Priority)
+    if (!detectedCity) {
+      const cleanVal = query.replace(/^(?:(?:місто|селище міського типу|смт|селище|село|сел)(?:\.|\s*)|\s*(?:м|с)(?:\.|\s+))\s*/iu, '').trim();
+      detectedCity = cleanVal.split(/[, /;.]+/)[0];
+    }
+
+    if (detectedCity && engine && engine.findSettlementsByName) {
+      const homonyms = engine.findSettlementsByName(detectedCity);
+      if (homonyms.length >= 2) {
+        // Якщо населений пункт має >= 2 омонімів в Україні, фіксація дозволена ВИКЛЮЧНО якщо:
+        // а) Користувач явно зафіксував вибір кліком у дропдауні (lockedInputValue активний і запит починається з нього)
+        if (state.lockedInputValue && canonText(query).startsWith(canonText(state.lockedInputValue.trim()))) {
+          return true;
+        }
+        // б) Або в запиті є точне уточнення області чи району (перевірено вище через hasExplicitRegion)
+        // Для простої назви міста (наприклад "Олександрія", "Миколаїв", "Кам'янка") фіксація суворо ЗАБОРОНЕНА!
+        return false;
       }
     }
 
@@ -4171,7 +4201,7 @@
       }
     }
     if (!candidate) {
-      const cleanVal = val.replace(/^(?:м|с|смт|сел|місто|село|селище)\.?\s*/i, '').trim();
+      const cleanVal = val.replace(/^(?:(?:місто|селище міського типу|смт|селище|село|сел)(?:\.|\s*)|\s*(?:м|с)(?:\.|\s+))\s*/iu, '').trim();
       candidate = cleanVal.split(/[, /;.]+/)[0].toLowerCase();
     }
     if (candidate && liveWarehousesCache.novaposhta.has(candidate)) {
@@ -4211,6 +4241,22 @@
         if (dom.searchInput) dom.searchInput.blur();
         return;
       }
+
+      // Перевірка на вибір населеного пункту з омонімами (Disambiguation Priority)
+      const val = (dom.searchInput ? dom.searchInput.value : '').trim();
+      const engine = window.SmartSearchEngine;
+      const isCityDisambiguation = autocompleteItems.length >= 2 && autocompleteItems.some(i => i.mode === 'city');
+      const facets = engine && engine.extractFacets ? engine.extractFacets(val) : null;
+      const hasRegion = facets && (facets.oblast || facets.raion);
+
+      if (isCityDisambiguation && !hasRegion) {
+        // КАТЕГОРИЧНО ЗАБОРОНЕНО автозакривати попап або обирати перший ліпший:
+        // залишаємо попап відкритим, підсвічуємо перший варіант для зручності
+        activeAutocompleteIndex = 0;
+        updateAutocompleteFocus();
+        return;
+      }
+
       closeAutocomplete();
       if (dom.searchInput) {
         dom.searchInput.blur();
@@ -4254,8 +4300,24 @@
       if (state.selectedSettlement) {
         const sLower = canonText(state.selectedSettlement.cleanName);
         const valCanon = canonText(val);
+
+        // Якщо введено омонім (наприклад "Олександрія") без уточнення області/району і без активного lockedInputValue,
+        // скидаємо попередньо зафіксоване місто, щоб гарантувати показ випадаючого списку варіантів!
+        let isHomonymWithoutRegion = false;
+        if (window.SmartSearchEngine && window.SmartSearchEngine.findSettlementsByName) {
+          const homonyms = window.SmartSearchEngine.findSettlementsByName(state.selectedSettlement.cleanName);
+          if (homonyms.length >= 2) {
+            const facets = window.SmartSearchEngine.extractFacets ? window.SmartSearchEngine.extractFacets(val) : null;
+            if (!facets || (!facets.oblast && !facets.raion)) {
+              if (!state.lockedInputValue || !valCanon.startsWith(canonText(state.lockedInputValue.trim()))) {
+                isHomonymWithoutRegion = true;
+              }
+            }
+          }
+        }
+
         // Якщо користувач почав стирати або змінив саму назву зафіксованого міста (наприклад "ки" замість "київ")
-        if (!valCanon.startsWith(sLower)) {
+        if (!valCanon.startsWith(sLower) || isHomonymWithoutRegion) {
           state.selectedSettlement = null;
           state.selectedBranch = null;
           state.lockedInputValue = null;
@@ -4349,6 +4411,21 @@
         if (e.key === 'Escape') {
           closeAutocomplete();
         } else if (e.key === 'Enter') {
+          const val = (dom.searchInput ? dom.searchInput.value : '').trim();
+          const engine = window.SmartSearchEngine;
+          if (engine && engine.findSettlementsByName) {
+            const facets = engine.extractFacets ? engine.extractFacets(val) : null;
+            if (!facets || (!facets.oblast && !facets.raion)) {
+              const homonyms = engine.findSettlementsByName(val);
+              if (homonyms.length >= 2) {
+                // Заборонено виконувати пошук першого ліпшого: показуємо підказки!
+                e.preventDefault();
+                triggerAutocomplete(val);
+                return;
+              }
+            }
+          }
+
           e.preventDefault();
           clearTimeout(autocompleteDebounceTimer);
           clearTimeout(liveSearchDebounceTimer);
@@ -4397,6 +4474,20 @@
           selectAutocompleteItem(autocompleteItems[0]);
           if (dom.searchInput) dom.searchInput.blur();
         } else {
+          // Якщо це режим вибору міст-омонімів (>= 2 варіантів міст без вибраного району)
+          const val = (dom.searchInput ? dom.searchInput.value : '').trim();
+          const engine = window.SmartSearchEngine;
+          const isCityDisambiguation = autocompleteItems.length >= 2 && autocompleteItems.some(i => i.mode === 'city');
+          const facets = engine && engine.extractFacets ? engine.extractFacets(val) : null;
+          const hasRegion = facets && (facets.oblast || facets.raion);
+
+          if (isCityDisambiguation && !hasRegion) {
+            // КАТЕГОРИЧНО ЗАБОРОНЕНО автозакривати попап або обирати перший ліпший!
+            activeAutocompleteIndex = 0;
+            updateAutocompleteFocus();
+            return;
+          }
+
           closeAutocomplete();
           if (dom.searchInput) dom.searchInput.blur();
           executeSearch(dom.searchInput.value, true, true);

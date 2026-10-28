@@ -807,6 +807,57 @@
     return _settlementsByAlias.get(low) || _settlementsByAliasNA.get(canonText(low)) || _allSettlementsByName.get(low) || null;
   }
 
+  // Пошук усіх унікальних населених пунктів за чистою назвою для захисту від колізій омонімів (Disambiguation Priority)
+  function findSettlementsByName(name) {
+    if (!name || typeof name !== 'string') return [];
+    let clean = cleanSettlementName(name);
+    clean = clean.replace(/^(?:(?:місто|селище міського типу|смт|селище|село|сел)(?:\.|\s*)|\s*(?:м|с)(?:\.|\s+))\s*/iu, '').trim();
+    if (!clean) return [];
+
+    const cLower = clean.toLowerCase();
+    const cCanon = canonText(clean);
+    const cNorm = normalizeLocativeCase(cLower);
+
+    const pool = [];
+    const seen = new Set();
+
+    const addSettlement = (s) => {
+      if (!s) return;
+      const sName = cleanSettlementName(s.cleanName || s.name || '');
+      const sObl = cleanOblastName(s.cleanOblast || s.oblast || '');
+      const sRaion = cleanRaionName(s.cleanRaion || s.raion || '');
+      const key = `${canonText(sName)}|${canonText(sObl)}|${canonText(sRaion)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        pool.push(s);
+      }
+    };
+
+    if (Array.isArray(UKRAINE_SETTLEMENTS)) {
+      for (let s of UKRAINE_SETTLEMENTS) {
+        const sLower = canonText(s.name);
+        const sNorm = normalizeLocativeCase(sLower);
+        if (sLower === cCanon || sNorm === cCanon || sLower === cLower ||
+            (s.aliases && s.aliases.some(a => canonText(a) === cCanon || canonText(a) === cLower))) {
+          addSettlement(s);
+        }
+      }
+    }
+
+    const listExact = _allSettlementsByName.get(cLower) ||
+                      _allSettlementsByName.get(cCanon) ||
+                      _allSettlementsByNameNA.get(cCanon) ||
+                      _allSettlementsByName.get(cNorm) ||
+                      _allSettlementsByNameNA.get(cNorm);
+    if (Array.isArray(listExact)) {
+      for (let s of listExact) {
+        addSettlement(s);
+      }
+    }
+
+    return pool;
+  }
+
   function getSettlementType(cityName, oblastName = '') {
     const s = getSettlement(cityName, oblastName);
     return (s && s.type) ? s.type : '';
@@ -4519,6 +4570,7 @@
     buildBranchIndex: getOrBuildBranchPoolIndex,
     getSettlement,
     getSettlementType,
+    findSettlementsByName,
     searchBranches,
     filterBranchesByNormalizedSearch,
     isOblastToken,
