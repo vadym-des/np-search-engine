@@ -276,7 +276,7 @@
       pools = {
         postomat: allStaticBranches.filter(isPostomatBranch),
         cargo: allStaticBranches.filter(isCargoBranch),
-        branch: allStaticBranches.filter(isRegularBranch)
+        branch: allStaticBranches.filter(b => !isPostomatBranch(b))
       };
       _tabPoolsCache.set(allStaticBranches, pools);
     }
@@ -822,21 +822,8 @@
     const allStaticBranches = getAllCurrentServiceBranches();
     let staticMatches = [];
     if (engine && allStaticBranches.length > 0) {
-      // Таб-фільтр застосовується до ПОВНОГО пулу через кешований пул (O(1) операція)
-      const tf = state.typeFilter;
-      const searchPool = getTabFilteredPool(allStaticBranches, tf);
-      const isFilteredTab = tf && tf !== 'all';
-      staticMatches = engine.filterBranchesByNormalizedSearch(rawQuery, searchPool, null);
-
-      // Relaxed Smart Fallback (як у Google):
-      // Якщо обраний таб-фільтр повернув 0 результатів (наприклад шукали "коломи я 6" з табом "Поштомат"),
-      // але за повним пулом міста відділення існує, показуємо його замість помилки
-      if (staticMatches.length === 0 && isFilteredTab) {
-        const relaxedMatches = engine.filterBranchesByNormalizedSearch(rawQuery, allStaticBranches, null);
-        if (relaxedMatches.length > 0) {
-          staticMatches = relaxedMatches;
-        }
-      }
+      // Пошук за повним пулом сервісу для збереження всіх точок (відділень та поштоматів) у пам'яті
+      staticMatches = engine.filterBranchesByNormalizedSearch(rawQuery, allStaticBranches, null);
     }
 
     // Якщо зафіксовано точний населений пункт або в запиті є область чи район — фільтруємо за гео-контекстом
@@ -2182,7 +2169,7 @@
       } else if (state.typeFilter === 'cargo') {
         hasMatching = resultsPool.some(isCargoBranch);
       } else if (state.typeFilter === 'branch') {
-        hasMatching = resultsPool.some(isRegularBranch);
+        hasMatching = resultsPool.some(b => !isPostomatBranch(b));
       }
       if (!hasMatching) {
         state.typeFilter = 'all';
@@ -2224,6 +2211,17 @@
     }, container ? 120 : 0);
   }
 
+  // Відмінювання слова "адреса" для точного українського лічильника результатів
+  function formatAddressCount(n) {
+    const abs = Math.abs(n);
+    const mod10 = abs % 10;
+    const mod100 = abs % 100;
+    if (mod100 >= 11 && mod100 <= 19) return `${n} адрес`;
+    if (mod10 === 1) return `${n} адреса`;
+    if (mod10 >= 2 && mod10 <= 4) return `${n} адреси`;
+    return `${n} адрес`;
+  }
+
   function renderSearchResults(branches, query, didYouMeanText, missingTargetBranch, missingSettlement, didYouMeanData) {
     if (isAutocompleteOpen && !missingSettlement && !missingTargetBranch) {
       dom.searchResultsSection.classList.add('hidden');
@@ -2239,7 +2237,7 @@
     } else if (state.typeFilter === 'cargo') {
       typedFiltered = filtered.filter(isCargoBranch);
     } else if (state.typeFilter === 'branch') {
-      typedFiltered = filtered.filter(isRegularBranch);
+      typedFiltered = filtered.filter(b => !isPostomatBranch(b));
     }
 
     // Якщо активний таб фільтра порожній (наприклад, "Поштомати" у селі, де їх немає), не блокувати інтерфейс, а коректно скидати фільтр на "Всі"
@@ -2333,7 +2331,7 @@
       if (dom.limitSelector) dom.limitSelector.style.display = 'none';
       // Панель табів залишається видимою, щоб можна було переключитись на інший таб
       applyTypeFiltersVisibility();
-      dom.resultsCount.textContent = '0 відділень';
+      dom.resultsCount.textContent = 'Знайдено: 0 відділень';
 
       if (missingTargetBranch) {
         const cityPart = missingTargetBranch.city ? ` у м. ${escapeHtml(missingTargetBranch.city)}` : '';
@@ -2539,7 +2537,7 @@
       oldSentinel.parentNode.removeChild(oldSentinel);
     }
 
-    dom.resultsCount.textContent = `${filtered.length} адрес`;
+    dom.resultsCount.textContent = `Знайдено: ${formatAddressCount(filtered.length)}`;
 
     // Початковий рендер у DOM: вставляємо лише першу порцію з 20 карток через DocumentFragment
     appendNextSearchResultsChunk(SEARCH_RESULTS_CHUNK_SIZE);
@@ -4462,11 +4460,11 @@
           window.scrollTo({ top: Math.max(0, topPos), behavior: 'smooth' });
         }
 
-        if (state.searchQuery) {
-          state.selectedBranch = null;
-          executeSearch(state.searchQuery, false, false);
-        } else if (state.currentResults.length > 0) {
+        state.selectedBranch = null;
+        if (state.currentResults && state.currentResults.length > 0) {
           renderSearchResults(state.currentResults, state.searchQuery, null);
+        } else if (state.searchQuery) {
+          executeSearch(state.searchQuery, false, false);
         }
       });
     }
