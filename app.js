@@ -7,7 +7,20 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.4.2';
+  const APP_VERSION = '1.6.18';
+
+  // Безпечне відправлення подій у Google Analytics 4 (GA4)
+  function trackEvent(eventName, params = {}) {
+    try {
+      if (typeof gtag === 'function') {
+        gtag('event', eventName, params);
+      } else if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+        window.gtag('event', eventName, params);
+      }
+    } catch (e) {
+      // Захист від блокувальників реклами та розривів виконання
+    }
+  }
 
   // ==========================================================================
   // СТАН ДОДАТКУ (STATE)
@@ -130,7 +143,10 @@
     optSmtShort: document.getElementById('optSmtShort'),
     optNoBranchWord: document.getElementById('optNoBranchWord'),
     optShortRegion: document.getElementById('optShortRegion'),
-    optNoStreetPrefix: document.getElementById('optNoStreetPrefix')
+    optNoStreetPrefix: document.getElementById('optNoStreetPrefix'),
+
+    // Фідбек
+    btnFeedback: (typeof document !== 'undefined' && typeof document.querySelector === 'function') ? document.querySelector('.btn-feedback') : null
   };
 
   // ==========================================================================
@@ -1077,6 +1093,11 @@
       const recordTitle = parsed.matchedSettlement ? parsed.matchedSettlement.name : rawQuery;
       recordFrequentQuery(recordTitle);
       recordSearchHistory(rawQuery, results.length);
+      trackEvent('search_performed', {
+        query_length: rawQuery.length,
+        tab_type: state.currentService === 'novaposhta' ? 'NP' : 'UKR',
+        results_count: results.length
+      });
     }
 
     // Оновлення карти: показуємо до 20 відділень знайденого міста, а шукане відділення виділяємо!
@@ -1357,6 +1378,13 @@
   function isRegularBranch(b) {
     if (!b || isPostomatBranch(b)) return false;
     return !isCargoBranch(b);
+  }
+
+  // Визначення типу відділення для аналітики (поштомат / відділення / вантажне)
+  function getBranchAnalyticsType(b) {
+    if (isPostomatBranch(b)) return 'поштомат';
+    if (isCargoBranch(b)) return 'вантажне';
+    return 'відділення';
   }
 
   // Визначення бейджа типу, вагового обмеження та габаритів
@@ -2128,6 +2156,9 @@
         e.stopPropagation();
         const textToCopy = btnCopyShort.getAttribute('data-copy') || formatClassicCopyString(branch);
         copyTextToClipboard(textToCopy, btnCopyShort, 'Скопійовано!');
+        trackEvent('copy_branch_address', {
+          branch_type: getBranchAnalyticsType(branch)
+        });
       });
     }
 
@@ -2137,6 +2168,9 @@
         e.stopPropagation();
         const textToCopy = btnCopyDetailed.getAttribute('data-copy') || formatDetailedCopyString(branch);
         copyTextToClipboard(textToCopy, btnCopyDetailed, 'Детально скопійовано!');
+        trackEvent('copy_branch_address', {
+          branch_type: getBranchAnalyticsType(branch)
+        });
       });
     }
 
@@ -3270,7 +3304,7 @@
         <div class="map-popup-title">${escapeHtml(typeDisplay)} №${escapeHtml(branchNumber)}</div>
         <div class="map-popup-street">📍 <strong>${escapeHtml(b.city)}</strong>, ${escapeHtml(cleanStreet)}</div>
         <div class="map-popup-actions">
-          <button type="button" class="btn-popup-copy" data-copy="${escapeHtml(lpCopyStr)}">
+          <button type="button" class="btn-popup-copy" data-copy="${escapeHtml(lpCopyStr)}" data-branch-type="${getBranchAnalyticsType(b)}">
             📋 Скопіювати
           </button>
         </div>
@@ -4739,6 +4773,14 @@
       }
     });
 
+    // Відстеження відкриття / переходу за посиланням фідбеку
+    const feedbackLink = dom.btnFeedback || (typeof document !== 'undefined' && typeof document.querySelector === 'function' ? document.querySelector('.btn-feedback') : null);
+    if (feedbackLink && typeof feedbackLink.addEventListener === 'function') {
+      feedbackLink.addEventListener('click', () => {
+        trackEvent('open_feedback');
+      });
+    }
+
     // Делегований обробник копіювання з попапів карти
     if (dom.branchesMap) {
       dom.branchesMap.addEventListener('click', e => {
@@ -4747,6 +4789,10 @@
           const text = copyBtn.getAttribute('data-copy');
           if (text) {
             copyTextToClipboard(text, copyBtn, 'Скопійовано!', 1500);
+            const branchType = copyBtn.getAttribute('data-branch-type') || 'відділення';
+            trackEvent('copy_branch_address', {
+              branch_type: branchType
+            });
           }
         }
       });

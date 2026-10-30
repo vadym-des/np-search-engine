@@ -1,24 +1,24 @@
 /**
  * Service Worker для "Пошук відділень Нова Пошта & Укрпошта"
- * Версія: v1.6.17
+ * Версія: v1.6.18
  * Забезпечує миттєве оновлення (skipWaiting + clients.claim) та офлайн-доступ.
  */
 
-const CACHE_VERSION = 'v1.6.17';
-const CACHE_NAME = 'np-search-cache-v1.6.17';
+const CACHE_VERSION = 'v1.6.18';
+const CACHE_NAME = 'np-search-cache-v1.6.18';
 
 // Ресурси для попереднього кешування з версіонуванням
 const PRECACHE_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.6.17',
-  './favicon.svg?v=1.6.17',
-  './data/branches.js?v=1.6.17',
-  './data/all_settlements.js?v=1.6.17',
-  './data/fuzzySearch.js?v=1.6.17',
+  './styles.css?v=1.6.18',
+  './favicon.svg?v=1.6.18',
+  './data/branches.js?v=1.6.18',
+  './data/all_settlements.js?v=1.6.18',
+  './data/fuzzySearch.js?v=1.6.18',
   './data/raion_aliases.json',
   './data/settlement_aliases.json',
-  './app.js?v=1.6.17'
+  './app.js?v=1.6.18'
 ];
 
 // Встановлення: негайно замінюємо старий воркер новим без очікування
@@ -68,6 +68,11 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
+
+  // Прямий пропуск зовнішніх запитів аналітики (Google Analytics / Google Tag Manager) повз кеш
+  if (url.hostname.includes('google-analytics.com') || url.hostname.includes('googletagmanager.com')) {
+    return;
+  }
 
   // HTML навігація — завжди Network First
   if (req.mode === 'navigate' || req.headers.get('accept')?.includes('text/html')) {
