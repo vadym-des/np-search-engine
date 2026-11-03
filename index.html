@@ -264,7 +264,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.24</span>
+          <span class="version-tag">v1.6.25</span>
           
         </button>
       </div>
@@ -293,8 +293,22 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.24 -->
+        <!-- Версія 1.6.25 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.25</span>
+            <span class="version-state">Пошук приміських точок агломерацій та крос-міські номери</span>
+            <span class="version-date">3 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Приміські відділення агломерацій (Suburban Settlement Indexing):</strong> Автоматичне розпізнавання та індексація відділень і поштоматів, які фізично розташовані у приміських селах/селищах (наприклад, с. Лиманка Овідіопольського/Одеського району), навіть якщо в офіційній базі Нової Пошти вони приписані до обласного центру (м. Одеса). Запити на кшталт «Лиманка 32822» та «Лиманка Овідіопольський Одеська 32822» знаходять Поштомат №32822 (вул. Спортивна, 3\2) на 1-му місці.</li>
+            <li><strong>Крос-міські альтернативи та виправлення помилкових номерів:</strong> Якщо введений номер відділення/поштомату відсутній у цьому населеному пункті (наприклад, одрук «Лиманка 32802» замість «32822»), система одночасно пропонує схожий поштомат поруч (№32822 у с. Лиманка) та точне відділення з цим номером в іншому місті (№32802 у м. Львів) із чіткою плашкою підказки, як у Google.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено версію кешування статичних файлів до v1.6.25.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.24 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.24</span>
             <span class="version-state">Швидкодія: усунено зависання при введенні поштоматів та вулиць</span>
@@ -1121,18 +1135,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.24"></script>
+  <script src="data/branches.js?v=1.6.25"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.24"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.25"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.24"></script>
+  <script src="data/all_settlements.js?v=1.6.25"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.24"></script>
+  <script src="data/fuzzySearch.js?v=1.6.25"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.24"></script>
+  <script src="app.js?v=1.6.25"></script>
 </body>
 </html>

@@ -872,7 +872,8 @@
       const selRaion = selRaionClean.slice(0, 4);
       staticMatches = staticMatches.filter(b => {
         const bc = b._canonCity || canonCity(b.city);
-        if (bc !== selName) return false;
+        const matchesCity = bc === selName || (b._suburbs && b._suburbs.includes(selName));
+        if (!matchesCity) return false;
         if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
         if (selRaionClean && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaionClean, b.raion)) return false;
         return true;
@@ -920,6 +921,24 @@
             results = staticMatches;
             didYouMeanText = null;
             didYouMeanData = null;
+          } else {
+            // Перевірка наявності точного номера в іншому місті або близького номера (distance 1) у поточному місті
+            const crossCityExact = allStaticBranches.filter(b => (b.number && b.number.toString() === targetNumStr) || (b.postalCode && b.postalCode.toString() === targetNumStr));
+            const nearMatches = staticMatches.filter(b => {
+              const num = String(b.number || '');
+              return num.length === targetNumStr.length && engine && engine.damerauLevenshtein && engine.damerauLevenshtein(num, targetNumStr) <= 1;
+            });
+            if (nearMatches.length > 0 || crossCityExact.length > 0) {
+              results = nearMatches.concat(crossCityExact);
+              if (nearMatches.length > 0 && crossCityExact.length > 0) {
+                const targetCityTitle = parsed.matchedSettlement ? parsed.matchedSettlement.name : (parsed.facets ? parsed.facets.city : '');
+                didYouMeanText = `У ${targetCityTitle || 'обраному місті'} немає №${targetNumStr} (знайдено у м. ${crossCityExact[0].city}). Схожий поруч: №${nearMatches[0].number}`;
+              } else if (crossCityExact.length > 0) {
+                didYouMeanText = `Відділення №${targetNumStr} розташоване у м. ${crossCityExact[0].city} (${crossCityExact[0].oblast || ''})`;
+              } else if (nearMatches.length > 0) {
+                didYouMeanText = `Можливо, ви мали на увазі відділення №${nearMatches[0].number}?`;
+              }
+            }
           }
         }
       } else {

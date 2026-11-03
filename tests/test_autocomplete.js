@@ -226,7 +226,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 49;
+  let totalTests = 50;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -3111,6 +3111,56 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 49:', err.message, '\n');
+  }
+
+  // =========================================================================
+  // ТЕСТ 50: Пошук приміських відділень агломерацій та крос-міських номерів
+  // ("Лиманка Овідіопольський Одеська 32822", "Лиманка 32822", "Лиманка 32802")
+  // =========================================================================
+  try {
+    console.log("▶ ТЕСТ 50: Пошук приміських відділень агломерацій та крос-міських номерів (Лиманка №32822 та №32802)");
+    const eng = window.SmartSearchEngine;
+    const pool = window.BRANCHES_DATA.novaposhta;
+
+    // 1. Пошук поштомату №32822 у с. Лиманка (офіційно зареєстрований під м. Одеса):
+    const resExactFull = eng.filterBranchesByNormalizedSearch("Лиманка Овідіопольський Одеська 32822", pool, 5);
+    if (!resExactFull || resExactFull.length === 0) {
+      throw new Error("Не знайдено жодного відділення для 'Лиманка Овідіопольський Одеська 32822'");
+    }
+    if (String(resExactFull[0].number) !== '32822') {
+      throw new Error(`Першим результатом очікувався поштомат №32822, але отримано №${resExactFull[0].number}`);
+    }
+
+    // 2. Короткий запит "Лиманка 32822"
+    const resShort = eng.filterBranchesByNormalizedSearch("Лиманка 32822", pool, 5);
+    if (!resShort || resShort.length === 0 || String(resShort[0].number) !== '32822') {
+      throw new Error("Запит 'Лиманка 32822' не знайшов поштомат №32822 на 1-му місці");
+    }
+
+    // 3. Автокомпліт "Лиманка 32822"
+    const acLimanka = eng.getAutocompleteSuggestions("Лиманка 32822", "novaposhta", null, pool);
+    if (!acLimanka || acLimanka.length === 0) {
+      throw new Error("Автокомпліт для 'Лиманка 32822' повернув порожній список");
+    }
+    const has32822 = acLimanka.some(s => s.title && s.title.includes('32822'));
+    if (!has32822) {
+      throw new Error("В автокомпліті 'Лиманка 32822' відсутній поштомат №32822");
+    }
+
+    // 4. Крос-міський та опечаточний запит "Лиманка 32802"
+    const resTypo = eng.filterBranchesByNormalizedSearch("Лиманка 32802", pool, 5);
+    if (!resTypo || resTypo.length === 0) {
+      throw new Error("Запит 'Лиманка 32802' повинен повертати альтернативні варіанти");
+    }
+    const has32802Cross = resTypo.some(b => String(b.number) === '32802');
+    if (!has32802Cross) {
+      throw new Error("Серед результатів для 'Лиманка 32802' відсутній точний поштомат №32802 (Львів)");
+    }
+
+    console.log('  ✓ Успіх: Приміський поштомат №32822 у с. Лиманка безпомилково знайдено на 1-му місці, а для №32802 надано точний крос-міський альтернативний результат!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 50:', err.message, '\n');
   }
 
   console.log('===============================================================');

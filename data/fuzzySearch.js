@@ -2321,6 +2321,42 @@
     return _activeBranchSettlementSet;
   }
 
+  // Регулярний вираз для виявлення приміських населених пунктів в описі чи адресі
+  const _suburbRegex = /(?:с\.|село|смт|селище|:\s*|,)\s*([А-ЯІЇЄҐ][а-яіїєґ]+)/gi;
+
+  function getBranchSuburbs(b) {
+    if (!b) return null;
+    if (b._suburbs !== undefined) return b._suburbs;
+    const name = b.name || '';
+    const street = b.street || '';
+    if (!name.includes(':') && !name.includes('с.') && !street.includes('с.')) {
+      b._suburbs = null;
+      return null;
+    }
+    const text = name + ' ' + street;
+    const bObl = (b.oblast || '').toLowerCase().slice(0, 4);
+    const bCanonCity = b._canonCity || (b._canonCity = canonCity(b.city));
+    let subs = null;
+    _suburbRegex.lastIndex = 0;
+    let m;
+    while ((m = _suburbRegex.exec(text)) !== null) {
+      const rawWord = m[1].toLowerCase();
+      const canon = canonCity(rawWord);
+      if (canon && canon.length >= 4 && canon !== bCanonCity) {
+        const sList = _allSettlementsByName.get(canon) || _allSettlementsByNameNA.get(canon);
+        if (sList && sList.length > 0) {
+          const matchesObl = !bObl || sList.some(s => (s.oblast || '').toLowerCase().slice(0, 4) === bObl);
+          if (matchesObl) {
+            if (!subs) subs = [];
+            if (!subs.includes(canon)) subs.push(canon);
+          }
+        }
+      }
+    }
+    b._suburbs = subs;
+    return subs;
+  }
+
   // Швидкий O(1) вибір відділень конкретного міста з пулу через WeakMap
   const _poolByCityWeakMap = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
   function getCityBranchesFromPool(targetPool, cityKey) {
@@ -2339,6 +2375,19 @@
             byCity.set(cKey, arr);
           }
           arr.push(b);
+
+          const subs = getBranchSuburbs(b);
+          if (subs && subs.length > 0) {
+            for (let s = 0; s < subs.length; s++) {
+              const subKey = subs[s];
+              let sArr = byCity.get(subKey);
+              if (!sArr) {
+                sArr = [];
+                byCity.set(subKey, sArr);
+              }
+              if (!sArr.includes(b)) sArr.push(b);
+            }
+          }
         }
         _poolByCityWeakMap.set(targetPool, byCity);
       }
@@ -2347,7 +2396,10 @@
     const res = [];
     for (let i = 0; i < targetPool.length; i++) {
       const b = targetPool[i];
-      if (b && (b._canonCity || (b._canonCity = canonCity(b.city))) === cityKey) {
+      if (!b) continue;
+      const cKey = b._canonCity || (b._canonCity = canonCity(b.city));
+      const subs = getBranchSuburbs(b);
+      if (cKey === cityKey || (subs && subs.includes(cityKey))) {
         res.push(b);
       }
     }
@@ -2764,6 +2816,25 @@
           if (hasBranchKeyword && isPost) continue;
 
           prefixCandidates.push(b);
+        }
+
+        if (prefixCandidates.length === 0 && numPrefix.length >= 4) {
+          // 1. Пошук близького номера (typo distance 1) у поточному місті/агломерації
+          for (let i = 0; i < cityBranches.length; i++) {
+            const b = cityBranches[i];
+            const bNum = String(b.number != null ? b.number : '');
+            if (bNum.length === numPrefix.length && damerauLevenshtein(bNum, numPrefix) <= 1) {
+              prefixCandidates.push(b);
+            }
+          }
+          // 2. Якщо точний номер існує в іншому місті через poolIndex
+          const pIdx = getOrBuildBranchPoolIndex(pool);
+          if (pIdx && pIdx.numberBranches && pIdx.numberBranches.has(numPrefix)) {
+            const extList = pIdx.numberBranches.get(numPrefix);
+            for (let i = 0; i < extList.length; i++) {
+              prefixCandidates.push(extList[i]);
+            }
+          }
         }
 
         prefixCandidates.sort((a, b) => {
@@ -3839,6 +3910,7 @@
     const allNumbers = new Set();
     const allPostalCodes = new Set();
     const allCities = new Set();
+    const numberBranches = new Map();
 
     for (let i = 0; i < branches.length; i++) {
       const b = branches[i];
@@ -3891,11 +3963,48 @@
         }
       }
 
+      // Індексація приміських населених пунктів (агломерацій), зазначених в адресі/назві
+      const subs = getBranchSuburbs(b);
+      if (subs && subs.length > 0) {
+        const bObl = (b.oblast || '').toLowerCase();
+        for (let s = 0; s < subs.length; s++) {
+          const subKey = subs[s];
+          allCities.add(subKey);
+          let subList = cityBranches.get(subKey);
+          if (!subList) {
+            subList = [];
+            cityBranches.set(subKey, subList);
+          }
+          if (!subList.includes(b)) subList.push(b);
+
+          let subOblMap = cityOblastCounts.get(subKey);
+          if (!subOblMap) {
+            subOblMap = new Map();
+            cityOblastCounts.set(subKey, subOblMap);
+          }
+          subOblMap.set(bObl, (subOblMap.get(bObl) || 0) + 1);
+        }
+      }
+
       if (b.number != null && b.number !== '') {
-        allNumbers.add(String(b.number));
+        const numStr = String(b.number);
+        allNumbers.add(numStr);
+        let nList = numberBranches.get(numStr);
+        if (!nList) {
+          nList = [];
+          numberBranches.set(numStr, nList);
+        }
+        nList.push(b);
       }
       if (b.postalCode != null && b.postalCode !== '') {
-        allPostalCodes.add(String(b.postalCode));
+        const pcStr = String(b.postalCode);
+        allPostalCodes.add(pcStr);
+        let pcList = numberBranches.get(pcStr);
+        if (!pcList) {
+          pcList = [];
+          numberBranches.set(pcStr, pcList);
+        }
+        if (!pcList.includes(b)) pcList.push(b);
       }
     }
 
@@ -3904,7 +4013,8 @@
       cityOblastCounts,
       allNumbers,
       allPostalCodes,
-      allCities
+      allCities,
+      numberBranches
     };
     _poolIndicesCache.set(branches, idx);
     return idx;
@@ -4067,9 +4177,15 @@
       }
     }
 
+    let crossCityCandidateBranches = null;
     if (!hasStrictWarehouseInPool && strictTargetNumber && poolIndex) {
       if (!detectedCityName) {
         hasStrictWarehouseInPool = poolIndex.allNumbers.has(strictTargetNumber) || poolIndex.allPostalCodes.has(strictTargetNumber);
+      } else if (poolIndex.numberBranches && poolIndex.numberBranches.has(strictTargetNumber)) {
+        const ext = poolIndex.numberBranches.get(strictTargetNumber);
+        if (ext && ext.length > 0) {
+          crossCityCandidateBranches = ext;
+        }
       }
     }
 
@@ -4090,7 +4206,9 @@
     // МАТРИЦЯ СКОРИНГУ (Scoring Matrix Pipeline)
     // Якщо населений пункт точно визначений і є в пулі, скоримо ТІЛЬКИ відділення цього міста
     // (зниження кількості ітерацій з 55 000 до ~10-400, нульова затримка вводу < 1ms)
-    const branchesToScore = (hasExactCityInPool && cityBranchesList) ? cityBranchesList : branches;
+    const branchesToScore = (hasExactCityInPool && cityBranchesList)
+      ? (crossCityCandidateBranches ? cityBranchesList.concat(crossCityCandidateBranches) : cityBranchesList)
+      : branches;
 
     // Функція прогону скорингової матриці над обраним пулом кандидатів
     function scoreBranchPool(pool, allowFuzzy) {
@@ -4134,16 +4252,19 @@
         // 0. ІЗОЛЯЦІЯ НАСЕЛЕНОГО ПУНКТУ (Контекст міста > Вулиці інших сіл):
         // Якщо назва населеного пункту збіглася на 100% (Exact Match, напр. "Борщів"),
         // заборонено підтягувати відділення з інших сіл (напр. с. Садки) лише через збіг вулиці чи номера будинку.
-        if (hasExactCityInPool && !areCitiesEqualOrAlias(bCity, detectedCityName)) {
+        const isExactNumTarget = Boolean(strictTargetNumber && (bNum === strictTargetNumber || bPostal === strictTargetNumber));
+        const isCityMatch = areCitiesEqualOrAlias(bCity, detectedCityName) ||
+          (b._suburbs && b._suburbs.includes(detectedCityName));
+        if (hasExactCityInPool && !isCityMatch && !isExactNumTarget) {
           continue;
         }
 
         // 0.1. КАТЕГОРИЧНА ІЗОЛЯЦІЯ ОБЛАСТІ ТА РАЙОНУ (Захист від змішування міст і столиці):
         // Якщо в запиті присутні назва району або області, КАТЕГОРИЧНО ЗАБОРОНЕНО повертати відділення іншої області чи чужого району!
-        if (queryOblastClean && bOblast && !bOblast.includes(queryOblastClean)) {
+        if (queryOblastClean && bOblast && !bOblast.includes(queryOblastClean) && !isExactNumTarget) {
           continue;
         }
-        if (facets.raion) {
+        if (facets.raion && !isExactNumTarget) {
           if (b.raion && !areRaionsCompatible(facets.raion || queryRaionStem, b.raion)) {
             continue;
           }
@@ -4277,7 +4398,7 @@
         // 3. НАСЕЛЕНИЙ ПУНКТ (Місто / Село / СМТ):
         if (detectedCityName) {
           let isCityMatched = false;
-          if (bCity === detectedCityName) {
+          if (bCity === detectedCityName || (b._suburbs && b._suburbs.includes(detectedCityName))) {
             score += 1000;
             isCityMatched = true;
           } else if (!allowFuzzy) {
@@ -4480,28 +4601,32 @@
         let matchCount = 0;
 
         const bCity = (b._canonCity && b._canonCityRaw === b.city) ? b._canonCity : (b._canonCityRaw = b.city, b._canonCity = canonCity(b.city));
+        const bNum = (b.number || '').toString();
+        const bPostal = (b.postalCode || '').toString();
+
+        const isFallbackCityMatch = areCitiesEqualOrAlias(bCity, fallbackCity) ||
+          (b._suburbs && b._suburbs.includes(fallbackCity));
+        const isExactNumFallback = Boolean(strictTargetNumber && (bNum === strictTargetNumber || bPostal === strictTargetNumber));
 
         // FALLBACK GUARD: суворо заборонено повертати чужі населені пункти, якщо місто було визначено
-        if (fallbackCity && !areCitiesEqualOrAlias(bCity, fallbackCity)) {
+        if (fallbackCity && !isFallbackCityMatch && !isExactNumFallback) {
           continue;
         }
 
         const bOblast = (b.oblast || '').toLowerCase();
-        if (queryOblastClean && bOblast && !bOblast.includes(queryOblastClean)) {
+        if (queryOblastClean && bOblast && !bOblast.includes(queryOblastClean) && !isExactNumFallback) {
           continue;
         }
-        if (facets.raion && b.raion && !areRaionsCompatible(facets.raion || queryRaionStem, b.raion)) {
+        if (facets.raion && !isExactNumFallback && b.raion && !areRaionsCompatible(facets.raion || queryRaionStem, b.raion)) {
           continue;
         }
 
         const isPostomat = b.typeClass === 'poshtomat' || b.type === 'poshtomat' || (b.name && b.name.toLowerCase().includes('поштомат'));
-        const bNum = (b.number || '').toString();
         const bStreet = b._canonStreet !== undefined ? b._canonStreet : (b._canonStreet = canonText((b.street || '') + ' ' + (b.address || '')));
-        const bPostal = (b.postalCode || '').toString();
 
         // 1. Топонім / Місто (аліас, точний або префіксний збіг)
         if (fallbackCity) {
-          if (bCity === fallbackCity) {
+          if (bCity === fallbackCity || (b._suburbs && b._suburbs.includes(fallbackCity))) {
             score += 1000;
             matchCount++;
           } else if (bCity.startsWith(fallbackCity.slice(0, 3))) {
