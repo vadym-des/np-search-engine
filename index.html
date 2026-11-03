@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.26">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.27">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -44,7 +44,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.26">
+  <link rel="stylesheet" href="styles.css?v=1.6.27">
 </head>
 <body data-service="novaposhta">
 
@@ -264,7 +264,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.26</span>
+          <span class="version-tag">v1.6.27</span>
           
         </button>
       </div>
@@ -293,8 +293,23 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.26 -->
+        <!-- Версія 1.6.27 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.27</span>
+            <span class="version-state">Складені дефісні назви сіл та фонетична стійкість районів</span>
+            <span class="version-date">3 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Складені дефісні назви сіл (Compound Toponyms):</strong> Реалізовано нормалізацію пробілів та дефісів разом із адаптивним нечітким зіставленням для складних назв (наприклад, «гута бураенська» безпомилково ідентифікує село «Гута-Боровенська»).</li>
+            <li><strong>Розпізнавання скорочень та коренів районів (RAION_ROOT_MAP):</strong> Додано розпізнавання популярних скорочених форм районів («кам'ян» / «камін» -&gt; Камінь-Каширський район) із коректною ізоляцією від назви села.</li>
+            <li><strong>Миттєвий автокомпліт та точна видача:</strong> Будь-яка комбінація порядку слів («волин кам'ян гута бураенська 1», «гута бураенська 1») миттєво повертає Відділення №1 у с. Гута-Боровенська (вул. Острів, 1) замість загального села Гута в іншому районі.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено версію кешування статичних файлів до v1.6.27.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.26 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.26</span>
             <span class="version-state">Топонімічний пріоритет смт над облцентрами та фонетична нормалізація</span>
@@ -1150,18 +1165,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.26"></script>
+  <script src="data/branches.js?v=1.6.27"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.26"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.27"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.26"></script>
+  <script src="data/all_settlements.js?v=1.6.27"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.26"></script>
+  <script src="data/fuzzySearch.js?v=1.6.27"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.26"></script>
+  <script src="app.js?v=1.6.27"></script>
 </body>
 </html>

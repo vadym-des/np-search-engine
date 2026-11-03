@@ -979,12 +979,19 @@
     'баштанськ': 'Баштанський',
     'олександрій': 'Олександрійський',
     'олександрійськ': 'Олександрійський',
-    'вознесенськ': 'Вознесенський'
+    'вознесенськ': 'Вознесенський',
+    'камін': 'Камінь-Каширський',
+    'камінь': 'Камінь-Каширський',
+    "кам'ян": 'Камінь-Каширський',
+    'камян': 'Камінь-Каширський',
+    'камінь-кашир': 'Камінь-Каширський',
+    'камінь-каширськ': 'Камінь-Каширський',
+    "кам'ян-каширськ": 'Камінь-Каширський'
   };
 
   function detectRaion(text) {
     if (!text) return null;
-    const words = text.toLowerCase().split(/\s+/);
+    const words = text.toLowerCase().replace(/[,.;/\\-]/g, ' ').split(/\s+/).filter(Boolean);
     for (let w of words) {
       if (RAION_ROOT_MAP[w]) return RAION_ROOT_MAP[w];
     }
@@ -1649,7 +1656,8 @@
       const skW = consonantSkeleton(w);
       let localBest = null;
       let localMinDist = 999;
-      const maxAllowed = w.length >= 8 ? 3 : (w.length >= 6 ? 2 : 1);
+      const wCanon = w.replace(/[-]/g, ' ');
+      const maxAllowed = wCanon.length >= 14 ? 4 : (wCanon.length >= 8 ? 3 : (wCanon.length >= 6 ? 2 : 1));
 
       const oblKey = cObl ? cObl.replace(/(?:ська|цька|зька| область| обл\.?)$/gi, '').slice(0, 4) : '';
       const searchPool = (oblKey && _allSettlementsByOblast.has(oblKey)) ? _allSettlementsByOblast.get(oblKey) : _allSettlementsRaw;
@@ -1663,7 +1671,8 @@
         if (!oblOk || !raionOk) continue;
 
         const sNameClean = (item.cleanName || item.name).toLowerCase();
-        if (Math.abs(w.length - sNameClean.length) > 2) continue;
+        const sCanon = sNameClean.replace(/[-]/g, ' ');
+        if (Math.abs(wCanon.length - sCanon.length) > 3) continue;
 
         // Збіг за кістяком приголосних (напр. віціліново -> веселинове)
         if (skW.length >= 4 && consonantSkeleton(sNameClean) === skW) {
@@ -1675,7 +1684,7 @@
           };
         }
 
-        const d = damerauLevenshtein(w, sNameClean);
+        const d = damerauLevenshtein(wCanon, sCanon);
         if (d <= maxAllowed && d < localMinDist) {
           localMinDist = d;
           localBest = item;
@@ -1689,6 +1698,37 @@
           raion: localBest.raion,
           type: localBest.type || 'село'
         };
+      }
+    }
+
+    // 3.6. Нечіткий пошук складених / дефісних назв сіл/смт по всій Україні за префіксом (напр. "гута бураенська" -> "Гута-Боровенська")
+    if (w.length >= 8 && (w.includes(' ') || w.includes('-'))) {
+      const wCanon = w.replace(/[-]/g, ' ');
+      const p2 = wCanon.slice(0, 2);
+      const candidates = _allSettlementsByPrefix2.get(p2);
+      if (candidates && candidates.length > 0) {
+        let bestComp = null;
+        let minCompDist = 999;
+        const maxAllowed = wCanon.length >= 14 ? 4 : 3;
+        for (let i = 0; i < candidates.length; i++) {
+          const item = candidates[i];
+          const sCanon = (item.cleanName || item.name).toLowerCase().replace(/[-]/g, ' ');
+          if (Math.abs(wCanon.length - sCanon.length) > 3) continue;
+          const d = damerauLevenshtein(wCanon, sCanon);
+          if (d <= maxAllowed && d < minCompDist) {
+            minCompDist = d;
+            bestComp = item;
+          }
+        }
+        if (bestComp) {
+          return {
+            name: bestComp.cleanName || bestComp.name,
+            oblast: bestComp.oblast,
+            raion: bestComp.raion,
+            type: bestComp.type || 'село',
+            allVariants: [bestComp]
+          };
+        }
       }
     }
 
@@ -3578,6 +3618,14 @@
     if (detectedR) {
       raion = detectedR;
       text = text.replace(new RegExp('(?<!\\p{L})' + detectedR + '(?:ський|ського|ському|ським)?\\s*(?:район|р-н)?(?!\\p{L})', 'giu'), ' ');
+      for (const [root, fullR] of Object.entries(RAION_ROOT_MAP)) {
+        if (fullR.toLowerCase() === raion.toLowerCase() || areRaionsCompatible(fullR, raion)) {
+          const escRoot = root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          text = text.replace(new RegExp('(?<!\\p{L})' + escRoot + '(?:ський|ського|ському|ським)?\\s*(?:район|р-н)?(?!\\p{L})', 'giu'), ' ');
+          const escCanon = canonText(root).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          text = text.replace(new RegExp('(?<!\\p{L})' + escCanon + '(?:ський|ського|ському|ським)?\\s*(?:район|р-н)?(?!\\p{L})', 'giu'), ' ');
+        }
+      }
     }
 
     // 4. Очищення службових слів

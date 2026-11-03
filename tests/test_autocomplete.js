@@ -226,7 +226,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 51;
+  let totalTests = 52;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -3224,6 +3224,53 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 51:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 52: Складені дефісні назви сіл та фонетична стійкість ("волин кам'ян гута бураенська 1" -> Гута-Боровенська №1)
+  // --------------------------------------------------------------------------
+  console.log('▶ ТЕСТ 52: Складені дефісні назви сіл та фонетична стійкість ("волин кам\'ян гута бураенська 1")');
+  try {
+    const eng = window.SmartSearchEngine;
+    const pool = window.BRANCHES_DATA.novaposhta;
+
+    // 1. Повний запит з областю, районом та одруком села: "волин кам'ян гута бураенська 1"
+    const f1 = eng.extractFacets("волин кам'ян гута бураенська 1");
+    if (!f1.city || f1.city !== 'Гута-Боровенська') {
+      throw new Error(`extractFacets("волин кам'ян гута бураенська 1"): очікувалося city = 'Гута-Боровенська', отримано '${f1.city}'`);
+    }
+    if (!f1.oblast || !f1.oblast.includes('Волин')) {
+      throw new Error(`extractFacets: очікувалася Волинська область, отримано '${f1.oblast}'`);
+    }
+    if (!f1.raion || !f1.raion.includes('Камінь-Кашир')) {
+      throw new Error(`extractFacets: очікувався Камінь-Каширський район, отримано '${f1.raion}'`);
+    }
+    if (f1.number !== '1') {
+      throw new Error(`extractFacets: очікувався номер '1', отримано '${f1.number}'`);
+    }
+
+    // 2. Пошук відділення через searchBranches
+    const b1 = eng.searchBranches("волин кам'ян гута бураенська 1", pool, 5);
+    if (!b1 || b1.length === 0 || b1[0].city !== 'Гута-Боровенська' || String(b1[0].number) !== '1') {
+      throw new Error("searchBranches('волин кам\\'ян гута бураенська 1') не знайшов Відділення №1 у с. Гута-Боровенська");
+    }
+
+    // 3. Автокомпліт
+    const ac1 = eng.getAutocompleteSuggestions("волин кам'ян гута бураенська 1", "novaposhta", null, pool);
+    if (!ac1 || ac1.length === 0 || !ac1.some(item => (item.subtitle && item.subtitle.includes('Гута-Боровенська')) || (item.title && item.title.includes('1')))) {
+      throw new Error("getAutocompleteSuggestions('волин кам\\'ян гута бураенська 1') не повернув підказку відділення");
+    }
+
+    // 4. Запит без області та району: "гута бураенська 1"
+    const b2 = eng.searchBranches("гута бураенська 1", pool, 5);
+    if (!b2 || b2.length === 0 || b2[0].city !== 'Гута-Боровенська') {
+      throw new Error("searchBranches('гута бураенська 1') безпомилково повинен знаходити с. Гута-Боровенська");
+    }
+
+    console.log('  ✓ Успіх: Запит "волин кам\'ян гута бураенська 1" безпомилково ідентифікує с. Гута-Боровенська (Камінь-Каширський р-н, Волинська обл.) та Відділення №1!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 52:', err.message, '\n');
   }
 
   console.log('===============================================================');
