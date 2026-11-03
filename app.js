@@ -841,6 +841,11 @@
     } else if (/(?:відділення|відділ|вд|склад)/i.test(rawQuery)) {
       state.typeFilter = 'all';
       updateTypeFilterUI();
+    } else if (state.typeFilter !== 'all' && !parsed.targetBranchNumber && !parsed.isPostomat) {
+      // При пошуку нового населеного пункту (без прямої вказівки номера/типу), скидаємо попередній таб на \"Всі\",
+      // щоб не залишатися випадково в режимі \"Поштомати\" чи \"Вантажні\"!
+      state.typeFilter = 'all';
+      updateTypeFilterUI();
     }
 
     // 1. УНІВЕРСАЛЬНИЙ ПОШУК ЗА ПЕРЕДНОРМАЛІЗОВАНИМ ЗНАЧЕННЯМ (CI/CD OFFLINE ІНДЕКС)
