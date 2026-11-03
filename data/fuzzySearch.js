@@ -43,6 +43,8 @@
                .replace(/\bбойовик\b/giu, 'буялик')
                .replace(/(?<!\p{L})могил[іе]в\s+(?:под[іе]л[а-яіїєґ]*|под)(?!\p{L})/giu, 'могилів-подільський')
                .replace(/(?<!\p{L})(?:ведликий|велликий|велик|вел)\s+березний(?!\p{L})/giu, 'великий березний')
+               .replace(/(?<!\p{L})курмильч[а-я]*(?!\p{L})/giu, 'кормильча')
+               .replace(/(?<!\p{L})нойн[оа-я]*(?!\p{L})/giu, 'нуйно')
                .replace(/(?<!\p{L})тро[їи]ц[ьб]?к[еоа-я]*\s+сафонов[еа-я]*(?!\p{L})/giu, 'троїцько-сафонове')
                .replace(/(?<!\p{L})св[іея]топетр[ів]*ськ[еоа-я]*(?!\p{L})/giu, 'святопетрівське')
                .replace(/(?<!\p{L})новов+олинськ[а-я]*(?!\p{L})/giu, 'нововолинськ')
@@ -406,7 +408,9 @@
     ['дзержинськ', 'торецьк'],
     ['торецьк', 'дзержинськ'],
     ['артемівськ', 'бахмут'],
-    ['бахмут', 'артемівськ']
+    ['бахмут', 'артемівськ'],
+    ['курмильча', 'кормильча'],
+    ['нойно', 'нуйно']
   ]);
 
   function areCitiesEqualOrAlias(c1, c2) {
@@ -637,9 +641,11 @@
     { name: 'Ужгород', oblast: 'Закарпатська', raion: 'Ужгородський', type: 'місто', lat: 48.6208, lng: 22.2879, postalCodes: ['88000'], aliases: ['ужгород', 'uzhhorod'], streets: ['вул. Корзо', 'вул. Собранецька', 'просп. Свободи'] },
     { name: 'Мукачево', oblast: 'Закарпатська', raion: 'Мукачівський', type: 'місто', lat: 48.4411, lng: 22.7178, postalCodes: ['89600'], aliases: ['мукачево', 'мукачеве', 'mukachevo'], streets: ['вул. Миру', 'вул. Ярослава Мудрого'] },
     { name: 'Берегове', oblast: 'Закарпатська', raion: 'Берегівський', type: 'місто', lat: 48.2047, lng: 22.6433, postalCodes: ['90200'], aliases: ['берегове', 'берегово'], streets: ['пл. Кошута', 'вул. Мукачівська'] },
+    { name: 'Кормильча', oblast: 'Хмельницька', raion: 'Кам\'янець-Подільський', type: 'село', lat: 48.854282, lng: 26.392101, postalCodes: ['31655'], aliases: ['кормильча', 'курмильча', 'kormylcha'], streets: ['вул. Лесі Українки'] },
     { name: 'Великий Березний', oblast: 'Закарпатська', raion: 'Ужгородський', type: 'смт', lat: 48.8922, lng: 22.4589, postalCodes: ['89000'], aliases: ['великий березний', 'березний', 'ведликий березний'], streets: ['вул. Загородня', 'вул. Шевченка'] },
     { name: 'Могилів-Подільський', oblast: 'Вінницька', raion: 'Могилів-Подільський', type: 'місто', lat: 48.4528, lng: 27.7844, postalCodes: ['24000'], aliases: ['могилів-подільський', 'могилів подільський', 'могилів поділ', 'могилев-подольский'], streets: ['вул. Полтавська', 'вул. Стависька'] },
     { name: 'Нововолинськ', oblast: 'Волинська', raion: 'Володимирський', type: 'місто', lat: 50.7333, lng: 24.1667, postalCodes: ['45400'], aliases: ['нововолинськ', 'нововволинськ', 'нововолынск'], streets: ['просп. Перемоги', 'вул. Святого Володимира'] },
+    { name: 'Нуйно', oblast: 'Волинська', raion: 'Камінь-Каширський', type: 'село', lat: 51.5460, lng: 24.9089, postalCodes: ['44540'], aliases: ['нуйно', 'нойно', 'nuyno'], streets: ['вул. Лесі Українки'] },
     { name: 'Святопетрівське', oblast: 'Київська', raion: 'Бучанський', type: 'село', lat: 50.3867, lng: 30.3200, postalCodes: ['08141'], aliases: ['святопетрівське', 'святопетровское', 'світопетрвське'], streets: ['вул. Богдана Хмельницького', 'вул. Центральна'] },
     { name: 'Троїцько-Сафонове', oblast: 'Миколаївська', raion: 'Баштанський', type: 'село', lat: 47.6500, lng: 32.8833, postalCodes: ['56050'], aliases: ['троїцько-сафонове', 'троїцько сафонове', 'троїцбке сафонове'], streets: ['вул. Центральна'] },
     { name: 'Хуст', oblast: 'Закарпатська', raion: 'Хустський', type: 'місто', lat: 48.1750, lng: 23.2981, postalCodes: ['90400'], aliases: ['хуст', 'khust'], streets: ['вул. Карпатської Січі'] },
@@ -1005,6 +1011,8 @@
     'кузнецовський': 'вараський',
     'ананьївський': 'подільський',
     'старокостянтинівський': 'хмельницький',
+    'чемеровецький': 'кам\'янець-подільський',
+    'новоушицький': 'кам\'янець-подільський',
     'городоцький': 'львівський',
     'рокитнівський': 'сарненський',
     'рокитновський': 'сарненський',
@@ -1041,6 +1049,7 @@
     'солонянський': 'дніпровський', 'криничанський': 'камʼянський',
     'софіївський': 'криворізький', 'широківський': 'криворізький', 'апостолівський': 'криворізький',
     // Закарпатська
+    'долинський': 'калуський', 'рожнятівський': 'калуський', 'болехівський': 'калуський',
     'великоберезнянський': 'ужгородський', 'перечинський': 'ужгородський', 'воловецький': 'мукачівський',
     'свалявський': 'мукачівський', 'іршавський': 'хустський', 'виноградівський': 'берегівський',
     // Одеська
@@ -1101,7 +1110,7 @@
     'носівський': 'ніжинський', 'носовський': 'ніжинський',
     // Міськради та укрупнені райони КАТОТТГ
     'ірпінський': 'бучанський', 'славутицький': 'вишгородський', 'смілянський': 'черкаський',
-    'нововолинський': 'володимирський', 'березанський': 'броварський', 'бориспільський': 'бориспільський',
+    'нововолинський': 'володимирський', 'березанський': 'броварський', 'березанська': 'броварський', 'бориспільський': 'бориспільський',
     'броварський': 'броварський', 'бучанський': 'бучанський',
     'фастівський': 'фастівський', 'обухівський': 'обухівський', 'чорноморський': 'одеський',
     'марганецький': 'нікопольський', 'яремчанський': 'надвірнянський',
@@ -1116,7 +1125,7 @@
     'тернопільський': ['теребовлянський', 'підволочиський', 'збаразький', 'козівський', 'бережанський', 'тернопільський', 'підгаєцький'],
     'обухівський': ['васильківський', 'кагарлицький', 'богуславський', 'миронівський', 'обухівський', 'києво-святошинський'],
     'вишгородський': ['іванківський', 'поліський', 'вишгородський'],
-    'броварський': ['баришівський', 'згурівський', 'броварський'],
+    'броварський': ['баришівський', 'згурівський', 'березанський', 'березанська', 'броварський'],
     'бориспільський': ['яготинський', 'переяслав-хмельницький', 'бориспільський'],
     'білоцерківський': ['рокитнянський', 'сквирський', 'таращанський', 'тетіївський', 'володарський', 'ставищенський', 'білоцерківський'],
     'сарненський': ['рокитнівський', 'рокитновський', 'дубровицький', 'сарненський', 'сарнинський'],
@@ -1135,10 +1144,12 @@
     'луцький': ['горохівський', 'рожищенський', 'ківерцівський', 'луцький'],
     'самарівський': ['самарівський', 'новомосковський', 'магдалинівський', 'царичанський', 'петриківський'],
     'миколаївський': ['миколаївський', 'очаківський', 'новоодеський', 'березанський'],
+    'кам\'янець-подільський': ['кам\'янець-подільський', 'камʼянець-подільський', 'чемеровецький', 'дунаєвецький', 'новоушицький'],
     'хмельницький': ['хмельницький', 'городоцький', 'віньковецький', 'деразнянський', 'дунаєвецький', 'красилівський', 'летичівський', 'старокостянтинівський', 'старосинявський', 'теофіпольський', 'ярмолинецький'],
     'покровський': ['покровський', 'добропільський', 'мар\'їнський', 'марїнський', 'олександрівський', 'великоновосілківський', 'селидівський'],
     'чернівецький': ['чернівецький', 'герцаївський', 'глибоцький', 'заставнівський', 'кіцманський', 'новоселицький', 'сторожинецький'],
     'чернігівський': ['чернігівський', 'городнянський', 'козелецький', 'куликівський', 'ріпкинський'],
+    'калуський': ['калуський', 'долинський', 'рожнятівський', 'болехівський'],
     'березівський': ['березівський', 'іванівський', 'миколаївський', 'ширяївський']
   };
 
@@ -1517,6 +1528,14 @@
     }
     if (w.includes('и')) pVariants.push(w.replace(/и/g, 'е'));
     if (w.includes('е')) pVariants.push(w.replace(/е/g, 'и'));
+    if (w.includes('у')) {
+      pVariants.push(w.replace(/у/g, 'о'));
+      for (let i = 0; i < w.length; i++) if (w[i] === 'у') pVariants.push(w.slice(0, i) + 'о' + w.slice(i + 1));
+    }
+    if (w.includes('о')) {
+      pVariants.push(w.replace(/о/g, 'у'));
+      for (let i = 0; i < w.length; i++) if (w[i] === 'о') pVariants.push(w.slice(0, i) + 'у' + w.slice(i + 1));
+    }
 
     for (let i = 0; i < pVariants.length; i++) {
       const pv = pVariants[i];
@@ -4312,30 +4331,17 @@
       }
       const targetR = facets.raion || queryRaionClean || queryRaionStem;
       if (targetR) {
-        cityCandidates = cityCandidates.filter(b => areRaionsCompatible(targetR, b.raion));
+        cityCandidates = cityCandidates.filter(b => {
+          if (b.raion) return areRaionsCompatible(targetR, b.raion);
+          return areRaionsCompatible(targetR, b.city) || (detectedCityName && areRaionsCompatible(targetR, detectedCityName));
+        });
       }
       if (cityCandidates.length === 0 && (queryOblastClean || targetR)) {
         _searchLruCache.set(cacheKey, []);
         return [];
       }
 
-      const sortedCityBranches = cityCandidates.slice().sort((a, b) => {
-        const isPostA = (a.typeClass === 'poshtomat' || a.type === 'poshtomat' || /поштомат/i.test(a.name || '') || /поштомат/i.test(a.typeName || '')) ? 1 : 0;
-        const isPostB = (b.typeClass === 'poshtomat' || b.type === 'poshtomat' || /поштомат/i.test(b.name || '') || /поштомат/i.test(b.typeName || '')) ? 1 : 0;
-        if (hasPostomatKeyword && isPostA !== isPostB) return isPostB - isPostA;
-        if (hasBranchKeyword && isPostA !== isPostB) return isPostA - isPostB;
-        if (isPostA !== isPostB) return isPostA - isPostB;
-
-        const numA = parseInt(a.number, 10) || 999999;
-        const numB = parseInt(b.number, 10) || 999999;
-        if (numA !== numB) return numA - numB;
-
-        const wA = parseFloat(a.totalMaxWeightAllowed || a.placeMaxWeightAllowed || a.maxWeight || 0);
-        const wB = parseFloat(b.totalMaxWeightAllowed || b.placeMaxWeightAllowed || b.maxWeight || 0);
-        if (wA !== wB) return wB - wA;
-
-        return String(a.number || '').localeCompare(String(b.number || ''));
-      });
+      const sortedCityBranches = sortBranchesBySettlementOrder(cityCandidates, hasPostomatKeyword, hasBranchKeyword);
       const finalRes = sortedCityBranches.slice(0, effectiveLimit);
       _searchLruCache.set(cacheKey, finalRes);
       return finalRes;
@@ -4536,6 +4542,28 @@
     return finalResults;
   }
 
+  // Природне сортування відділень населеного пункту: спочатку вантажні та поштові №1..N, потім поштомати
+  function sortBranchesBySettlementOrder(branches, hasPostomatKeyword = false, hasBranchKeyword = false) {
+    if (!Array.isArray(branches) || branches.length <= 1) return branches || [];
+    return branches.slice().sort((a, b) => {
+      const isPostA = (a.typeClass === 'poshtomat' || a.type === 'poshtomat' || /поштомат/i.test(a.name || '') || /поштомат/i.test(a.typeName || '')) ? 1 : 0;
+      const isPostB = (b.typeClass === 'poshtomat' || b.type === 'poshtomat' || /поштомат/i.test(b.name || '') || /поштомат/i.test(b.typeName || '')) ? 1 : 0;
+      if (hasPostomatKeyword && isPostA !== isPostB) return isPostB - isPostA;
+      if (hasBranchKeyword && isPostA !== isPostB) return isPostA - isPostB;
+      if (isPostA !== isPostB) return isPostA - isPostB;
+
+      const numA = parseInt(a.number, 10) || 999999;
+      const numB = parseInt(b.number, 10) || 999999;
+      if (numA !== numB) return numA - numB;
+
+      const wA = parseFloat(a.totalMaxWeightAllowed || a.placeMaxWeightAllowed || a.maxWeight || 0);
+      const wB = parseFloat(b.totalMaxWeightAllowed || b.placeMaxWeightAllowed || b.maxWeight || 0);
+      if (wA !== wB) return wB - wA;
+
+      return String(a.number || '').localeCompare(String(b.number || ''));
+    });
+  }
+
   // Зворотна сумісність: фільтрація використовує новий скоринговий рушій
   function filterBranchesByNormalizedSearch(rawQuery, branches, limit = null) {
     return searchBranches(rawQuery, branches, limit);
@@ -4573,6 +4601,7 @@
     findSettlementsByName,
     searchBranches,
     filterBranchesByNormalizedSearch,
+    sortBranchesBySettlementOrder,
     isOblastToken,
     isPostomatKeyword,
     CITY_SHORT_ALIASES,

@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.13">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.20">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -44,7 +44,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.18">
+  <link rel="stylesheet" href="styles.css?v=1.6.20">
 </head>
 <body data-service="novaposhta">
 
@@ -264,7 +264,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.18</span>
+          <span class="version-tag">v1.6.21</span>
           
         </button>
       </div>
@@ -293,10 +293,39 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.18 -->
+        <!-- Версія 1.6.20 -->
         <div class="changelog-item current">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.18</span>
+            <span class="version-badge">v1.6.21</span>
+            <span class="version-state">Сумісність міськрад (Березань) та захист від колізій (Нуйно/Нойно)</span>
+            <span class="version-date">3 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Підтримка міськрад та громад у КАТОТТГ (Березань):</strong> Додано повну сумісність районів міського підпорядкування (<code>Березанська</code> &harr; <code>Броварський р-н</code>). У підказках автокомпліту для м. Березань тепер коректно відображаються всі 25 відділень Нової Пошти без помилкової плашки «немає точок НП».</li>
+            <li><strong>Пошук «волинська нойно» та «нуйно»:</strong> Додано підтримку села Нуйно (Камінь-Каширський р-н, Волинська обл., індекс 44540) та автоматичне виправлення одруку «нойно» &rarr; «нуйно». Повністю усунено помилкову підміну на м. Рівне.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.21.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.19 -->
+        <div class="changelog-item">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.21</span>
+            <span class="version-state">Покращення ранжування табів («Всі»), підтримка Великого Березного та Кормильчі</span>
+            <span class="version-date">1 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Сортування у табі «Всі» для обласних центрів:</strong> Виправлено пріоритет відображення для великих міст (зокрема м. Хмельницький): у загальному табі першими відображаються вантажні та поштові відділення (№1, №2, №3...), а поштомати слідують після них.</li>
+            <li><strong>Коректна робота табів-фільтрів:</strong> Всі перемикачі («Всі», «Вантажні», «Відділення», «Поштомати») функціонують бездоганно, точно фільтруючи повний пул адрес міста.</li>
+            <li><strong>Пошук у с. Кормильча:</strong> Додано підтримку пошуку населеного пункту з урахуванням одруків («курмильча»), інтеграцію в реєстр населених пунктів із прив'язкою до Кам'янець-Подільського району (до 2020: Чемеровецький).</li>
+            <li><strong>Великий Березний:</strong> Пошуковий двигун бездоганно знаходить вантажне відділення №1 (вул. Загородня, 65-А) при запитах із помилками набору («ведликий березний 1 загородян 65»).</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.18 -->
+        <div class="changelog-item">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Google Analytics 4 (GA4) &amp; Key Event Telemetry</span>
             <span class="version-date">30 Жовтня 2026</span>
           </div>
@@ -311,7 +340,7 @@
         <!-- Версія 1.6.17 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.17</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">6 Visible Rows Cap, Zero Page Jumps &amp; Mirrored Card Meta</span>
             <span class="version-date">28 Жовтня 2026</span>
           </div>
@@ -326,7 +355,7 @@
         <!-- Версія 1.6.16 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.16</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Smooth Infinite Scroll, Content Visibility &amp; Real Total Count</span>
             <span class="version-date">28 Жовтня 2026</span>
           </div>
@@ -340,7 +369,7 @@
         <!-- Версія 1.6.15 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.15</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">LP-CRM Style Match Row Scrolling &amp; Renamed Street Indigo Callout</span>
             <span class="version-date">28 Жовтня 2026</span>
           </div>
@@ -353,7 +382,7 @@
         <!-- Версія 1.6.14 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.14</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Natural Branch Sorting №1..N, LP-CRM Scroll &amp; Virtualized Chunks</span>
             <span class="version-date">28 Жовтня 2026</span>
           </div>
@@ -368,7 +397,7 @@
         <!-- Версія 1.6.13 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.13</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Concatenated Query Highlighting &amp; Space-Free Street Search</span>
             <span class="version-date">28 Жовтня 2026</span>
           </div>
@@ -382,7 +411,7 @@
         <!-- Версія 1.6.12 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.12</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Smart Branch List on Erasing &amp; City Disambiguation</span>
             <span class="version-date">28 Жовтня 2026</span>
           </div>
@@ -396,7 +425,7 @@
         <!-- Версія 1.6.11 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.11</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Street-Token Ranking &amp; Instant Enter Branch Selection</span>
             <span class="version-date">27 Жовтня 2026</span>
           </div>
@@ -410,7 +439,7 @@
         <!-- Версія 1.6.10 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.10</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Instant Toponym Routing &amp; Regional Autocomplete Deduplication</span>
             <span class="version-date">27 Жовтня 2026</span>
           </div>
@@ -425,7 +454,7 @@
         <!-- Версія 1.6.9 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.9</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Massive UI Responsiveness &amp; Zero-Lag Search Optimization</span>
             <span class="version-date">27 Жовтня 2026</span>
           </div>
@@ -441,7 +470,7 @@
         <!-- Версія 1.6.8 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.8</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Multi-Token Engine UI Thread &amp; Performance Optimization</span>
             <span class="version-date">27 Жовтня 2026</span>
           </div>
@@ -457,7 +486,7 @@
         <!-- Версія 1.6.7 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.7</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Google-Like Toponymy &amp; Geo Hierarchy Resolution</span>
             <span class="version-date">26 Жовтня 2026</span>
           </div>
@@ -472,7 +501,7 @@
         <!-- Версія 1.6.6 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.6</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">City Aliases &amp; Address Token Decomposition</span>
             <span class="version-date">26 Жовтня 2026</span>
           </div>
@@ -487,7 +516,7 @@
         <!-- Версія 1.6.5 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.5</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Administrative Reform 2020 &amp; Historical Toponyms</span>
             <span class="version-date">26 Жовтня 2026</span>
           </div>
@@ -502,7 +531,7 @@
         <!-- Версія 1.6.4 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.4</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Input Reactivity &amp; Geo Disambiguation</span>
             <span class="version-date">25 Жовтня 2026</span>
           </div>
@@ -516,7 +545,7 @@
         <!-- Версія 1.6.3 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.3</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Copy Builder Normalization &amp; UX Polish</span>
             <span class="version-date">25 Жовтня 2026</span>
           </div>
@@ -530,7 +559,7 @@
         <!-- Версія 1.6.2 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.2</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Dynamic Copy Preset Builder &amp; Layout Fix</span>
             <span class="version-date">25 Жовтня 2026</span>
           </div>
@@ -544,7 +573,7 @@
         <!-- Версія 1.6.1 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.1</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Apostrophe &amp; Whitespace Normalization</span>
             <span class="version-date">25 Жовтня 2026</span>
           </div>
@@ -558,7 +587,7 @@
         <!-- Версія 1.6.0 -->
         <div class="changelog-item">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.0</span>
+            <span class="version-badge">v1.6.21</span>
             <span class="version-state">Повна база Укрпошти &amp; Поштовий Автокомпліт</span>
             <span class="version-date">25 Жовтня 2026</span>
           </div>
@@ -1078,18 +1107,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.13"></script>
+  <script src="data/branches.js?v=1.6.20"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.13"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.20"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.13"></script>
+  <script src="data/all_settlements.js?v=1.6.20"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.18"></script>
+  <script src="data/fuzzySearch.js?v=1.6.20"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.18"></script>
+  <script src="app.js?v=1.6.20"></script>
 </body>
 </html>

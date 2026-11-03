@@ -797,6 +797,11 @@
       const currentSignal = activeSearchAbortController.signal;
 
     state.searchQuery = rawQuery;
+    state.selectedBranch = null;
+    closeAutocomplete();
+    if (dom.btnResetSelectedBranch) {
+      dom.btnResetSelectedBranch.classList.add('hidden');
+    }
     if (dom.searchInput) {
       if (dom.searchInput.value.startsWith(' ') || dom.searchInput.value.trim() !== rawQuery) {
         dom.searchInput.value = rawQuery;
@@ -848,6 +853,13 @@
     }
 
     // Якщо зафіксовано точний населений пункт або в запиті є область чи район — фільтруємо за гео-контекстом
+    if (state.selectedSettlement) {
+      const selName = canonCity(state.selectedSettlement.cleanName);
+      const queryCanon = canonCity(rawQuery);
+      if (!queryCanon.startsWith(selName) && (!parsed.matchedSettlement || canonCity(parsed.matchedSettlement.name) !== selName)) {
+        state.selectedSettlement = null;
+      }
+    }
     if (state.selectedSettlement) {
       const selName = canonCity(state.selectedSettlement.cleanName);
       const selObl = cleanOblastName(state.selectedSettlement.cleanOblast).toLowerCase().slice(0, 4);
@@ -1029,7 +1041,11 @@
             if (targetRaion && b.raion && !b.raion.toLowerCase().includes(targetRaion) && !areRaionsCompatible(targetRaion, b.raion)) return false;
             return true;
           });
-          if (cityOnly.length > 0) results = cityOnly;
+          if (cityOnly.length > 0) {
+            results = (engine && engine.sortBranchesBySettlementOrder)
+              ? engine.sortBranchesBySettlementOrder(cityOnly)
+              : cityOnly;
+          }
         }
       }
     }
@@ -2212,7 +2228,7 @@
       } else if (state.typeFilter === 'cargo') {
         hasMatching = resultsPool.some(isCargoBranch);
       } else if (state.typeFilter === 'branch') {
-        hasMatching = resultsPool.some(b => !isPostomatBranch(b));
+        hasMatching = resultsPool.some(isRegularBranch);
       }
       if (!hasMatching) {
         state.typeFilter = 'all';
@@ -2285,7 +2301,7 @@
     } else if (state.typeFilter === 'cargo') {
       typedFiltered = filtered.filter(isCargoBranch);
     } else if (state.typeFilter === 'branch') {
-      typedFiltered = filtered.filter(b => !isPostomatBranch(b));
+      typedFiltered = filtered.filter(isRegularBranch);
     }
 
     // Якщо активний таб фільтра порожній (наприклад, "Поштомати" у селі, де їх немає), не блокувати інтерфейс, а коректно скидати фільтр на "Всі"
@@ -4253,6 +4269,11 @@
       if (qCanon.startsWith(sLower)) {
         return true;
       }
+    }
+
+    // 3. Запит містить розпізнане місто та номер відділення/поштомату (наприклад: "львів 32348", "київ 111")
+    if (detectedCity && (/d+/.test(query) || (engine && engine.extractFacets && engine.extractFacets(query).number))) {
+      return true;
     }
 
     return false;

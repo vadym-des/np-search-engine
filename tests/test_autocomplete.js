@@ -226,7 +226,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 43;
+  let totalTests = 46;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -2828,6 +2828,183 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 43:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 44: Валідація кейсів Великий Березний, Хмельницький (сортування та таби) та Кормильча (v1.6.19)
+  // --------------------------------------------------------------------------
+  console.log('▶ ТЕСТ 44: Валідація кейсів Великий Березний, Хмельницький (сортування та таби) та Кормильча (v1.6.19)');
+  try {
+    await sleep(200);
+    const eng = window.SmartSearchEngine;
+    const pool = (window.BRANCHES_DATA && window.BRANCHES_DATA.novaposhta) ? window.BRANCHES_DATA.novaposhta : [];
+
+    // 1. "ведликий березний 1 загородян 65" -> Великий Березний №1: вул. Загородня, 65-А
+    const bereznyiRes = eng.searchBranches('ведликий березний 1 загородян 65', pool, 5);
+    if (!bereznyiRes.length || !bereznyiRes[0].city.includes('Великий Березний') || String(bereznyiRes[0].number) !== '1') {
+      throw new Error(`Запит "ведликий березний 1 загородян 65" не знайшов цільове відділення: ${JSON.stringify(bereznyiRes[0] || null)}`);
+    }
+
+    // 2. "курмильча 1" -> с. Кормильча №1: вул. Лесі Українки, 2
+    const kormylchaRes = eng.searchBranches('курмильча 1', pool, 5);
+    if (!kormylchaRes.length || !kormylchaRes[0].city.includes('Кормильча') || String(kormylchaRes[0].number) !== '1') {
+      throw new Error(`Запит "курмильча 1" не знайшов цільове відділення: ${JSON.stringify(kormylchaRes[0] || null)}`);
+    }
+
+    // 3. UI пошук: "Хмельницький Хмельницька" на табі "Всі"
+    const filters = elementsById['resultsTypeFilters'];
+    const clickTab = (type) => {
+      if (filters && filters.listeners && filters.listeners.click && filters.listeners.click[0]) {
+        filters.listeners.click[0]({
+          target: { closest: (sel) => ({ getAttribute: () => type }) }
+        });
+      }
+    };
+
+    const searchInput = elementsById['searchInput'];
+    const dropdown = elementsById['autocompleteDropdown'];
+    if (searchInput.focus) searchInput.focus();
+    searchInput.value = 'Хмельницький Хмельницька';
+    dropdown.classList.add('hidden');
+    elementsById['searchResultsSection'].classList.remove('hidden');
+
+    await window.__executeSearchForTest('Хмельницький Хмельницька');
+    const resultsCountText = elementsById['resultsCount'].textContent;
+    if (!resultsCountText.includes('756')) {
+      throw new Error(`Очікувалось 756 результатів для 'Хмельницький Хмельницька', отримано: "${resultsCountText}"`);
+    }
+
+    const firstBatchRows = elementsById['resultsList'].querySelectorAll('.address-match-row');
+    if (firstBatchRows.length === 0) {
+      throw new Error('Очікувалися відрендерені рядки відділень для Хмельницького');
+    }
+    // Перші рядки мають бути звичайними або вантажними відділеннями (№1, №2, №3...), а НЕ поштоматами!
+    const firstRowText = firstBatchRows[0].textContent;
+    if (firstRowText.includes('Поштомат')) {
+      throw new Error(`Перше відділення у списку 'Всі' не має бути поштоматом! Отримано: "${firstRowText}"`);
+    }
+    if (!firstRowText.includes('Вантажне відділення №1')) {
+      throw new Error(`Перше відділення для Хмельницького очікувалось 'Вантажне відділення №1', отримано: "${firstRowText}"`);
+    }
+
+    // 4. Перевірка UI фільтрації за табами:
+    // Таб "Вантажні"
+    clickTab('cargo');
+    const cargoRows = elementsById['resultsList'].querySelectorAll('.address-match-row');
+    if (cargoRows.length === 0 || !cargoRows[0].textContent.includes('Вантажне')) {
+      throw new Error('Таб "Вантажні" повинен відображати тільки вантажні відділення');
+    }
+
+    // Таб "Поштомати"
+    clickTab('postomat');
+    const postomatRows = elementsById['resultsList'].querySelectorAll('.address-match-row');
+    if (postomatRows.length === 0 || !postomatRows[0].textContent.includes('Поштомат')) {
+      throw new Error('Таб "Поштомати" повинен відображати тільки поштомати');
+    }
+
+    // Таб "Всі" повертає повний список із вантажним №1 на початку
+    clickTab('all');
+    const allRows = elementsById['resultsList'].querySelectorAll('.address-match-row');
+    if (allRows.length === 0 || !allRows[0].textContent.includes('Вантажне відділення №1')) {
+      throw new Error('Повернення на таб "Всі" повинно показувати вантажне №1 першим');
+    }
+
+    console.log('  ✓ Успіх: Великий Березний, Кормильча та Хмельницький (правильне ранжування Всі/Вантажні/Відділення/Поштомати) працюють бездоганно!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 44:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 45: Валідація кейсів Березань (Броварський р-н) та Волинська Нуйно/Нойно (v1.6.20)
+  // --------------------------------------------------------------------------
+  console.log('▶ ТЕСТ 45: Валідація кейсів Березань (Броварський р-н) та Волинська Нуйно/Нойно (v1.6.20)');
+  try {
+    await sleep(200);
+    const eng = window.SmartSearchEngine;
+    const pool = (window.BRANCHES_DATA && window.BRANCHES_DATA.novaposhta) ? window.BRANCHES_DATA.novaposhta : [];
+
+    // 1. Автокомпліт для "Березань": місто Березань (Броварський р-н, Київська обл.) має branchCount > 0 і НЕ показує "немає точок"
+    const berezanSuggs = eng.getAutocompleteSuggestions('Березань', 'novaposhta', null, pool);
+    const kyivBerezan = berezanSuggs.find(s => s.oblast && s.oblast.includes('Київськ') && s.title.includes('Березань'));
+    if (!kyivBerezan) {
+      throw new Error('У підказках автокомпліту не знайдено Березань (Київська обл.)');
+    }
+    if (kyivBerezan.branchCount === 0) {
+      throw new Error(`Для Березань (Київська обл.) branchCount очікувався > 0, отримано: 0`);
+    }
+
+    // 2. Пошук "Березань Київська 2" повинен повернути відділення №2 у м. Березань (вул. Шевченків Шлях, 157)
+    const berezanRes = eng.searchBranches('Березань Київська 2', pool, 5);
+    if (!berezanRes.length || !berezanRes[0].city.includes('Березань') || String(berezanRes[0].number) !== '2') {
+      throw new Error(`Запит 'Березань Київська 2' повернув некоректний результат: ${JSON.stringify(berezanRes[0] || null)}`);
+    }
+    if (!berezanRes[0].street.includes('Шевченків')) {
+      throw new Error(`Запит 'Березань Київська 2' повернув вулицю '${berezanRes[0].street}' замість 'Шевченків Шлях'`);
+    }
+
+    // 3. Пошук "волинська нойно" повинен знайти село Нуйно у Волинській області (Камінь-Каширський р-н), а НЕ смт/місто Рівне!
+    const noynoRes = eng.searchBranches('волинська нойно', pool, 5);
+    if (!noynoRes.length) {
+      throw new Error("Запит 'волинська нойно' не повернув результатів!");
+    }
+    if (noynoRes[0].city !== 'Нуйно') {
+      throw new Error(`Запит 'волинська нойно' повернув місто '${noynoRes[0].city}' замість 'Нуйно'!`);
+    }
+    if (noynoRes[0].oblast !== 'Волинська') {
+      throw new Error(`Запит 'волинська нойно' повернув область '${noynoRes[0].oblast}' замість 'Волинська'!`);
+    }
+
+    // 4. Пошук "нойно" окремо повинен знайти село Нуйно
+    const noynoSingle = eng.searchBranches('нойно', pool, 5);
+    if (!noynoSingle.length || noynoSingle[0].city !== 'Нуйно') {
+      throw new Error(`Запит 'нойно' повернув '${noynoSingle[0] ? noynoSingle[0].city : null}' замість 'Нуйно'!`);
+    }
+
+    console.log('  ✓ Успіх: Березань (Броварський р-н, 25 відділень) та Нуйно/Нойно (Волинська обл.) працюють бездоганно!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 45:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 46: Валідація кейсів Калуський Вигода 1, Львів 32348 та Зборів 47201 (v1.6.21)
+  // --------------------------------------------------------------------------
+  console.log('▶ ТЕСТ 46: Валідація кейсів Калуський Вигода 1, Львів 32348 та Зборів 47201 (v1.6.21)');
+  try {
+    const eng = window.SmartSearchEngine;
+    const poolNP = (window.BRANCHES_DATA && window.BRANCHES_DATA.novaposhta) ? window.BRANCHES_DATA.novaposhta : [];
+    const poolUP = (window.BRANCHES_DATA && window.BRANCHES_DATA.ukrposhta) ? window.BRANCHES_DATA.ukrposhta : [];
+
+    // 1. Пошук "калуський вигода 1" (Нова пошта) -> смт Вигода №1 (вул. Івана Франка, 39, Долинський/Калуський р-н)
+    const vygodaRes = eng.searchBranches('калуський вигода 1', poolNP, 5);
+    if (!vygodaRes.length || vygodaRes[0].city !== 'Вигода' || String(vygodaRes[0].number) !== '1') {
+      throw new Error(`Запит "калуський вигода 1" повернув: ${JSON.stringify(vygodaRes[0] || null)}`);
+    }
+    if (!vygodaRes[0].oblast.includes('Івано-Франківськ')) {
+      throw new Error(`Очікувалася Івано-Франківська обл., отримано: ${vygodaRes[0].oblast}`);
+    }
+
+    // 2. Пошук "львів 32348" (Нова пошта) -> Поштомат №32348 у м. Львів (просп. В. Чорновола, 16ж)
+    const lvivPostomatRes = eng.searchBranches('львів 32348', poolNP, 5);
+    if (!lvivPostomatRes.length || lvivPostomatRes[0].city !== 'Львів' || String(lvivPostomatRes[0].number) !== '32348') {
+      throw new Error(`Запит "львів 32348" повернув: ${JSON.stringify(lvivPostomatRes[0] || null)}`);
+    }
+
+    // 3. Пошук Укрпошти: "47201" та "зборів 47201" -> м. Зборів (Тернопільська обл., вул. Богдана Хмельницького, 22)
+    const zborivRes1 = eng.searchBranches('47201', poolUP, 5);
+    if (!zborivRes1.length || zborivRes1[0].city !== 'Зборів' || (zborivRes1[0].postalCode !== '47201' && zborivRes1[0].number !== '47201')) {
+      throw new Error(`Запит Укрпошти "47201" повернув: ${JSON.stringify(zborivRes1[0] || null)}`);
+    }
+    const zborivRes2 = eng.searchBranches('зборів 47201', poolUP, 5);
+    if (!zborivRes2.length || zborivRes2[0].city !== 'Зборів' || (zborivRes2[0].postalCode !== '47201' && zborivRes2[0].number !== '47201')) {
+      throw new Error(`Запит Укрпошти "зборів 47201" повернув: ${JSON.stringify(zborivRes2[0] || null)}`);
+    }
+
+    console.log('  ✓ Успіх: Калуський Вигода 1, Львів 32348 та Зборів 47201 працюють бездоганно!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 46:', err.message, '\n');
   }
 
   console.log('===============================================================');
