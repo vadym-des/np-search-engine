@@ -226,7 +226,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 50;
+  let totalTests = 51;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -3161,6 +3161,69 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 50:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 51: Топонімічна пріоритизація села/смт над облцентром та фонетична нормалізація ("Житомир лугіни" -> смт Лугини №1)
+  // --------------------------------------------------------------------------
+  console.log('▶ ТЕСТ 51: Топонімічна пріоритизація смт над облцентром ("Житомир лугіни" -> смт Лугини №1)');
+  try {
+    const eng = window.SmartSearchEngine;
+    const pool = window.BRANCHES_DATA.novaposhta;
+
+    // 1. Перевірка парсера extractFacets для "Житомир лугіни"
+    const facetsTypo = eng.extractFacets("Житомир лугіни");
+    if (!facetsTypo.city || facetsTypo.city.toLowerCase() !== 'лугини') {
+      throw new Error(`extractFacets("Житомир лугіни"): очікувалося city = 'Лугини', отримано '${facetsTypo.city}'`);
+    }
+    if (!facetsTypo.oblast || !facetsTypo.oblast.toLowerCase().includes('житомир')) {
+      throw new Error(`extractFacets("Житомир лугіни"): очікувалася Житомирська область, отримано '${facetsTypo.oblast}'`);
+    }
+
+    // 2. Перевірка автокомпліту: не повинно бути відділень м. Житомир (Гранітна тощо)
+    const acTypo = eng.getAutocompleteSuggestions("Житомир лугіни", "novaposhta", null, pool);
+    if (!acTypo || acTypo.length === 0) {
+      throw new Error("getAutocompleteSuggestions('Житомир лугіни') повернув порожній список");
+    }
+    const hasZhytomyrBranches = acTypo.some(item =>
+      item.mode === 'branch' && item.branchObj && item.branchObj.city === 'Житомир'
+    );
+    if (hasZhytomyrBranches) {
+      throw new Error("В автокомпліті для 'Житомир лугіни' помилково присутні відділення міста Житомир замість смт Лугини");
+    }
+    const hasLuhynyMatch = acTypo.some(item =>
+      (item.title && item.title.includes('Лугини')) ||
+      (item.subtitle && item.subtitle.includes('Лугин')) ||
+      (item.settlementObj && item.settlementObj.name === 'Лугини')
+    );
+    if (!hasLuhynyMatch) {
+      throw new Error("В автокомпліті для 'Житомир лугіни' відсутня підказка для смт Лугини");
+    }
+
+    // 3. Перевірка пошуку відділень searchBranches для "Житомир лугіни" та "Житомир лугини"
+    const branchesTypo = eng.searchBranches("Житомир лугіни", pool);
+    if (!branchesTypo || branchesTypo.length === 0) {
+      throw new Error("searchBranches('Житомир лугіни') не знайшов відділень");
+    }
+    if (branchesTypo[0].city !== 'Лугини') {
+      throw new Error(`Першим результатом очікувалося місто 'Лугини', але отримано '${branchesTypo[0].city}'`);
+    }
+
+    const branchesExact = eng.searchBranches("Житомир лугини", pool);
+    if (!branchesExact || branchesExact.length === 0 || branchesExact[0].city !== 'Лугини') {
+      throw new Error("searchBranches('Житомир лугини') повинен повертати відділення смт Лугини");
+    }
+
+    // 4. Пошук конкретного відділення "Житомир лугіни 1"
+    const branchesNum1 = eng.searchBranches("Житомир лугіни 1", pool);
+    if (!branchesNum1 || branchesNum1.length === 0 || String(branchesNum1[0].number) !== '1' || branchesNum1[0].city !== 'Лугини') {
+      throw new Error("Запит 'Житомир лугіни 1' повинен повертати Відділення №1 смт Лугини");
+    }
+
+    console.log('  ✓ Успіх: Запити "Житомир лугіни" та "Житомир лугини" безпомилково ідентифікують смт Лугини (Житомирська обл.) та Відділення №1!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 51:', err.message, '\n');
   }
 
   console.log('===============================================================');

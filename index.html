@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.24">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.26">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -44,7 +44,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.24">
+  <link rel="stylesheet" href="styles.css?v=1.6.26">
 </head>
 <body data-service="novaposhta">
 
@@ -264,7 +264,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.25</span>
+          <span class="version-tag">v1.6.26</span>
           
         </button>
       </div>
@@ -293,8 +293,23 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.25 -->
+        <!-- Версія 1.6.26 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.26</span>
+            <span class="version-state">Топонімічний пріоритет смт над облцентрами та фонетична нормалізація</span>
+            <span class="version-date">3 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Топонімічна пріоритизація (Rule 1):</strong> Виправлено визначення цільового населеного пункту для комбінованих запитів з обласним центром («Житомир лугіни» / «Житомир лугини»): село/смт Лугини тепер має абсолютний пріоритет над містом Житомир.</li>
+            <li><strong>Фонетична нормалізація голосних та приголосних:</strong> Додано підтримку чергувань `і` &lt;-&gt; `и`, російської `ы` -&gt; `и` та закінчень `-ово`/`-ове`, `-ино`/`-ине`, завдяки чому «лугіни» миттєво ідентифікується як смт «Лугини».</li>
+            <li><strong>Миттєвий автокомпліт та точна видача відділень:</strong> Запити «Житомир лугіни» та «Житомир лугини» безпомилково повертають смт Лугини, Вантажне відділення №1 (вул. Михайла Грушевського, 11а) та Поштомат №41089 без підмішування відділень обласного центру.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено версію кешування статичних файлів до v1.6.26.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.25 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.25</span>
             <span class="version-state">Пошук приміських точок агломерацій та крос-міські номери</span>
@@ -1135,18 +1150,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.25"></script>
+  <script src="data/branches.js?v=1.6.26"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.25"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.26"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.25"></script>
+  <script src="data/all_settlements.js?v=1.6.26"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.25"></script>
+  <script src="data/fuzzySearch.js?v=1.6.26"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.25"></script>
+  <script src="app.js?v=1.6.26"></script>
 </body>
 </html>

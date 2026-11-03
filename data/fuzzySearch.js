@@ -1539,8 +1539,24 @@
     if (w.endsWith('нів') && w.length >= 6) {
       pVariants.push(w.slice(0, -3) + 'ньїв');
     }
-    if (w.includes('и')) pVariants.push(w.replace(/и/g, 'е'));
+    if (w.includes('и')) {
+      pVariants.push(w.replace(/и/g, 'е'));
+      pVariants.push(w.replace(/и/g, 'і'));
+      for (let i = 0; i < w.length; i++) if (w[i] === 'и') pVariants.push(w.slice(0, i) + 'і' + w.slice(i + 1));
+    }
     if (w.includes('е')) pVariants.push(w.replace(/е/g, 'и'));
+    if (w.includes('і')) {
+      pVariants.push(w.replace(/і/g, 'и'));
+      for (let i = 0; i < w.length; i++) if (w[i] === 'і') pVariants.push(w.slice(0, i) + 'и' + w.slice(i + 1));
+    }
+    if (w.includes('ы')) {
+      pVariants.push(w.replace(/ы/g, 'и'));
+      for (let i = 0; i < w.length; i++) if (w[i] === 'ы') pVariants.push(w.slice(0, i) + 'и' + w.slice(i + 1));
+    }
+    if (w.endsWith('ы')) pVariants.push(w.slice(0, -1) + 'и');
+    if (w.endsWith('ово')) pVariants.push(w.slice(0, -3) + 'ове');
+    if (w.endsWith('ино')) pVariants.push(w.slice(0, -3) + 'ине');
+    if (w.endsWith('ск')) pVariants.push(w + 'ь');
     if (w.includes('у')) {
       pVariants.push(w.replace(/у/g, 'о'));
       for (let i = 0; i < w.length; i++) if (w[i] === 'у') pVariants.push(w.slice(0, i) + 'о' + w.slice(i + 1));
@@ -3167,6 +3183,14 @@
               { ...s, oblast: sOblast, raion: sameOblastVariants > 1 ? '' : s.raion },
               normalizedQuery + ' '
             );
+            // Якщо населений пункт має невелику кількість відділень (<= 10), додаємо їх до підказок автокомпліту
+            const cityBranches = getCityBranchesFromPool(pool, canonText(facets.city));
+            if (cityBranches && cityBranches.length > 0 && cityBranches.length <= 10) {
+              const bItems = collectCityBranchSuggestions(facets);
+              for (let i = 0; i < bItems.length; i++) {
+                suggestions.push(bItems[i]);
+              }
+            }
           }
         }
       }
@@ -3573,22 +3597,36 @@
     for (let i = 0; i < words.length; i++) {
       const hasAnchoredCity = foundSettlementsInOrder.length > 0;
       if (i + 1 < words.length && !/\d/.test(words[i]) && !/\d/.test(words[i + 1])) {
-        const two = (words[i] + ' ' + words[i + 1]).toLowerCase();
-        const s2 = hasAnchoredCity
-          ? (_settlementsByName.get(two) || _allSettlementsByName.get(two) || null)
-          : findSettlementByNameOrFuzzy(two, oblast, raion);
+        const two = words[i] + ' ' + words[i + 1];
+        let s2 = null;
+        if (hasAnchoredCity) {
+          const anchor = foundSettlementsInOrder[0].s;
+          s2 = findSettlementByNameOrFuzzy(two, anchor.oblast || oblast, anchor.raion || raion);
+          if (s2 && !s2.allVariants && damerauLevenshtein(two.toLowerCase(), s2.name.toLowerCase()) > 0) {
+            s2 = null;
+          }
+        } else {
+          s2 = findSettlementByNameOrFuzzy(two, oblast, raion);
+        }
         if (s2) {
           const sObj = Array.isArray(s2) ? s2[0] : s2;
-          foundSettlementsInOrder.push({ s: sObj, raw: words[i] + ' ' + words[i + 1], startIndex: i });
+          foundSettlementsInOrder.push({ s: sObj, raw: two, startIndex: i });
           i++;
           continue;
         }
       }
       if (!/\d/.test(words[i])) {
         const wLow = words[i].toLowerCase();
-        const s1 = hasAnchoredCity
-          ? (_settlementsByName.get(wLow) || _allSettlementsByName.get(wLow) || null)
-          : findSettlementByNameOrFuzzy(words[i], oblast, raion);
+        let s1 = null;
+        if (hasAnchoredCity) {
+          const anchor = foundSettlementsInOrder[0].s;
+          s1 = findSettlementByNameOrFuzzy(words[i], anchor.oblast || oblast, anchor.raion || raion);
+          if (s1 && !s1.allVariants && damerauLevenshtein(wLow, s1.name.toLowerCase()) > 0) {
+            s1 = null;
+          }
+        } else {
+          s1 = findSettlementByNameOrFuzzy(words[i], oblast, raion);
+        }
         if (s1) {
           const sObj = Array.isArray(s1) ? s1[0] : s1;
           foundSettlementsInOrder.push({ s: sObj, raw: words[i], startIndex: i });
@@ -3628,7 +3666,7 @@
 
     if (effectiveSettlements.length === 1) {
       const match = effectiveSettlements[0];
-      city = match.s.name;
+      city = cleanSettlementName(match.s.cleanName || match.s.name);
       settlementOblast = match.s.oblast;
       text = text.replace(new RegExp('(?<!\\p{L})' + match.raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?!\\p{L})', 'iu'), ' ').trim();
     } else if (effectiveSettlements.length >= 2) {
@@ -3676,7 +3714,7 @@
             if (scoredVars.length > 0 && scoredVars[0].score > 0) {
               const bestVar = scoredVars[0].cand;
               v.s = {
-                name: bestVar.cleanName || v.s.name,
+                name: cleanSettlementName(bestVar.cleanName || v.s.cleanName || v.s.name),
                 oblast: bestVar.oblast,
                 raion: bestVar.raion,
                 type: bestVar.type || v.s.type || 'село',
@@ -3768,7 +3806,7 @@
               if (scoredOther.length > 0) {
                 const vMatch = scoredOther[0].v;
                 sameNameInOtherOblast = {
-                  name: vMatch.cleanName,
+                  name: cleanSettlementName(vMatch.cleanName || vMatch.name),
                   oblast: vMatch.oblast,
                   raion: vMatch.raion,
                   type: vMatch.type || 'село'
@@ -3793,7 +3831,7 @@
         }
       }
 
-      city = selectedMatch.s.name;
+      city = cleanSettlementName(selectedMatch.s.cleanName || selectedMatch.s.name);
       settlementOblast = selectedMatch.s.oblast;
       if (!oblast) oblast = selectedMatch.s.oblast;
 
