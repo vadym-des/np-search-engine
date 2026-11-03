@@ -226,7 +226,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 46;
+  let totalTests = 47;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -3005,6 +3005,36 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 46:', err.message, '\n');
+  }
+
+  // ------------------------------------------------------------------------  // --------------------------------------------------------------------------
+  // ТЕСТ 47: Пошук відділення за містом, вулицею та номером будинку ("львів данилишина 6" -> Відділення №5)
+  // --------------------------------------------------------------------------
+  console.log('▶ ТЕСТ 47: Пошук відділення за містом, вулицею та номером будинку ("львів данилишина 6" -> Відділення №5)');
+  try {
+    const eng = window.SmartSearchEngine;
+    const pool = (window.BRANCHES_DATA && window.BRANCHES_DATA.novaposhta) ? window.BRANCHES_DATA.novaposhta : [];
+
+    // 1. Пошук відділення у списку автокомпліту: перша позиція має бути Відділення №5 (вул. Данилишина, 6)
+    const suggs = eng.getAutocompleteSuggestions('львів данилишина 6', 'novaposhta', null, pool);
+    if (!suggs.length) {
+      throw new Error("Не знайдено жодної підказки для 'львів данилишина 6'");
+    }
+    const topSugg = suggs[0];
+    if (!topSugg.street || !topSugg.street.includes('Данилишина') || !topSugg.title.includes('№5')) {
+      throw new Error(`Перша підказка очікувалася Відділення №5 на вул. Данилишина, 6, отримано: ${topSugg.title} (${topSugg.street})`);
+    }
+
+    // 2. Безпосередній пошук через searchBranches повертає Відділення №5
+    const branches = eng.searchBranches('львів данилишина 6', pool, 5);
+    if (!branches.length || String(branches[0].number) !== '5') {
+      throw new Error(`Очікувалося Відділення №5, отримано: ${JSON.stringify(branches[0] || null)}`);
+    }
+
+    console.log('  ✓ Успіх: Запит "львів данилишина 6" безпомилково знаходить Відділення №5 на 1-му місці!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 47:', err.message, '\n');
   }
 
   console.log('===============================================================');

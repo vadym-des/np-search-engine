@@ -1,11 +1,11 @@
 /**
  * Service Worker для "Пошук відділень Нова Пошта & Укрпошта"
- * Версія: v1.6.21
+ * Версія: v1.6.22
  * Забезпечує миттєве оновлення (skipWaiting + clients.claim) та офлайн-доступ.
  */
 
-const CACHE_VERSION = 'v1.6.21';
-const CACHE_NAME = 'np-search-cache-v1.6.21';
+const CACHE_VERSION = 'v1.6.22';
+const CACHE_NAME = 'np-search-cache-v1.6.22';
 
 // Ресурси для попереднього кешування з версіонуванням
 const PRECACHE_ASSETS = [

@@ -2705,7 +2705,21 @@
       const seenBranchKeys = new Set();
       const hasStreetInQuery = (facets.streetTokens && facets.streetTokens.length > 0);
 
-      // Якщо введено номер (напр. "Київ 1", "Київ 111", "київ 222"), спочатку збираємо точні та префіксні збіги за номером відділення/поштомату
+      // Якщо в запиті вказано вулицю (напр. "львів данилишина 6" або "київ хрещатик 15"),
+      // спершу шукаємо відділення/поштомати, адреса яких збігається з цією вулицею та номером будинку!
+      if (hasStreetInQuery) {
+        const streetScored = searchBranches(normalizedQuery, cityBranches, 50).filter(b => (b._canonCity || canonCity(b.city)) === cityKey);
+        for (let i = 0; i < streetScored.length; i++) {
+          const b = streetScored[i];
+          const bKey = b.id || `${b._canonCity || canonCity(b.city)}|${b.number}|${b.street}`;
+          if (!seenBranchKeys.has(bKey)) {
+            seenBranchKeys.add(bKey);
+            found.push(b);
+          }
+        }
+      }
+
+      // Якщо введено номер (напр. "Київ 1", "Київ 111", "київ 222"), збираємо точні та префіксні збіги за номером відділення/поштомату
       if (facets.number) {
         const numPrefix = String(facets.number);
         const prefixCandidates = [];
