@@ -737,11 +737,23 @@
   const _allSettlementsByNameNA = new Map();
   // Індекс за першими 2 літерами канонічної назви для швидкого префіксного автокомпліту (27k+ пунктів)
   const _allSettlementsByPrefix2 = new Map();
+  // Індекс населених пунктів за областю для миттєвого звуження локального пошуку
+  const _allSettlementsByOblast = new Map();
+
   function initAllSettlementsMap(items) {
     if (!Array.isArray(items)) return;
     for (let i = 0; i < items.length; i++) {
       const s = items[i];
       if (!s || !s.cleanName) continue;
+      if (s.oblast) {
+        const oKey = s.oblast.toLowerCase().replace(/(?:ська|цька|зька| область| обл\.?)$/gi, '').slice(0, 4);
+        let oList = _allSettlementsByOblast.get(oKey);
+        if (!oList) {
+          oList = [];
+          _allSettlementsByOblast.set(oKey, oList);
+        }
+        oList.push(s);
+      }
       const key = s.cleanName.toLowerCase();
       let list = _allSettlementsByName.get(key);
       if (!list) {
@@ -786,6 +798,7 @@
       _allSettlementsByName.clear();
       _allSettlementsByNameNA.clear();
       _allSettlementsByPrefix2.clear();
+      _allSettlementsByOblast.clear();
       initAllSettlementsMap(items);
     }
   }
@@ -1418,7 +1431,7 @@
 
   // 5.1. РОЗПІЗНАВАННЯ МІСТА (Точне O(1) або нечітке Levenshtein Distance <= 2)
   function findSettlementByNameOrFuzzy(word, contextOblast, contextRaion) {
-    if (!word || word.length < 2) return null;
+    if (!word || word.length < 2 || /\d/.test(word)) return null;
     let w = word.toLowerCase().trim();
     if (CITY_SHORT_ALIASES.has(w)) {
       w = CITY_SHORT_ALIASES.get(w);
@@ -1622,8 +1635,11 @@
       let localMinDist = 999;
       const maxAllowed = w.length >= 8 ? 3 : (w.length >= 6 ? 2 : 1);
 
-      for (let i = 0; i < _allSettlementsRaw.length; i++) {
-        const item = _allSettlementsRaw[i];
+      const oblKey = cObl ? cObl.replace(/(?:ська|цька|зька| область| обл\.?)$/gi, '').slice(0, 4) : '';
+      const searchPool = (oblKey && _allSettlementsByOblast.has(oblKey)) ? _allSettlementsByOblast.get(oblKey) : _allSettlementsRaw;
+
+      for (let i = 0; i < searchPool.length; i++) {
+        const item = searchPool[i];
         const sObl = (item.oblast || '').toLowerCase();
         const sRaion = (item.raion || '').toLowerCase();
         const oblOk = !cObl || sObl.includes(cObl) || cObl.includes(sObl);
@@ -2708,7 +2724,15 @@
       // Якщо в запиті вказано вулицю (напр. "львів данилишина 6" або "київ хрещатик 15"),
       // спершу шукаємо відділення/поштомати, адреса яких збігається з цією вулицею та номером будинку!
       if (hasStreetInQuery) {
-        const streetScored = searchBranches(normalizedQuery, cityBranches, 50).filter(b => (b._canonCity || canonCity(b.city)) === cityKey);
+        const stTokens = facets.streetTokens;
+        const candidatePool = (cityBranches.length > 150 && stTokens && stTokens.length > 0)
+          ? cityBranches.filter(b => {
+              const bStr = (b._canonStreet || (b._canonStreet = canonText((b.street || '') + ' ' + (b.address || ''))));
+              return stTokens.some(tok => bStr.includes(tok));
+            })
+          : cityBranches;
+        const targetPool = candidatePool.length > 0 ? candidatePool : cityBranches;
+        const streetScored = searchBranches(normalizedQuery, targetPool, 50).filter(b => (b._canonCity || canonCity(b.city)) === cityKey);
         for (let i = 0; i < streetScored.length; i++) {
           const b = streetScored[i];
           const bKey = b.id || `${b._canonCity || canonCity(b.city)}|${b.number}|${b.street}`;
@@ -2791,7 +2815,15 @@
         }
       } else if (hasStreetInQuery) {
         // Якщо номер не вказано, але є назва вулиці (напр. "Київ Хрещатик"):
-        const scored = searchBranches(normalizedQuery, cityBranches, 50).filter(b => (b._canonCity || canonCity(b.city)) === cityKey);
+        const stTokens = facets.streetTokens;
+        const candidatePool = (cityBranches.length > 150 && stTokens && stTokens.length > 0)
+          ? cityBranches.filter(b => {
+              const bStr = (b._canonStreet || (b._canonStreet = canonText((b.street || '') + ' ' + (b.address || ''))));
+              return stTokens.some(tok => bStr.includes(tok));
+            })
+          : cityBranches;
+        const targetPool = candidatePool.length > 0 ? candidatePool : cityBranches;
+        const scored = searchBranches(normalizedQuery, targetPool, 50).filter(b => (b._canonCity || canonCity(b.city)) === cityKey);
         for (let i = 0; i < scored.length; i++) {
           const b = scored[i];
           const bKey = b.id || `${b._canonCity || canonCity(b.city)}|${b.number}|${b.street}`;
@@ -3374,9 +3406,15 @@
   }
 
   // 8.1. ВИДІЛЕННЯ СУТНОСТЕЙ (SMART ENTITY EXTRACTION) ДЛЯ ФАСЕТНОГО ПОШУКУ
+  const _extractFacetsCache = new Map();
+
   function extractFacets(query) {
     if (!query) {
       return { city: null, number: null, oblast: null, raion: null, streetTokens: [], settlementOblast: null };
+    }
+    const qKey = String(query).trim().toLowerCase();
+    if (_extractFacetsCache.has(qKey)) {
+      return _extractFacetsCache.get(qKey);
     }
     query = String(query).trim().replace(/\s+/g, ' ');
     let text = fixKeyboardLayout(sanitizeChatQuery(query))
@@ -3462,18 +3500,28 @@
 
     const foundSettlementsInOrder = [];
     for (let i = 0; i < words.length; i++) {
-      if (i + 1 < words.length) {
+      const hasAnchoredCity = foundSettlementsInOrder.length > 0;
+      if (i + 1 < words.length && !/\d/.test(words[i]) && !/\d/.test(words[i + 1])) {
         const two = (words[i] + ' ' + words[i + 1]).toLowerCase();
-        const s2 = findSettlementByNameOrFuzzy(two, oblast, raion);
+        const s2 = hasAnchoredCity
+          ? (_settlementsByName.get(two) || _allSettlementsByName.get(two) || null)
+          : findSettlementByNameOrFuzzy(two, oblast, raion);
         if (s2) {
-          foundSettlementsInOrder.push({ s: s2, raw: words[i] + ' ' + words[i + 1], startIndex: i });
+          const sObj = Array.isArray(s2) ? s2[0] : s2;
+          foundSettlementsInOrder.push({ s: sObj, raw: words[i] + ' ' + words[i + 1], startIndex: i });
           i++;
           continue;
         }
       }
-      const s1 = findSettlementByNameOrFuzzy(words[i], oblast, raion);
-      if (s1) {
-        foundSettlementsInOrder.push({ s: s1, raw: words[i], startIndex: i });
+      if (!/\d/.test(words[i])) {
+        const wLow = words[i].toLowerCase();
+        const s1 = hasAnchoredCity
+          ? (_settlementsByName.get(wLow) || _allSettlementsByName.get(wLow) || null)
+          : findSettlementByNameOrFuzzy(words[i], oblast, raion);
+        if (s1) {
+          const sObj = Array.isArray(s1) ? s1[0] : s1;
+          foundSettlementsInOrder.push({ s: sObj, raw: words[i], startIndex: i });
+        }
       }
     }
 
@@ -3770,7 +3818,12 @@
       streetTokens.push(building);
     }
 
-    return { city, number, oblast, raion, streetTokens, settlementOblast, building };
+    const result = { city, number, oblast, raion, streetTokens, settlementOblast, building };
+    if (_extractFacetsCache.size > 200) {
+      _extractFacetsCache.clear();
+    }
+    _extractFacetsCache.set(qKey, result);
+    return result;
   }
 
   // 8.5 ІНДЕКСАЦІЯ ПУЛУ ВІДДІЛЕНЬ ДЛЯ МИТТЄВОГО O(1) ПОШУКУ ТА РЕШИТУВАННЯ

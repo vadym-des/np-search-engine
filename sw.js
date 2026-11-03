@@ -4,8 +4,8 @@
  * Забезпечує миттєве оновлення (skipWaiting + clients.claim) та офлайн-доступ.
  */
 
-const CACHE_VERSION = 'v1.6.23';
-const CACHE_NAME = 'np-search-cache-v1.6.23';
+const CACHE_VERSION = 'v1.6.24';
+const CACHE_NAME = 'np-search-cache-v1.6.24';
 
 // Ресурси для попереднього кешування з версіонуванням
 const PRECACHE_ASSETS = [

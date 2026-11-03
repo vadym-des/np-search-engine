@@ -226,7 +226,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 47;
+  let totalTests = 49;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -3035,6 +3035,82 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 47:', err.message, '\n');
+  }
+
+  // =========================================================================
+  // ТЕСТ 48: Валідація швидкодії та точності довгого запиту поштомату
+  // ("Кам'янське Кам'янський Дніпропетровська поштомат 56082" -> Поштомат №56082)
+  // =========================================================================
+  try {
+    console.log("▶ ТЕСТ 48: Валідація швидкодії та точності довгого запиту поштомату ('Кам\\'янське Кам\\'янський Дніпропетровська поштомат 56082')");
+    const eng = window.SmartSearchEngine;
+    const pool = window.BRANCHES_DATA.novaposhta;
+
+    // 1. Перевірка автокомпліту під час поступового набору без зависань (Zero Latency)
+    const t0 = performance.now();
+    const ac56 = eng.getAutocompleteSuggestions("Кам'янське Кам'янський Дніпропетровська поштомат 56", "novaposhta", null, pool);
+    const t1 = performance.now();
+    const acTime = t1 - t0;
+    if (acTime > 250) {
+      throw new Error(`Час обробки автокомпліту перевищив 250мс: ${acTime.toFixed(2)}мс`);
+    }
+
+    // 2. Повний пошук знаходить цільовий поштомат №56082 на 1 місці
+    const fullQ = "Кам'янське Кам'янський Дніпропетровська поштомат 56082";
+    const res = eng.searchBranches(fullQ, pool, 10);
+    if (!res || res.length === 0) {
+      throw new Error("Не знайдено поштомат для запиту: " + fullQ);
+    }
+    const top = res[0];
+    if (String(top.number) !== '56082') {
+      throw new Error(`Очікувався Поштомат №56082, отримано: ${top.name} (№${top.number})`);
+    }
+
+    console.log('  ✓ Успіх: Запит поштомату у Кам\'янському знайдено миттєво (< 250мс) і точно (№56082 на 1-му місці)!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 48:', err.message, '\n');
+  }
+
+  // =========================================================================
+  // ТЕСТ 49: Валідація швидкодії та точності складних запитів з вулицями
+  // ("Біла Церква Білоцерківський Київська Ярослава Мудрого 20" та "Київ Солом'янський Гарматна 10")
+  // =========================================================================
+  try {
+    console.log("▶ ТЕСТ 49: Валідація швидкодії та точності складних запитів з вулицями (Біла Церква Ярослава Мудрого, Київ Гарматна)");
+    const eng = window.SmartSearchEngine;
+    const pool = window.BRANCHES_DATA.novaposhta;
+
+    // 1. Біла Церква: перевірка швидкодії (< 250мс) та пошуку відділення на вул. Ярослава Мудрого
+    const t0 = performance.now();
+    const acBC = eng.getAutocompleteSuggestions("Біла Церква Білоцерківський Київська Ярослава Мудрого 20", "novaposhta", null, pool);
+    const t1 = performance.now();
+    const bcTime = t1 - t0;
+    if (bcTime > 250) {
+      throw new Error(`Час обробки автокомпліту Білої Церкви перевищив 250мс: ${bcTime.toFixed(2)}мс`);
+    }
+    if (!acBC || acBC.length === 0) {
+      throw new Error("Не знайдено жодної підказки для Білої Церкви");
+    }
+    const hasYaroslavBranch = acBC.some(b => (b.street && b.street.toLowerCase().includes('мудрого')) || (b.subtitle && b.subtitle.toLowerCase().includes('мудрого')));
+    if (!hasYaroslavBranch) {
+      throw new Error("Серед результатів Білої Церкви відсутнє відділення на вул. Ярослава Мудрого");
+    }
+
+    // 2. Двосторонній порядок: "Гарматна 10 Київ" знаходить відділення на вул. Гарматна
+    const acHarmatna = eng.getAutocompleteSuggestions("Гарматна 10 Київ", "novaposhta", null, pool);
+    if (!acHarmatna || acHarmatna.length === 0) {
+      throw new Error("Не знайдено підказок для 'Гарматна 10 Київ'");
+    }
+    const hasHarmatnaBranch = acHarmatna.some(b => (b.street && b.street.toLowerCase().includes('гарматна')) || (b.subtitle && b.subtitle.toLowerCase().includes('гарматна')));
+    if (!hasHarmatnaBranch) {
+      throw new Error("Серед результатів 'Гарматна 10 Київ' відсутнє відділення на вул. Гарматна");
+    }
+
+    console.log('  ✓ Успіх: Складні запити з вулицями (Біла Церква, Гарматна Київ) працюють миттєво (< 250мс) і знаходять цільові вулиці!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 49:', err.message, '\n');
   }
 
   console.log('===============================================================');
