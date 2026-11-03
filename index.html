@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.20">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.24">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -44,7 +44,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.20">
+  <link rel="stylesheet" href="styles.css?v=1.6.24">
 </head>
 <body data-service="novaposhta">
 
@@ -264,7 +264,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.23</span>
+          <span class="version-tag">v1.6.24</span>
           
         </button>
       </div>
@@ -293,8 +293,22 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.20 -->
+        <!-- Версія 1.6.24 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.24</span>
+            <span class="version-state">Швидкодія: усунено зависання при введенні поштоматів та вулиць</span>
+            <span class="version-date">3 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Zero Input Latency (ліквідація підвисань клавіатури):</strong> Усунено важкий перебір 30 000 сіл України при введенні номерів поштоматів (прискорення з 1111 мс до 15 мс) та назв вулиць (прискорення з 2.2 с до 60–80 мс).</li>
+            <li><strong>Індексація населених пунктів за областями:</strong> Звужено локальний пошук сіл до ~800 пунктів замість 30 000 по всій країні.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено версію кешування статичних файлів до v1.6.24.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.23 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.23</span>
             <span class="version-state">Сумісність міськрад (Березань) та захист від колізій (Нуйно/Нойно)</span>
@@ -1107,18 +1121,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.20"></script>
+  <script src="data/branches.js?v=1.6.24"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.20"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.24"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.20"></script>
+  <script src="data/all_settlements.js?v=1.6.24"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.21"></script>
+  <script src="data/fuzzySearch.js?v=1.6.24"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.20"></script>
+  <script src="app.js?v=1.6.24"></script>
 </body>
 </html>
