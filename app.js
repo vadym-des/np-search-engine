@@ -343,8 +343,10 @@
     _ukrposhtaLoadingPromise = (async () => {
       _ukrposhtaLoaded = true;
       try {
-        let rawList = null;
-        if (typeof window !== 'undefined' && window.location && typeof window.location.origin === 'string' && window.location.origin.startsWith('http')) {
+        let rawList = (typeof window !== 'undefined' && Array.isArray(window.UKRPOSHTA_BRANCHES_DATA) && window.UKRPOSHTA_BRANCHES_DATA.length > 0)
+          ? window.UKRPOSHTA_BRANCHES_DATA
+          : null;
+        if (!rawList && typeof window !== 'undefined' && window.location && typeof window.location.origin === 'string' && window.location.origin.startsWith('http')) {
           try {
             const resp = await fetch('data/ukrposhta_branches.json');
             if (resp.ok) {
@@ -415,6 +417,54 @@
     })();
 
     return _ukrposhtaLoadingPromise;
+  }
+
+  // Резервне динамічне отримання відділення Укрпошти за 5-значним індексом з офіційного API
+  async function fetchUkrposhtaBranchLive(postalCode) {
+    if (!postalCode || !/^\d{5}$/.test(postalCode)) return null;
+    try {
+      const resp = await fetch(`https://index.ukrposhta.ua/endpoints-for-apps/index.php?method=get_postoffices_by_postindex_web&pc=${postalCode}`);
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      const entry = data.Entry || (data.Entries && data.Entries.Entry);
+      const item = Array.isArray(entry) ? entry[0] : entry;
+      if (item && item.POSTINDEX) {
+        const idx = String(item.POSTINDEX);
+        const obl = (item.REGION_UA || '').trim();
+        const rai = (item.DISTRICT_UA || '').trim();
+        const addr = item.ADDRESS || `ВПЗ ${idx}`;
+        const isCentr = item.TYPE_SHORT === 'Центральне' || idx.endsWith('000') || idx.endsWith('001') || idx.endsWith('00');
+        const branchObj = {
+          id: `up-${idx}`,
+          index: idx,
+          number: idx,
+          postalCode: idx,
+          city: item.CITY_UA,
+          type: isCentr ? 'central' : 'standard',
+          typeText: item.TYPE_SHORT || (isCentr ? 'Центральне відділення' : (item.PO_SHORT && item.PO_SHORT.includes('Міське') ? 'Міське відділення' : "Відділення зв'язку")),
+          name: (item.TYPE_SHORT || "Відділення зв'язку") + ' №' + idx,
+          street: addr,
+          address: addr,
+          oblast: obl,
+          raion: rai,
+          district: rai,
+          region: obl ? `${obl} обл.` : '',
+          lat: parseFloat(item.LATTITUDE) || 0,
+          lng: parseFloat(item.LONGITUDE) || 0,
+          phone: item.PHONE || '+380-800-300-545',
+          isAccessible: true,
+          hasGenerator: true
+        };
+        if (!window.BRANCHES_DATA) window.BRANCHES_DATA = {};
+        if (!Array.isArray(window.BRANCHES_DATA.ukrposhta)) window.BRANCHES_DATA.ukrposhta = [];
+        window.BRANCHES_DATA.ukrposhta.push(branchObj);
+        if (window.SmartSearchEngine && typeof window.SmartSearchEngine.buildBranchIndex === 'function') {
+          window.SmartSearchEngine.buildBranchIndex(window.BRANCHES_DATA.ukrposhta);
+        }
+        return branchObj;
+      }
+    } catch (_) {}
+    return null;
   }
 
   // Попереднє розігрівання O(1) індексів пошуку при завантаженні (Zero Input Latency < 16ms)
@@ -1070,6 +1120,22 @@
               ? engine.sortBranchesBySettlementOrder(cityOnly)
               : cityOnly;
           }
+        }
+      }
+    }
+
+    // Резервний пошук в API Укрпошти за 5-значним індексом, якщо відділення ще немає в локальній базі
+    if (results.length === 0 && state.currentService === 'ukrposhta') {
+      const pcMatch = rawQuery.match(/\b\d{5}\b/);
+      const targetPostal = (parsed.targetBranchNumber && /^\d{5}$/.test(parsed.targetBranchNumber))
+        ? parsed.targetBranchNumber
+        : (pcMatch ? pcMatch[0] : null);
+      if (targetPostal) {
+        const liveB = await fetchUkrposhtaBranchLive(targetPostal);
+        if (liveB) {
+          results = [liveB];
+          didYouMeanText = null;
+          didYouMeanData = null;
         }
       }
     }

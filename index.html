@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.27">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.28">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -44,7 +44,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.27">
+  <link rel="stylesheet" href="styles.css?v=1.6.28">
 </head>
 <body data-service="novaposhta">
 
@@ -264,7 +264,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.27</span>
+          <span class="version-tag">v1.6.28</span>
           
         </button>
       </div>
@@ -293,8 +293,23 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.27 -->
+        <!-- Версія 1.6.28 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.28</span>
+            <span class="version-state">Глобальний Google-like нечіткий пошук, оновлення Укрпошти 18011 та захист топоніміки сіл</span>
+            <span class="version-date">4 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Google-like нечіткий пошук (Consonant Skeleton & Length Bucketing):</strong> Додано загальнонаціональний фонетичний пошук за кістяком приголосних та відстанню Дамерау-Левенштейна. Запити зі спотвореними голосними та одруківками (наприклад, «горанечі 1» -&gt; с. Гореничі №1 замість с. Гора; «ставіще 1» -&gt; Ставище №1; «песківка 1» -&gt; Пісківка №1; «вешневе 2» -&gt; Вишневе №2) тепер миттєво знаходять правильне відділення.</li>
+            <li><strong>Пріоритет сіл над райцентрами при фонетичних варіаціях (с. Грушово / Грушево):</strong> Виправлено пріоритетизацію сіл над райцентрами у запитах типу «закарпат тячів грушево 1». Навіть при введенні діалектного/ненаголошеного «грушево» (замість Грушово) алгоритм ізолює місто Тячів як районний контекст та виводить село Грушово (Вантажне відділення №1: вул. Прикордонна, 2).</li>
+            <li><strong>Укрпошта: відділення 18011 та On-the-Fly API Fetch:</strong> Додано відсутні діючі відділення Черкас (18004, 18010, 18011, 18016, 18033). Впроваджено фоновий запит до офіційного API Укрпошти для миттєвої довантажки та кешування будь-якого дійсного 5-значного індексу при пошуку.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.28.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.27 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.27</span>
             <span class="version-state">Складені дефісні назви сіл та фонетична стійкість районів</span>
@@ -1165,18 +1180,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.27"></script>
+  <script src="data/branches.js?v=1.6.28"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.27"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.28"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.27"></script>
+  <script src="data/all_settlements.js?v=1.6.28"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.27"></script>
+  <script src="data/fuzzySearch.js?v=1.6.28"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.27"></script>
+  <script src="app.js?v=1.6.28"></script>
 </body>
 </html>
