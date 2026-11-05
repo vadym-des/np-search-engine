@@ -79,6 +79,7 @@ class MockElement {
 
   setAttribute(k, v) { this.attributes[k] = String(v); }
   getAttribute(k) { return this.attributes[k] || null; }
+  hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this.attributes, k); }
   removeAttribute(k) { delete this.attributes[k]; }
 
   appendChild(child) {
@@ -161,6 +162,8 @@ class MockElement {
   }
 
   dispatchEvent(event) {
+    if (!event.preventDefault) event.preventDefault = () => {};
+    if (!event.stopPropagation) event.stopPropagation = () => {};
     event.target = this;
     event.currentTarget = this;
     if (this.listeners[event.type]) {
@@ -226,7 +229,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 52;
+  let totalTests = 54;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -275,6 +278,11 @@ async function runTests() {
   eval(fuzzyCode);
   const branchesCode = fs.readFileSync(path.join(__dirname, '..', 'data', 'branches.js'), 'utf8');
   eval(branchesCode);
+  const upBranchesPath = path.join(__dirname, '..', 'data', 'ukrposhta_branches.js');
+  if (fs.existsSync(upBranchesPath)) {
+    const upBranchesCode = fs.readFileSync(upBranchesPath, 'utf8');
+    eval(upBranchesCode);
+  }
   const appCode = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
   eval(appCode);
 
@@ -3271,6 +3279,184 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 52:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 53: Сценарій 1 — швидка дія Укрпошти для знайденого населеного пункту
+  // (Гута-Боровенська: 1 відділення УП з індексом 44553, Львів: 46+ відділень)
+  // --------------------------------------------------------------------------
+  console.log('▶ ТЕСТ 53: Швидкий перехід та копіювання даних Укрпошти (Сценарій 1)');
+  try {
+    const eng = window.SmartSearchEngine;
+
+    // 1. Перевірка розпізнавання єдиного відділення Укрпошти для с. Гута-Боровенська
+    const upHuta = eng.getUkrposhtaBranchesForSettlement('Гута-Боровенська', 'Волинська', 'Камінь-Каширський');
+    if (!upHuta || upHuta.length !== 1 || upHuta[0].index !== '44553') {
+      throw new Error(`Очікувалось 1 відділення Укрпошти для Гути-Боровенської з індексом 44553, отримано: ${JSON.stringify(upHuta)}`);
+    }
+
+    // 2. Рендеринг картки відділення Нової Пошти для Гути-Боровенської (Варіант 1: чиста картка + кнопка в футері)
+    const npHutaBranch = {
+      id: 'np-huta-1',
+      city: 'Гута-Боровенська',
+      settlementType: 'село',
+      number: '1',
+      street: 'вул. Острів, 1',
+      oblast: 'Волинська',
+      raion: 'Камінь-Каширський'
+    };
+    const cardEl = window.createFullBranchCard(npHutaBranch, 'гута-боровенська 1');
+    const stripEl = cardEl.querySelector('.card-up-quick-strip');
+    if (stripEl) {
+      throw new Error('У Варіанті 1 плашка .card-up-quick-strip повинна бути відсутня у тілі картки, щоб не відволікати оператора');
+    }
+
+    // Перевірка кнопки-моста у футері
+    const footBridgeBtn = cardEl.querySelector('.btn-up-bridge');
+    if (!footBridgeBtn || !footBridgeBtn.textContent.includes('44553')) {
+      throw new Error('Кнопка в футері .btn-up-bridge не містить індекс 44553');
+    }
+
+    // Перевірка стандартного формату копіювання
+    const upHutaBranches = eng.getUkrposhtaBranchesForSettlement('Гута-Боровенська', 'Волинська');
+    const upHutaObj = upHutaBranches[0];
+    const upCopyStr = window.formatClassicCopyString(upHutaObj);
+    if (!upCopyStr.includes('Гута-Боровенська') || !upCopyStr.includes('44553') || !upCopyStr.includes('пересувне відділення')) {
+      throw new Error(`Невірний формат копіювання Укрпошти: ${upCopyStr}`);
+    }
+
+    // 3. Перевірка для великого міста (м. Львів, багато відділень Укрпошти)
+    const upLviv = eng.getUkrposhtaBranchesForSettlement('Львів', 'Львівська');
+    if (!upLviv || upLviv.length < 10) {
+      throw new Error(`Очікувалось > 10 відділень Укрпошти для Львова, отримано: ${upLviv ? upLviv.length : 0}`);
+    }
+
+    const npLvivBranch = {
+      id: 'np-lviv-1',
+      city: 'Львів',
+      settlementType: 'місто',
+      number: '1',
+      street: 'вул. Городоцька, 355',
+      oblast: 'Львівська',
+      raion: ''
+    };
+    const cardLviv = window.createFullBranchCard(npLvivBranch, 'львів 1');
+    const lvivBridgeBtn = cardLviv.querySelector('.btn-up-bridge');
+    if (!lvivBridgeBtn || !lvivBridgeBtn.textContent.includes('відд')) {
+      throw new Error('Для Львова кнопка .btn-up-bridge повинна вказувати кількість відділень');
+    }
+
+    // 4. Перевірка для Бережан (Тернопільська обл.): кнопка повинна вказувати рівно 3 відділення, а не 5
+    const upBerezhany = eng.getUkrposhtaBranchesForSettlement('Бережани', 'Тернопільська', 'Тернопільський');
+    if (!upBerezhany || upBerezhany.length !== 3) {
+      throw new Error(`Очікувалось рівно 3 відділення Укрпошти для м. Бережани (Тернопільська обл.), отримано: ${upBerezhany ? upBerezhany.length : 0}`);
+    }
+
+    const npBerezhanyBranch = {
+      id: 'np-berezhany-1',
+      city: 'Бережани',
+      settlementType: 'місто',
+      number: '1',
+      street: 'вул. Привокзальна, 1',
+      oblast: 'Тернопільська',
+      raion: 'Тернопільський'
+    };
+    const cardBerezhany = window.createFullBranchCard(npBerezhanyBranch, 'бережани 1');
+    const berBridgeBtn = cardBerezhany.querySelector('.btn-up-bridge');
+    if (!berBridgeBtn || !berBridgeBtn.textContent.includes('3 відд')) {
+      throw new Error(`Кнопка Укрпошти для Бережан повинна містити '3 відд.', отримано: ${berBridgeBtn ? berBridgeBtn.textContent : 'null'}`);
+    }
+
+    console.log('  ✓ Успіх: Плашка та кнопка швидкої Укрпошти бездоганно інтегровані в картку (індекс 44553 для сіл та мульти-список для міст)!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 53:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 54: Сценарій 2 — розвилка чисел ("львів 79040" -> індекс Укрпошти)
+  // --------------------------------------------------------------------------
+  console.log('▶ ТЕСТ 54: Крос-сервісна розвилка чисел та індексів ("львів 79040", Сценарій 2)');
+  try {
+    const eng = window.SmartSearchEngine;
+
+    // 1. Пошук індексу 79040 в O(1) індексі Укрпошти
+    const branch79040 = eng.getUkrposhtaBranchByIndex('79040');
+    if (!branch79040 || branch79040.city !== 'Львів' || !branch79040.address.includes('Каховська')) {
+      throw new Error(`getUkrposhtaBranchByIndex('79040') повернув некоректні дані: ${JSON.stringify(branch79040)}`);
+    }
+
+    // 2. В автокомпліті Нової Пошти запит "львів 79040" повертає крос-сервісну підказку Укрпошти
+    const npPool = (window.BRANCHES_DATA && window.BRANCHES_DATA.novaposhta) ? window.BRANCHES_DATA.novaposhta : [];
+    const acSuggestions = eng.getAutocompleteSuggestions('львів 79040', 'novaposhta', null, npPool);
+    if (!acSuggestions || acSuggestions.length === 0) {
+      throw new Error("getAutocompleteSuggestions('львів 79040') повернув порожній масив");
+    }
+    const crossItem = acSuggestions.find(item => item.isCrossService);
+    if (!crossItem || !crossItem.title.includes('79040')) {
+      throw new Error(`Очікувалась крос-підказка Укрпошти з 79040, отримано: ${JSON.stringify(acSuggestions[0])}`);
+    }
+
+    // 3. Запит лише 5 цифр "79040" на Новій Пошті без вказання міста
+    const ac5Digits = eng.getAutocompleteSuggestions('79040', 'novaposhta', null, npPool);
+    if (!ac5Digits || !ac5Digits.some(item => item.isCrossService && item.title.includes('79040'))) {
+      throw new Error("Введення 5 цифр '79040' у табі Нової Пошти не запропонувало індекс Укрпошти 79040");
+    }
+
+    // 4. Перевірка банера розвилки #crossServiceBanner при виконанні пошуку "львів 79040"
+    const crossBanner = elementsById['crossServiceBanner'];
+    if (!crossBanner) {
+      throw new Error('Елемент #crossServiceBanner відсутній у DOM');
+    }
+
+    searchInput.value = 'львів 79040';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(200);
+
+    // Виконуємо пошук
+    await window.__executeSearchForTest('львів 79040');
+    await sleep(200);
+
+    if (crossBanner.classList.contains('hidden')) {
+      throw new Error('Банер розвилки #crossServiceBanner повинен бути видимим для запиту "львів 79040"');
+    }
+    if (!crossBanner.innerHTML.includes('79040') || !crossBanner.innerHTML.includes('Каховська')) {
+      throw new Error(`Банер не містить інформацію про індекс 79040 або вул. Каховська: ${crossBanner.innerHTML}`);
+    }
+
+    // 5. Перевірка введення "47501" (де на Новій Пошті є поштомат у Глобине, а в Укрпошті — Бережани)
+    const ac47501 = eng.getAutocompleteSuggestions('47501', 'novaposhta', null, npPool);
+    if (!ac47501 || !ac47501.some(item => item.isCrossService && item.title.includes('47501') && item.title.includes('Бережани'))) {
+      throw new Error(`В автокомпліті Нової Пошти для 47501 має бути присутня Укрпошта (Бережани): ${JSON.stringify(ac47501)}`);
+    }
+
+    await window.__executeSearchForTest('47501');
+    await sleep(200);
+
+    if (crossBanner.classList.contains('hidden')) {
+      throw new Error('Банер розвилки #crossServiceBanner повинен бути видимим для запиту 47501 навіть при наявності поштомату');
+    }
+    if (!crossBanner.innerHTML.includes('47501') || !crossBanner.innerHTML.includes('Бережани')) {
+      throw new Error(`Банер для 47501 має містити індекс 47501 та Бережани: ${crossBanner.innerHTML}`);
+    }
+
+    // 6. Перевірка неіснуючого відділення "Київ Київська 11" (відділення №11 немає в Києві)
+    await window.__executeSearchForTest('Київ Київська 11', true);
+    await sleep(200);
+
+    const rList = elementsById['resultsList'];
+    const rHtml = rList ? rList.innerHTML : '';
+    if (!rHtml.includes('не знайдено') || !rHtml.includes('11')) {
+      throw new Error(`Для неіснуючого відділення №11 у Києві має виводитися Empty State "не знайдено", отримано: ${rHtml.slice(0, 300)}`);
+    }
+    if (rHtml.includes('Відділення №112') || rHtml.includes('Відділення №116')) {
+      throw new Error('При пошуку відділення 11 заборонено підставляти чужі відділення №112 або №116');
+    }
+
+    console.log('  ✓ Успіх: Розвилка чисел "львів 79040" та "47501" бездоганно розпізнає індекс Укрпошти в автокомпліті та показує інтерактивний банер!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 54:', err.message, '\n');
   }
 
   console.log('===============================================================');

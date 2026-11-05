@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.28">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.29">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -44,7 +44,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.28">
+  <link rel="stylesheet" href="styles.css?v=1.6.29">
 </head>
 <body data-service="novaposhta">
 
@@ -201,6 +201,9 @@
         <!-- Блок Google-style "Можливо, ви мали на увазі:" -->
         <div id="didYouMeanBox" class="did-you-mean-box hidden"></div>
 
+        <!-- Блок крос-сервісної розвилки (наприклад, індекс Укрпошти у табі Нової Пошти) -->
+        <div id="crossServiceBanner" class="cross-service-smart-banner hidden"></div>
+
         <div class="results-header">
           <div class="results-meta-group">
             <div class="results-count-badge">
@@ -264,7 +267,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.28</span>
+          <span class="version-tag">v1.6.29</span>
           
         </button>
       </div>
@@ -293,8 +296,25 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.28 -->
+        <!-- Версія 1.6.29 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.29</span>
+            <span class="version-state">Крос-сервісна розвилка індексів та поштоматів, миттєвий перехід 0 мс та очищення емодзі</span>
+            <span class="version-date">5 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Крос-сервісна розвилка індексів та поштоматів:</strong> Автоматичне розпізнавання 5-значних поштових індексів Укрпошти на вкладці Нової Пошти, навіть якщо вони збігаються з номерами поштоматів (наприклад, 47501 Бережани vs Поштомат №47501 Глобине; 44553 Гута-Боровенська). Показується інтерактивний контрастний банер із точними даними відділення/індексу.</li>
+            <li><strong>Миттєвий перехід на Укрпошту (Direct Branch Handoff 0 мс):</strong> Виправлено помилку в обробнику кнопки «Детальніше», яка блокувала перемикання картки до повторного кліку «Шукати». Тепер готова картка Укрпошти монтується миттєво за 0 мс без додаткових дій.</li>
+            <li><strong>Очищення інтерфейсу від надлишкових емодзі:</strong> Прибрано захаращуючі іконки з кнопок дій («Скопіювати», «Детально», «Укрпошта (...)», «Нова пошта →») та кнопок банера.</li>
+            <li><strong>Оптимізація плавності (Zero Layout Shift):</strong> Збереження попередньої висоти контейнера (minHeight) через requestAnimationFrame під час перемикання для усунення ривків інтерфейсу.</li>
+            <li><strong>Сувора фільтрація неіснуючих номерів («Київ Київська 11»):</strong> При пошуку конкретного номера відділення, відсутнього в місті, система більше не підставляє схожі номери на кшталт №112 або №116, а чітко інформує про відсутність такого відділення.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.29.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.28 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.28</span>
             <span class="version-state">Глобальний Google-like нечіткий пошук, оновлення Укрпошти 18011 та захист топоніміки сіл</span>
@@ -1091,10 +1111,10 @@
         <!-- 1. Вкладки вибору [ Кнопка «Скопіювати» ] / [ Кнопка «Детально» ] -->
         <div class="copy-preset-tabs" role="tablist" aria-label="Вибір кнопки для налаштування">
           <button type="button" class="copy-preset-tab active" data-tab="short" role="tab" aria-selected="true">
-            📋 Кнопка «Скопіювати»
+            Кнопка «Скопіювати»
           </button>
           <button type="button" class="copy-preset-tab" data-tab="detailed" role="tab" aria-selected="false">
-            📋 Кнопка «Детально»
+            Кнопка «Детально»
           </button>
         </div>
 
@@ -1102,7 +1122,7 @@
         <div class="preset-preview-section">
           <div class="preset-section-header">
             <span class="preset-section-label">Живий перегляд (Live Preview):</span>
-            <button type="button" class="btn-preset-test-copy" id="btnPresetTestCopy" title="Скопіювати цей зразок у буфер">📋 Скопіювати зразок</button>
+            <button type="button" class="btn-preset-test-copy" id="btnPresetTestCopy" title="Скопіювати цей зразок у буфер">Скопіювати зразок</button>
           </div>
           <div class="preset-preview-box" id="presetLivePreview">
             <!-- Динамічний рядок зі спалахом оновлення -->
@@ -1180,18 +1200,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.28"></script>
+  <script src="data/branches.js?v=1.6.29"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.28"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.29"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.28"></script>
+  <script src="data/all_settlements.js?v=1.6.29"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.28"></script>
+  <script src="data/fuzzySearch.js?v=1.6.29"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.28"></script>
+  <script src="app.js?v=1.6.29"></script>
 </body>
 </html>

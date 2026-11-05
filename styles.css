@@ -1416,6 +1416,212 @@ mark.hl-match,
   color: #7dd3fc;
 }
 
+/* Крос-сервісна розвилка (Сценарій 2: індекс Укрпошти або номер у іншій службі) */
+.cross-service-smart-banner {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  border-radius: var(--radius-md, 12px);
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  animation: slideDown 0.22s ease-out;
+}
+
+.cross-service-smart-banner.hidden {
+  display: none !important;
+}
+
+.smart-banner-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.smart-banner-icon {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.smart-banner-icon.up-logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f59e0b;
+  color: #1e293b;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.28);
+}
+
+.smart-banner-icon.up-logo-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.smart-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.smart-banner-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-main, #1e293b);
+  line-height: 1.4;
+}
+
+.smart-banner-title .up-code,
+.smart-banner-title strong {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #d97706;
+  letter-spacing: 0.3px;
+}
+
+html[data-theme="dark"] .smart-banner-title .up-code,
+html[data-theme="dark"] .smart-banner-title strong {
+  color: #fbbf24;
+}
+
+.smart-banner-desc {
+  font-size: 12px;
+  color: var(--text-muted, #64748b);
+  line-height: 1.35;
+}
+
+.smart-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-cross-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f59e0b;
+  color: #1e293b;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);
+}
+
+.btn-cross-switch:hover {
+  background: #d97706;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.btn-cross-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-card, #ffffff);
+  color: var(--text-main, #1e293b);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 8px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cross-copy:hover {
+  background: var(--bg-hover, #f1f5f9);
+  border-color: #cbd5e1;
+}
+
+/* Сценарій 1 (Варіант 1): Кнопка-міст Укрпошти у футері картки Нової Пошти */
+.card-action-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border-light, #e2e8f0);
+  margin: 0 4px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+html[data-theme="dark"] .card-action-sep {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-copy-action.btn-up-bridge {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.06);
+  color: var(--text-main, #1e293b);
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.btn-copy-action.btn-up-bridge:hover {
+  background: #f59e0b;
+  color: #1e293b;
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+}
+
+html[data-theme="dark"] .btn-copy-action.btn-up-bridge {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+}
+
+html[data-theme="dark"] .btn-copy-action.btn-up-bridge:hover {
+  background: #f59e0b;
+  color: #0f172a;
+}
+
+.btn-header-up-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 14px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: 10px;
+  transition: all 0.2s ease;
+}
+
+html[data-theme="dark"] .btn-header-up-switch {
+  color: #fbbf24;
+}
+
+.btn-header-up-switch:hover {
+  background: #f59e0b;
+  color: #1e293b;
+}
+
+/* Автокомпліт: крос-сервісний пункт */
+.autocomplete-item.autocomplete-item-cross-service {
+  background: rgba(245, 158, 11, 0.05);
+  border-bottom: 1px dashed rgba(245, 158, 11, 0.2);
+}
+
+.autocomplete-item.autocomplete-item-cross-service:hover,
+.autocomplete-item.autocomplete-item-cross-service.selected {
+  background: rgba(245, 158, 11, 0.14);
+}
+
 .results-header {
   display: flex;
   justify-content: space-between;

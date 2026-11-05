@@ -2265,6 +2265,16 @@
     let detectedStreet = null;
     let remForStreet = corrected;
 
+    // Якщо область уже виявлена, і перед її назвою немає слова "вул/вулиця/просп" — прибираємо її з пошуку вулиць,
+    // щоб назви типу "Київська", "Полтавська" тощо не детектувалися помилково як вулиці при зазначенні області
+    if (detectedOblast && detectedOblast.rawMatched) {
+      const oblWord = detectedOblast.rawMatched.replace(/\s*(?:область|обл\.?)$/i, '').trim();
+      const hasStreetPrefix = new RegExp('(?:вул|вулиця|просп|проспект)\\s+' + oblWord, 'iu').test(remForStreet);
+      if (!hasStreetPrefix) {
+        remForStreet = remForStreet.replace(new RegExp(detectedOblast.rawMatched, 'giu'), ' ');
+      }
+    }
+
     for (let st of FAMOUS_STREETS) {
       const stRegex = new RegExp(`(?<!\\p{L})${st}(?!\\p{L})`, 'iu');
       if (stRegex.test(remForStreet)) {
@@ -2889,6 +2899,9 @@
     // Рядок 1 (жирний): [Іконка] Відділення/Поштомат №X • (вага: до 30 кг / до 1100 кг)
     // Рядок 2 (вторинний сірий): вул. [Назва вулиці], [номер будинку] (Орієнтир/магазин, якщо є)
     function buildBranchSuggestion(b) {
+      if (b && b.isCrossService) {
+        return b;
+      }
       const cleanCity = (b.city || '').replace(/\\n|\r?\n/g, ' ').replace(/\s*\([^)]*\)\s*$/, '').trim();
       const isUp = isUkrposhtaActive || (b.id && String(b.id).startsWith('up-'));
       const isPost = !isUp && (b.typeClass === 'poshtomat' || b.type === 'poshtomat' || /поштомат/i.test(b.name || '') || /поштомат/i.test(b.typeName || ''));
@@ -3120,6 +3133,33 @@
             found.push(b);
           }
         }
+
+        // СЦЕНАРІЙ 2 (РОЗВИЛКА ЧИСЕЛ): якщо введено 5-значний номер у табі Нової Пошти (наприклад "львів 79040"),
+        // і в Укрпошті існує відділення з цим індексом (79040), а в Новій Пошті немає відділення з номером 79040
+        if (!isUkrposhtaActive && numPrefix && numPrefix.length === 5) {
+          const upBranch = getUkrposhtaBranchByIndex(numPrefix);
+          if (upBranch) {
+            const hasExactNpBranchNum = prefixCandidates.some(b => String(b.number) === numPrefix);
+            if (!hasExactNpBranchNum) {
+              const upCityClean = cleanSettlementName(upBranch.city);
+              const upItem = {
+                type: 'branch',
+                mode: 'branch',
+                isCrossService: true,
+                service: 'ukrposhta',
+                icon: '📮',
+                title: `📮 Укрпошта: ${upBranch.index} — ${upCityClean}`,
+                subtitle: `${upBranch.address || upBranch.street || ''} • (індекс Укрпошти)`,
+                street: upBranch.address || upBranch.street || '',
+                value: upCityClean,
+                textToFill: `${upCityClean} ${upBranch.index}`,
+                weightLabel: 'Укрпошта',
+                branchObj: upBranch
+              };
+              found.unshift(upItem);
+            }
+          }
+        }
       } else if (hasStreetInQuery) {
         // Якщо номер не вказано, але є назва вулиці (напр. "Київ Хрещатик"):
         const stTokens = facets.streetTokens;
@@ -3254,6 +3294,41 @@
             branchObj: b
           };
         });
+      }
+    } else if (indexDigitsMatch && !isUkrposhtaActive && indexDigitsMatch[1].length === 5) {
+      const targetCode = indexDigitsMatch[1];
+      const npPool = Array.isArray(pool) ? pool : [];
+      const exactNpMatches = npPool.filter(b => String(b.number) === targetCode);
+      const suggestions = [];
+
+      // 1. Якщо на Новій Пошті є поштомат/відділення з цим номером:
+      for (let i = 0; i < exactNpMatches.length; i++) {
+        suggestions.push(buildBranchSuggestion(exactNpMatches[i]));
+      }
+
+      // 2. Якщо в Укрпошті існує такий індекс — завжди додаємо його як розвилку для оператора:
+      const upBranch = getUkrposhtaBranchByIndex(targetCode);
+      if (upBranch) {
+        const upCityClean = cleanSettlementName(upBranch.city);
+        const upAddrClean = (typeof upBranch.street === 'string' && upBranch.street) ? upBranch.street : (upBranch.address || '');
+        suggestions.push({
+          mode: 'branch',
+          type: 'branch',
+          icon: '📮',
+          isCrossService: true,
+          service: 'ukrposhta',
+          title: `📮 Укрпошта: ${upBranch.index} — ${upCityClean}`,
+          subtitle: `${upAddrClean} • (індекс Укрпошти)`,
+          street: upAddrClean,
+          value: upCityClean,
+          textToFill: `${upCityClean} ${upBranch.index}`,
+          weightLabel: 'Укрпошта',
+          branchObj: upBranch
+        });
+      }
+
+      if (suggestions.length > 0) {
+        return suggestions;
       }
     }
 
@@ -4286,6 +4361,105 @@
     return idx;
   }
 
+  // 8.6 O(1) КРОС-СЕРВІСНА ІНДЕКСАЦІЯ ТА ПОШУК УКРПОШТИ (Сценарій 1 & 2)
+  let _ukrposhtaIndexMap = null;
+  let _ukrposhtaCityMap = null;
+
+  function ensureUkrposhtaIndex() {
+    if (_ukrposhtaIndexMap && _ukrposhtaCityMap) return;
+    let rawList = null;
+    if (typeof window !== 'undefined' && Array.isArray(window.UKRPOSHTA_BRANCHES_DATA) && window.UKRPOSHTA_BRANCHES_DATA.length > 0) {
+      rawList = window.UKRPOSHTA_BRANCHES_DATA;
+    } else if (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.ukrposhta) && window.BRANCHES_DATA.ukrposhta.length > 0) {
+      rawList = window.BRANCHES_DATA.ukrposhta;
+    } else if (typeof require === 'function') {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const p = path.join(typeof process !== 'undefined' && process.cwd ? process.cwd() : '.', 'data/ukrposhta_branches.json');
+        if (fs.existsSync(p)) rawList = JSON.parse(fs.readFileSync(p, 'utf8'));
+      } catch (_) {}
+    }
+    if (!rawList || !Array.isArray(rawList)) return;
+
+    _ukrposhtaIndexMap = new Map();
+    _ukrposhtaCityMap = new Map();
+
+    for (let i = 0; i < rawList.length; i++) {
+      const b = rawList[i];
+      const idx = String(b.index || b.number || b.postalCode || '');
+      const obl = b.oblast || (b.region ? b.region.replace(/\s*обл\.?.*$/i, '').trim() : '');
+      const rai = b.raion || (b.district ? b.district.replace(/\s*район.*$/i, '').trim() : '');
+      const addr = b.address || b.street || `ВПЗ ${idx}`;
+      const isCentr = b.type === 'central' || idx.endsWith('000') || idx.endsWith('001') || idx.endsWith('00');
+      const normB = {
+        ...b,
+        id: b.id || `up-${idx}`,
+        index: idx,
+        number: idx,
+        postalCode: idx,
+        service: 'ukrposhta',
+        city: b.city,
+        street: addr,
+        address: addr,
+        oblast: obl,
+        raion: rai,
+        district: rai,
+        region: b.region || (obl ? `${obl} обл.` : ''),
+        type: b.type || (isCentr ? 'central' : 'standard')
+      };
+      if (idx) {
+        _ukrposhtaIndexMap.set(idx, normB);
+      }
+      const c = canonCity(b.city || '');
+      if (c) {
+        let list = _ukrposhtaCityMap.get(c);
+        if (!list) {
+          list = [];
+          _ukrposhtaCityMap.set(c, list);
+        }
+        list.push(normB);
+      }
+    }
+  }
+
+  function getUkrposhtaBranchByIndex(idx) {
+    if (!idx) return null;
+    ensureUkrposhtaIndex();
+    if (_ukrposhtaIndexMap) {
+      return _ukrposhtaIndexMap.get(String(idx).trim()) || null;
+    }
+    return null;
+  }
+
+  function getUkrposhtaBranchesForSettlement(cityName, oblastName = '', raionName = '') {
+    if (!cityName) return [];
+    ensureUkrposhtaIndex();
+    if (!_ukrposhtaCityMap) return [];
+
+    const cKey = canonCity(cityName);
+    let list = _ukrposhtaCityMap.get(cKey) || [];
+    if (list.length === 0) {
+      const clean = cleanSettlementName(cityName);
+      if (clean) list = _ukrposhtaCityMap.get(canonCity(clean)) || [];
+    }
+
+    if (list.length <= 1) return list;
+
+    const sObl = (oblastName || '').toLowerCase().replace(/(?:ська|цька|зька| область| обл\.?)$/gi, '').slice(0, 4);
+    const sRai = (raionName || '').toLowerCase().replace(/(?:ський|цький|зький| район| р-н)$/gi, '');
+
+    const filtered = list.filter(b => {
+      const bObl = (b.region || b.oblast || '').toLowerCase();
+      const bRai = (b.district || b.raion || '').toLowerCase();
+      if (sObl && bObl && !bObl.includes(sObl) && !sObl.includes(bObl.slice(0, 4))) return false;
+      if (sRai && bRai && !bRai.includes(sRai.slice(0, 4)) && !sRai.includes(bRai.slice(0, 4)) && !areRaionsCompatible(sRai, bRai)) return false;
+      return true;
+    });
+
+    return filtered.length > 0 ? filtered : list;
+  }
+
   // 9. ОПТИМІЗОВАНИЙ ДВИГУН ПОШУКУ З LRU КЕШУВАННЯМ ТА УНІВЕРСАЛЬНИМ СКОРИНГОМ (SCORING MATRIX ENGINE)
   const SEARCH_LRU_LIMIT = 50;
   const _searchLruCache = new Map();
@@ -4650,7 +4824,7 @@
               } else {
                 score += 1000;
               }
-            } else if (bNum.startsWith(numTok)) {
+            } else if ((isPostomat || numTok.length >= 4) && bNum.startsWith(numTok)) {
               numMatched = true;
               const lenDiff = Math.min(Math.max(0, bNum.length - numTok.length), 4);
               score += 350 - lenDiff * 30 + (!isPostomat ? 40 : 0);
@@ -5095,7 +5269,10 @@
     getHistoricalGeoInfo,
     getCityBranchesFromPool,
     setAllSettlementsData,
-    getAllSettlementsCount: () => _allSettlementsByName.size
+    getAllSettlementsCount: () => _allSettlementsByName.size,
+    getUkrposhtaBranchByIndex,
+    getUkrposhtaBranchesForSettlement,
+    ensureUkrposhtaIndex
   };
 
 })();
