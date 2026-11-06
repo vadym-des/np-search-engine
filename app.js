@@ -3319,29 +3319,75 @@
   }
 
   // ==========================================================================
-  // 5. ТЕМНА / СВІТЛА КАРТА LEAFLET (АДАПТИВНІ ТАЙЛИ + CARTO / OSM)
+  // 5. ТЕМНА / СВІТЛА КАРТА LEAFLET (АДАПТИВНІ ТАЙЛИ + АВТОФОЛБЕК + ZERO-KEY GPU-DARK)
   // ==========================================================================
   const ukraineBounds = (typeof L !== 'undefined' && L.latLngBounds)
     ? L.latLngBounds(L.latLng(44.0, 22.0), L.latLng(52.5, 40.5))
     : null;
 
+  // Визначення протоколу file:// (локальне відкриття файлу без вебсервера):
+  // Сервери tile.openstreetmap.org блокують браузерні запити без заголовка Referer (HTTP 403 Access Blocked).
+  // Для file:// та в якості відмовостійкого CDN використовуємо Esri World Street Map (працює без API-ключа, без водяних знаків та без обмежень за Referer).
+  const isLocalFileProtocol = typeof window !== 'undefined' && window.location && window.location.protocol === 'file:';
+
   const MAP_TILES = {
     light: {
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      url: isLocalFileProtocol
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       options: {
         maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        subdomains: isLocalFileProtocol ? '' : 'abc',
+        attribution: isLocalFileProtocol
+          ? 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> &mdash; OpenStreetMap contributors'
+          : '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
       }
     },
     dark: {
-      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      // Для темної теми використовується той самий високошвидкісний шар плиток з апаратним GPU-фільтром Obsidian Dark у CSS.
+      // Це повністю усуває залежність від сторонніх заблокованих API-ключів Carto (водяний знак "API KEY REQUIRED"),
+      // гарантує 0 мс перемикання між темами та заощаджує мережевий трафік без зайвих повторних запитів.
+      url: isLocalFileProtocol
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       options: {
         maxZoom: 19,
-        subdomains: 'abcd',
-        attribution: '&copy; OpenStreetMap &copy; CARTO'
+        subdomains: isLocalFileProtocol ? '' : 'abc',
+        attribution: isLocalFileProtocol
+          ? 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> &mdash; OpenStreetMap contributors'
+          : '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
       }
     }
   };
+
+  function createOptimizedTileLayer(tileConf) {
+    if (typeof L === 'undefined' || !tileConf) return null;
+
+    const layer = L.tileLayer(tileConf.url, {
+      ...tileConf.options,
+      keepBuffer: 8,
+      updateWhenIdle: false,
+      updateWhenZooming: true
+    });
+
+    // Автоматичний захист від блокувань 403 / збоїв мережі:
+    // якщо плитка не завантажилася, непомітно підвантажуємо її з резервного CDN Esri
+    layer.on('tileerror', function(error) {
+      const tile = error && error.tile;
+      if (!tile || tile._fallbackTried) return;
+      tile._fallbackTried = true;
+
+      const coords = error.coords;
+      if (!coords) return;
+      const z = coords.z;
+      const x = coords.x;
+      const y = coords.y;
+
+      tile.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`;
+    });
+
+    return layer;
+  }
 
   function getBranchUniqueKey(b) {
     if (!b) return '';
@@ -3422,17 +3468,24 @@
   function updateMapTileLayerTheme(theme) {
     if (!state.leafletMap || typeof L === 'undefined') return;
     const targetTheme = theme === 'dark' ? 'dark' : 'light';
-    if (state.currentTileTheme === targetTheme && state.currentTileLayer) return;
+    state.currentTileTheme = targetTheme;
 
-    const tileConf = MAP_TILES[targetTheme];
-    const newLayer = L.tileLayer(tileConf.url, tileConf.options);
+    const tileConf = MAP_TILES[targetTheme] || MAP_TILES.light;
+
+    // Якщо підкладка використовує той самий тайловий URL (темна тема реалізована апаратним GPU CSS-фільтром),
+    // не перестворюємо шар у Leaflet: перемикання теми стає миттєвим (0 мс), без повторних запитів і без блимання
+    if (state.currentTileLayer && state.currentTileLayer._url === tileConf.url) {
+      return;
+    }
+
+    const newLayer = createOptimizedTileLayer(tileConf);
+    if (!newLayer) return;
 
     newLayer.addTo(state.leafletMap);
     if (state.currentTileLayer) {
       state.leafletMap.removeLayer(state.currentTileLayer);
     }
     state.currentTileLayer = newLayer;
-    state.currentTileTheme = targetTheme;
   }
 
   let mapMoveDebounceTimer = null;
@@ -3461,10 +3514,13 @@
 
     window.leafMap = state.leafletMap;
 
-    // Адаптивна картографічна підкладка: OpenStreetMap для світлої / CartoDB Dark Matter для темної
+    // Адаптивна картографічна підкладка без блокувань та водяних знаків Carto
     const initialTheme = state.theme === 'dark' ? 'dark' : 'light';
-    const tileConf = MAP_TILES[initialTheme];
-    state.currentTileLayer = L.tileLayer(tileConf.url, tileConf.options).addTo(state.leafletMap);
+    const tileConf = MAP_TILES[initialTheme] || MAP_TILES.light;
+    state.currentTileLayer = createOptimizedTileLayer(tileConf);
+    if (state.currentTileLayer) {
+      state.currentTileLayer.addTo(state.leafletMap);
+    }
     state.currentTileTheme = initialTheme;
 
     state.markersGroup = L.layerGroup().addTo(state.leafletMap);

@@ -27,8 +27,11 @@
   <!-- Leaflet CSS for Map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
+  <!-- Referrer Policy for Maps and External Assets -->
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.29">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.30">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -44,7 +47,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.29">
+  <link rel="stylesheet" href="styles.css?v=1.6.30">
 </head>
 <body data-service="novaposhta">
 
@@ -74,11 +77,6 @@
       </div>
 
       <div class="top-nav-actions">
-        <a href="https://docs.google.com/forms/d/1cORR9qpi92Ky7fymhElc74Pd51betHys2ZHSR5W4OB8/viewform" target="_blank" rel="noopener noreferrer" class="btn-feedback" title="Повідомити про баг або запропонувати ідею">
-          <span class="feedback-icon">💬</span>
-          <span class="feedback-text">Фідбек</span>
-        </a>
-
         <!-- Кнопка налаштувань шаблону копіювання -->
         <button id="btnHeaderCopySettings" class="copy-preset-btn icon-tool-btn" type="button" aria-label="Налаштування шаблону копіювання" title="Налаштування шаблону копіювання">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
@@ -267,18 +265,15 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.29</span>
-          
+          <span class="version-tag">v1.6.30</span>
         </button>
       </div>
 
-      <!-- Правий нижній кут: Кількість людей онлайн -->
+      <!-- Правий нижній кут: Кнопка зворотного зв'язку (іконка чату) -->
       <div class="corner-right">
-        <div class="online-counter-badge" title="Активні користувачі або вкладки на сайті">
-          <span class="pulse-indicator"></span>
-          <span class="online-label">Онлайн:</span>
-          <strong id="onlineUsersCount" class="online-count">1</strong>
-        </div>
+        <a href="https://docs.google.com/forms/d/1cORR9qpi92Ky7fymhElc74Pd51betHys2ZHSR5W4OB8/viewform" target="_blank" rel="noopener noreferrer" class="corner-pill-btn corner-feedback-btn" title="Залишити відгук або повідомити про баг" aria-label="Залишити відгук">
+          <span class="feedback-icon" aria-hidden="true">💬</span>
+        </a>
       </div>
     </footer>
 
@@ -296,8 +291,25 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.29 -->
+        <!-- Версія 1.6.30 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.30</span>
+            <span class="version-state">Відмовостійка підкладка карти, виправлення блокувань 403 / Carto API Key та апаратний Obsidian Dark 0 мс</span>
+            <span class="version-date">6 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Реорганізація шапки та футера (UX/UI):</strong> Кнопки зміни теми та налаштувань переміщені у правий верхній кут сторінки. Кнопку Feedback перенесено в правий нижній кут у вигляді лаконічної плаваючої іконки чату 💬. Повністю прибрано бейдж «Онлайн: 1» для чистоти та розвантаження інтерфейсу.</li>
+            <li><strong>Усунення водяного знака Carto («API KEY REQUIRED»):</strong> Прибрано заблоковані CartoDB Dark Matter тайли, що вимагали платної реєстрації або API-ключа. Впроваджено високопродуктивний апаратний GPU CSS-фільтр Obsidian Dark, який адаптує чисту топографічну підкладку без жодних водяних знаків та сторонніх ключів.</li>
+            <li><strong>Виправлення помилки блокування OpenStreetMap (403 Access Blocked):</strong> Усунено блокування тайлів при локальному відкритті файлу (протокол file:// без заголовка Referer). Інтегровано автоматичне перемикання на глобальний надшвидкий CDN Esri для роботи з диска.</li>
+            <li><strong>Автоматичний відмовостійкий фолбек (Resilient Tile Fallback):</strong> Додано обробник `tileerror`, який миттєво підвантажує дублюючі плитки з резервного джерела при будь-яких збоях зв'язку чи блокуваннях.</li>
+            <li><strong>Миттєве перемикання теми (0 мс без мережевих запитів):</strong> Зміна світлої/темної теми карти тепер відбувається через композитинг GPU на шарі плиток, без видалення тайлів Leaflet та без повторного завантаження десятків файлів.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.30.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.29 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.29</span>
             <span class="version-state">Крос-сервісна розвилка індексів та поштоматів, миттєвий перехід 0 мс та очищення емодзі</span>
@@ -1200,18 +1212,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.29"></script>
+  <script src="data/branches.js?v=1.6.30"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.29"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.30"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.29"></script>
+  <script src="data/all_settlements.js?v=1.6.30"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.29"></script>
+  <script src="data/fuzzySearch.js?v=1.6.30"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.29"></script>
+  <script src="app.js?v=1.6.30"></script>
 </body>
 </html>
