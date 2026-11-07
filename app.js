@@ -976,6 +976,11 @@
     let didYouMeanText = parsed.didYouMeanText;
     let didYouMeanData = parsed.didYouMean;
 
+    const hasStreetInQuery = Boolean(
+      (parsed.detectedStreet && !parsed.detectedStreet.toLowerCase().includes(canonCity(parsed.matchedSettlement ? parsed.matchedSettlement.name : ''))) ||
+      (engine && engine.extractFacets && (engine.extractFacets(rawQuery).streetTokens || []).some(t => !engine.isOblastToken(t) && t !== canonCity(parsed.matchedSettlement ? parsed.matchedSettlement.name : '')))
+    );
+
     // Встановлення відповідного фільтру типів за ключовими словами
     if (/(?:вантажне|вантажний|вантаж)/i.test(rawQuery)) {
       state.typeFilter = 'cargo';
@@ -1014,7 +1019,13 @@
     if (activeSettlement) {
       const selName = canonCity(activeSettlement.cleanName || activeSettlement.name);
       const selObl = cleanOblastName(activeSettlement.cleanOblast || activeSettlement.oblast || '').toLowerCase().slice(0, 4);
-      const selRaionClean = cleanRaionName(activeSettlement.cleanRaion || activeSettlement.raion || '').toLowerCase();
+      // КРИТИЧНО: Фільтруємо за районом ВИКЛЮЧНО якщо користувач явно вказав район у запиті
+      // (через parsed.detectedRaion / parsed.facets.raion) або явно обрав населений пункт зі списку (state.selectedSettlement).
+      // Якщо район не вказувався (напр. "київ щасливе 1"), заборонено відсікати відділення однойменних сіл у різних районах цієї області!
+      const explicitRaion = state.selectedSettlement
+        ? (state.selectedSettlement.cleanRaion || state.selectedSettlement.raion)
+        : (parsed.detectedRaion || (parsed.facets && parsed.facets.raion));
+      const selRaionClean = cleanRaionName(explicitRaion || '').toLowerCase();
       const selRaion = selRaionClean.slice(0, 4);
       staticMatches = staticMatches.filter(b => {
         const bc = b._canonCity || canonCity(b.city);
@@ -1099,7 +1110,11 @@
         }
       } else {
         // Пошук за вулицею, містом або аліасом без фіксованого номера
-        results = staticMatches;
+        if (!hasStreetInQuery && engine && typeof engine.sortBranchesBySettlementOrder === 'function') {
+          results = engine.sortBranchesBySettlementOrder(staticMatches, isPostomatSearch, /(?:відділення|відділ|вд|склад)/i.test(rawQuery));
+        } else {
+          results = staticMatches;
+        }
       }
     }
 
@@ -1186,14 +1201,15 @@
     // Для Укрпошти: у селах/СМТ відділення мають поштовий індекс замість номера 1-9, тому показуємо відділення населеного пункту з індексом
     if (results.length === 0) {
       if (state.selectedSettlement) {
-        const sName = state.selectedSettlement.cleanName.toLowerCase();
-        const sObl = state.selectedSettlement.cleanOblast.toLowerCase().slice(0, 4);
-        const sRaion = state.selectedSettlement.cleanRaion.toLowerCase().slice(0, 4);
+        const sName = (state.selectedSettlement.cleanName || state.selectedSettlement.name || '').toLowerCase();
+        const sObl = (state.selectedSettlement.cleanOblast || state.selectedSettlement.oblast || '').toLowerCase().slice(0, 4);
+        const sRaionClean = (state.selectedSettlement.cleanRaion || state.selectedSettlement.raion || '').toLowerCase();
+        const sRaion = sRaionClean.slice(0, 4);
         const settlementBranches = allStaticBranches.filter(b => {
           const bc = (b._canonCity || (b.city || '').toLowerCase()).trim();
           if (bc !== sName) return false;
           if (sObl && b.oblast && !b.oblast.toLowerCase().includes(sObl)) return false;
-          if (sRaion && b.raion && !b.raion.toLowerCase().includes(sRaion) && !areRaionsCompatible(sRaion, b.raion)) return false;
+          if (sRaionClean && b.raion && !b.raion.toLowerCase().includes(sRaion) && !areRaionsCompatible(sRaionClean, b.raion)) return false;
           return true;
         });
         if (settlementBranches.length > 0) results = settlementBranches;
@@ -1271,6 +1287,15 @@
 
     if (currentSignal.aborted) return;
 
+    // Гарантуємо природний порядок видачі населеного пункту (спочатку відділення №1..N, потім поштомати)
+    if (results.length > 1 && !parsed.targetBranchNumber && !hasStreetInQuery) {
+      if (engine && typeof engine.sortBranchesBySettlementOrder === 'function') {
+        const isPostomatSearch = parsed.isPostomat || state.typeFilter === 'postomat' || /(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)/i.test(rawQuery);
+        const isBranchSearch = /(?:відділення|відділ|вд|склад)/i.test(rawQuery) || state.typeFilter === 'cargo' || state.typeFilter === 'branch';
+        results = engine.sortBranchesBySettlementOrder(results, isPostomatSearch, isBranchSearch);
+      }
+    }
+
     state.currentResults = results;
     const hasExplicitTargetNum = parsed.targetBranchNumber && results.some(b => String(b.number) === String(parsed.targetBranchNumber));
     if (results.length === 1 || (isExplicitSubmit && results.length > 0 && hasExplicitTargetNum)) {
@@ -1328,12 +1353,13 @@
         const allBranches = getAllCurrentServiceBranches();
         const sName = (state.selectedSettlement ? state.selectedSettlement.cleanName : parsed.matchedSettlement.name).toLowerCase();
         const targetObl = (state.selectedSettlement ? state.selectedSettlement.cleanOblast : (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast) || parsed.matchedSettlement.oblast || '')).toLowerCase().slice(0, 4);
-        const targetRaion = (state.selectedSettlement ? state.selectedSettlement.cleanRaion : (parsed.detectedRaion || (parsed.facets && parsed.facets.raion) || '')).toLowerCase().slice(0, 4);
+        const targetRaionFull = (state.selectedSettlement ? (state.selectedSettlement.cleanRaion || state.selectedSettlement.raion) : (parsed.detectedRaion || (parsed.facets && parsed.facets.raion) || '')).toLowerCase();
+        const targetRaion = targetRaionFull.slice(0, 4);
         mapBranches = allBranches.filter(b => {
           const bc = (b._canonCity || (b.city || '').toLowerCase()).trim();
           if (bc !== sName) return false;
           if (targetObl && b.oblast && !b.oblast.toLowerCase().includes(targetObl)) return false;
-          if (targetRaion && b.raion && !b.raion.toLowerCase().includes(targetRaion) && !areRaionsCompatible(targetRaion, b.raion)) return false;
+          if (targetRaion && b.raion && !b.raion.toLowerCase().includes(targetRaion) && !areRaionsCompatible(targetRaionFull, b.raion)) return false;
           return true;
         }).slice(0, 20);
       }
@@ -2746,7 +2772,12 @@
       dom.resultsCount.textContent = 'Знайдено: 0 відділень';
 
       if (missingTargetBranch) {
-        const cityPart = missingTargetBranch.city ? ` у м. ${escapeHtml(missingTargetBranch.city)}` : '';
+        let typePrefix = 'м.';
+        if (missingTargetBranch.settlement && missingTargetBranch.settlement.type) {
+          const t = missingTargetBranch.settlement.type.toLowerCase();
+          typePrefix = t === 'місто' ? 'м.' : (t === 'смт' ? 'смт' : (t === 'селище' ? 'сел.' : 'с.'));
+        }
+        const cityPart = missingTargetBranch.city ? ` у ${typePrefix} ${escapeHtml(missingTargetBranch.city)}` : '';
         dom.resultsList.innerHTML = `
           <div class="empty-results-box" style="padding: 40px 16px; text-align: center; color: var(--text-muted); width: 100%;">
             <div style="font-size: 38px; margin-bottom: 12px;">⚠️</div>
@@ -5715,7 +5746,7 @@
   }
 
   // ==========================================================================
-  // РЕЄСТРАЦІЯ ТА АВТОМАТИЧНЕ ОНОВЛЕННЯ SERVICE WORKER (v8.26.9)
+  // РЕЄСТРАЦІЯ ТА БЕЗПАЛІВНЕ ФОНОВЕ ОНОВЛЕННЯ SERVICE WORKER
   // ==========================================================================
   function initServiceWorker() {
     try {
@@ -5724,53 +5755,135 @@
       }
     } catch (e) {}
 
-    if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
-      navigator.serviceWorker
-        .register('./sw.js?v=1.4.6', { updateViaCache: 'none' })
-        .then((reg) => {
-          // Примусова перевірка наявності оновлення
-          reg.update();
+    // Очищення застарілого тестового кешу 1.4.6, якщо він колись залишився
+    if ('caches' in window) {
+      caches.delete('np-ukr-cache-v1.4.6').catch(() => {});
+    }
 
-          // Якщо є воркер у черзі очікування — негайно активувати його
-          if (reg.waiting) {
-            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    if (!('serviceWorker' in navigator) || window.location.protocol === 'file:') {
+      return;
+    }
+
+    let refreshing = false;
+    const hadControllerAtLoad = !!navigator.serviceWorker.controller;
+
+    // Автоматичне очищення старих реєстрацій з параметрами (?v=...)
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((r) => {
+        if (r.active && r.active.scriptURL.includes('sw.js?v=')) {
+          r.unregister().catch(() => {});
+        }
+      });
+    }).catch(() => {});
+
+    navigator.serviceWorker
+      .register('./sw.js', { updateViaCache: 'none' })
+      .then((reg) => {
+        // 1. Початкова перевірка наявності оновлення
+        reg.update().catch(() => {});
+
+        // Безпечна відправка команди активації воркеру
+        function applyWaitingWorker(worker) {
+          if (!worker) return;
+          worker.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        // Розумне планування безпалівного оновлення без переривання активної роботи
+        function scheduleSilentUpdate(worker) {
+          if (!worker) return;
+
+          // Варіант А: Користувач не на цій вкладці (вкладка прихована) — оновлюємо негайно!
+          if (document.hidden) {
+            applyWaitingWorker(worker);
+            return;
           }
 
-          reg.addEventListener('updatefound', () => {
-            const installing = reg.installing;
-            if (installing) {
-              installing.addEventListener('statechange', () => {
-                if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-                  installing.postMessage({ type: 'SKIP_WAITING' });
-                }
-              });
+          // Варіант Б: Користувач прямо зараз на вкладці.
+          // Не перериваємо роботу! Оновлюємо в момент, коли він перейде на іншу вкладку:
+          const onVisibilityChange = () => {
+            if (document.hidden) {
+              document.removeEventListener('visibilitychange', onVisibilityChange);
+              applyWaitingWorker(worker);
+            }
+          };
+          document.addEventListener('visibilitychange', onVisibilityChange);
+
+          // Варіант В: Якщо користувач не чіпає сторінку 3 хв і поле пошуку порожнє — можна тихо оновити
+          let idleTimer = null;
+          const resetIdle = () => {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => {
+              const query = dom.searchInput ? dom.searchInput.value.trim() : '';
+              const hasOpenModal = !!document.querySelector('dialog[open]');
+              if (!query && !hasOpenModal) {
+                applyWaitingWorker(worker);
+              }
+            }, 3 * 60 * 1000);
+          };
+          window.addEventListener('mousemove', resetIdle, { passive: true, once: true });
+          window.addEventListener('keydown', resetIdle, { passive: true, once: true });
+          resetIdle();
+        }
+
+        // Якщо вже є воркер, що очікує активації
+        if (reg.waiting) {
+          scheduleSilentUpdate(reg.waiting);
+        }
+
+        // Відстежуємо появу нового воркера
+        reg.addEventListener('updatefound', () => {
+          const installing = reg.installing;
+          if (!installing) return;
+
+          installing.addEventListener('statechange', () => {
+            // Воркер завантажив усі файли і перейшов у стан installed
+            if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+              scheduleSilentUpdate(installing);
             }
           });
-        })
-        .catch((err) => {
-          console.warn('[SW] Реєстрація Service Worker пропущена:', err);
         });
 
-      // Перезавантажуємо вікно один раз, коли новий контролер переймає керування
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
+        // Періодична фонова перевірка кожні 3 хвилини
+        setInterval(() => {
+          reg.update().catch(() => {});
+        }, 3 * 60 * 1000);
+
+        // Перевірка при поверненні на вкладку після відсутності
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) {
+            reg.update().catch(() => {});
+          }
+        });
+
+        // Перевірка при відновленні мережі
+        window.addEventListener('online', () => {
+          reg.update().catch(() => {});
+        });
+      })
+      .catch((err) => {
+        console.warn('[SW] Реєстрація Service Worker пропущена:', err);
+      });
+
+    // Перезавантажуємо вікно, коли новий контролер переймає керування:
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      // Якщо це перший візит в історії — перезавантажувати не потрібно
+      if (!hadControllerAtLoad || refreshing) return;
+
+      // Якщо вкладка прихована — перезавантажуємося тихо і непомітно прямо зараз!
+      if (document.hidden) {
+        refreshing = true;
+        window.location.reload();
+        return;
+      }
+
+      // Якщо вкладка відкрита перед очима — чекаємо моменту, коли користувач перемкне вкладку
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && !refreshing) {
           refreshing = true;
           window.location.reload();
         }
-      });
-    }
-
-    // Очищення старих кешів на рівні браузера для гарантії актуальності версії
-    if ('caches' in window) {
-      caches.keys().then((keys) => {
-        keys.forEach((key) => {
-          if (key !== 'np-ukr-cache-v1.4.6') {
-            caches.delete(key);
-          }
-        });
-      }).catch(() => {});
-    }
+      }, { once: true });
+    });
   }
 
   // ==========================================================================

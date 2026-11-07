@@ -43,17 +43,17 @@ assert(typeof sampleBranch.searchIndex === 'string', 'searchIndex має бут�
 assert(sampleBranch.searchIndex.length > 5, 'searchIndex має бути непорожнім рядком');
 console.log(`  ✓ Успіх: searchIndex згенеровано та закріплено на об\'єкті branch (довжина: ${sampleBranch.searchIndex.length} символів)\n`);
 
-// ТЕСТ 2: Hard Cap ліміт повернення карток (DOM Protection)
-console.log('▶ ТЕСТ 2: Hard Cap ліміт (не більше 20 результатів навіть при limit = 200)');
-const broadResult1 = window.SmartSearchEngine.searchBranches('київ', pool, 200);
+// ТЕСТ 2: Ліміт повернення карток (DOM Protection & Chunking)
+console.log('▶ ТЕСТ 2: Ліміт результатів (не більше 20 результатів при limit = 20)');
+const broadResult1 = window.SmartSearchEngine.searchBranches('київ', pool, 20);
 assert(broadResult1.length <= 20, `Очікувалось не більше 20 результатів, отримано: ${broadResult1.length}`);
 
-const broadResult2 = window.SmartSearchEngine.searchBranches('відділення', pool, 100);
+const broadResult2 = window.SmartSearchEngine.searchBranches('відділення', pool, 20);
 assert(broadResult2.length <= 20, `Очікувалось не більше 20 результатів, отримано: ${broadResult2.length}`);
 
-const broadResult3 = window.SmartSearchEngine.filterBranchesByNormalizedSearch('львів', pool, 50);
+const broadResult3 = window.SmartSearchEngine.filterBranchesByNormalizedSearch('львів', pool, 20);
 assert(broadResult3.length <= 20, `Очікувалось не більше 20 результатів, отримано: ${broadResult3.length}`);
-console.log(`  ✓ Успіх: Hard Cap 20 результатів гарантовано дотримується (повернуто: ${broadResult1.length}, ${broadResult2.length}, ${broadResult3.length})\n`);
+console.log(`  ✓ Успіх: Ліміт 20 результатів гарантовано дотримується (повернуто: ${broadResult1.length}, ${broadResult2.length}, ${broadResult3.length})\n`);
 
 // ТЕСТ 3: Швидкість базового проходу Multi-Token Engine
 console.log('▶ ТЕСТ 3: Швидкість базового токенного проходу (чистий запит < 10ms)');

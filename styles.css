@@ -1803,15 +1803,21 @@ html[data-theme="dark"] .btn-header-up-switch {
   background: var(--bg-card-subtle);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
 }
 
 .address-match-row:hover {
-  background: var(--bg-card-hover, rgba(255, 255, 255, 0.05));
+  background: var(--bg-card-hover, rgba(0, 0, 0, 0.04));
   border-color: var(--primary-color);
   transform: translateX(2px);
+  box-shadow: 0 3px 6px -1px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="dark"] .address-match-row:hover {
+  background: var(--bg-card-hover, rgba(255, 255, 255, 0.05));
 }
 
 .address-match-left {
@@ -1823,8 +1829,11 @@ html[data-theme="dark"] .btn-header-up-switch {
 }
 
 .address-match-icon {
-  font-size: 16px;
+  font-size: 18px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .address-match-content {
@@ -1834,10 +1843,13 @@ html[data-theme="dark"] .btn-header-up-switch {
   min-width: 0;
 }
 
+/* Перший рядок: назва відділення (15px напівжирний) */
 .address-match-title {
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-main);
+  line-height: 1.35;
+  letter-spacing: -0.1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1851,6 +1863,10 @@ html[data-theme="dark"] .btn-header-up-switch {
   font-weight: 600;
 }
 
+[data-theme="dark"] .address-match-title {
+  color: #f8fafc;
+}
+
 [data-theme="dark"] .address-match-title .street-part,
 [data-theme="dark"] .street-part,
 [data-theme="dark"] .branch-card-street,
@@ -1858,13 +1874,19 @@ html[data-theme="dark"] .btn-header-up-switch {
   color: #f8fafc;
 }
 
-
+/* Другий рядок: географія населеного пункту (13px, природна контрастність) */
 .address-match-sub {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 400;
   color: var(--text-muted);
+  line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+[data-theme="dark"] .address-match-sub {
+  color: #94a3b8;
 }
 
 .address-match-right {
@@ -2192,9 +2214,9 @@ body[data-theme="dark"] .status-pill {
 }
 
 .weight-pill {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
-  padding: 4px 9px;
+  padding: 4px 10px;
   border-radius: var(--radius-sm);
   white-space: nowrap;
   background: var(--bg-card);
@@ -2224,6 +2246,24 @@ body[data-theme="dark"] .status-pill {
   background: rgba(245, 158, 11, 0.08);
   color: #fcd34d;
   border: 1px solid rgba(245, 158, 11, 0.18);
+}
+
+[data-theme="dark"] .weight-pill.cargo {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+[data-theme="dark"] .weight-pill.pickup {
+  background: rgba(168, 85, 247, 0.12);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+[data-theme="dark"] .weight-pill.poshtomat {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
 /* Кнопка швидкої дії "Скопіювати" (розташована ліворуч) */

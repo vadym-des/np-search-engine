@@ -108,6 +108,8 @@ global.document = {
       appendChild(child) { this.children.push(child); return child; },
       setAttribute(k, v) { this[k] = v; },
       getAttribute(k) { return this[k]; },
+      querySelector() { return null; },
+      querySelectorAll() { return []; },
       addEventListener(event, handler) {
         if (!this._listeners) this._listeners = {};
         if (!this._listeners[event]) this._listeners[event] = [];
@@ -192,7 +194,7 @@ async function runAll() {
     window.selectAutocompleteItem(kirovohradItem);
 
     assert.strictEqual(
-      searchInput.value,
+      searchInput.value.trim(),
       'Березнегувате Компаніївський Кіровоградська',
       `Очікувалось "Березнегувате Компаніївський Кіровоградська", отримано "${searchInput.value}"`
     );
@@ -209,7 +211,7 @@ async function runAll() {
     const kirovohradItem = suggestions.find(s => s.subtitle && s.subtitle.includes('Кіровоградська'));
     window.selectAutocompleteItem(kirovohradItem);
 
-    assert.strictEqual(searchInput.value, 'Березнегувате Компаніївський Кіровоградська');
+    assert.strictEqual(searchInput.value.trim(), 'Березнегувате Компаніївський Кіровоградська');
     assert(autocompleteDropdown.classList.contains('hidden'), 'Після вибору дропдаун ховається');
 
     // Крок 2: стираємо бекспейсом до "Березнегувате"

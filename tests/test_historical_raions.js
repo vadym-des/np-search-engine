@@ -164,6 +164,28 @@ runTest('Довідник data/raion_aliases.json валідний та дост
   assert.strictEqual(parsed.raion_aliases['березнегуватський'].new, 'Баштанський');
 });
 
+// 7. Славутич (Вишгородський р-н КАТОТТГ <-> Славутицька міськрада НП): автокомпліт та пошук
+runTest('Славутич: автокомпліт підраховує 32 точки та сумісний з Вишгородським районом', () => {
+  const engine = window.SmartSearchEngine;
+  assert(engine.areRaionsCompatible('вишгородський', 'славутицька'), 'Вишгородський та Славутицька повинні бути сумісними');
+  assert(engine.areRaionsCompatible('славутицька', 'вишгородський'), 'Славутицька та Вишгородський повинні бути сумісними');
+
+  const slavAutos = engine.getAutocompleteSuggestions('Славутич', 'novaposhta', null, branches);
+  assert(slavAutos.length > 0, 'Автокомпліт повинен знайти Славутич');
+  const slavItem = slavAutos[0];
+  assert.strictEqual(slavItem.title, 'Славутич');
+  assert(slavItem.branchCount > 0, `Кількість відділень у Славутичі має бути > 0, отримано: ${slavItem.branchCount}`);
+  assert.strictEqual(slavItem.branchCount, 32, 'Славутич повинен мати 32 відділення');
+
+  const found1 = engine.searchBranches('Славутич 1', branches);
+  assert(found1.length > 0, 'Пошук "Славутич 1" повинен знайти відділення №1');
+  assert.strictEqual(found1[0].number, '1', 'Має бути відділення №1');
+
+  const foundFull = engine.searchBranches('Славутич Вишгородський Київська 1', branches);
+  assert(foundFull.length > 0, 'Пошук "Славутич Вишгородський Київська 1" повинен знайти відділення №1');
+  assert.strictEqual(foundFull[0].number, '1');
+});
+
 console.log('===============================================================');
 console.log(`📊 РЕЗУЛЬТАТ: ${passedTests} / ${totalTests} ТЕСТІВ ПРОЙДЕНО УСПІШНО!`);
 console.log('===============================================================');

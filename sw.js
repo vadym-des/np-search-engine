@@ -1,30 +1,33 @@
 /**
  * Service Worker для "Пошук відділень Нова Пошта & Укрпошта"
- * Версія: v1.6.30
+ * Версія: v1.6.31
  * Забезпечує миттєве оновлення (skipWaiting + clients.claim) та офлайн-доступ.
  */
 
-const CACHE_VERSION = 'v1.6.30';
-const CACHE_NAME = 'np-search-cache-v1.6.30';
+const CACHE_VERSION = 'v1.6.31';
+const CACHE_NAME = 'np-search-cache-v1.6.31';
 
 // Ресурси для попереднього кешування з версіонуванням
 const PRECACHE_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.6.30',
-  './favicon.svg?v=1.6.30',
-  './data/branches.js?v=1.6.30',
-  './data/ukrposhta_branches.js?v=1.6.30',
-  './data/all_settlements.js?v=1.6.30',
-  './data/fuzzySearch.js?v=1.6.30',
+  './styles.css?v=1.6.31',
+  './favicon.svg?v=1.6.31',
+  './data/branches.js?v=1.6.31',
+  './data/ukrposhta_branches.js?v=1.6.31',
+  './data/all_settlements.js?v=1.6.31',
+  './data/fuzzySearch.js?v=1.6.31',
   './data/raion_aliases.json',
   './data/settlement_aliases.json',
-  './app.js?v=1.6.30'
+  './app.js?v=1.6.31'
 ];
 
-// Встановлення: негайно замінюємо старий воркер новим без очікування
+// Встановлення: попереднє кешування ресурсів
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  // Якщо це перше встановлення (немає активного воркера) — активуємось одразу
+  if (!self.registration.active) {
+    self.skipWaiting();
+  }
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_ASSETS).catch((err) => {
@@ -75,10 +78,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // HTML навігація — завжди Network First
+  // HTML навігація — завжди Network First з обходом дискового HTTP-кешу
   if (req.mode === 'navigate' || req.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
-      fetch(req)
+      fetch(req.url, { cache: 'no-cache' })
         .then((response) => {
           if (response && response.status === 200) {
             const clone = response.clone();

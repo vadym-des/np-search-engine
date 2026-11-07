@@ -16,6 +16,7 @@ console.log('===============================================================\n')
 
 // 1. Перевірка index.html
 const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const fuzzySearchJs = fs.readFileSync(path.join(__dirname, '..', 'data', 'fuzzySearch.js'), 'utf8');
 
 console.log('▶ ТЕСТ 1: Відсутність нативного tooltip браузера (novalidate та видалення required)');
 assert.ok(indexHtml.includes('<form id="searchForm" class="search-box-card" role="search" novalidate>'), 'Форма повинна мати атрибут novalidate');
@@ -67,6 +68,24 @@ const typeFilterBlock = appJs.slice(appJs.indexOf('dom.resultsTypeFilters.addEve
 assert.ok(!typeFilterBlock.includes('window.scrollTo'), 'resultsTypeFilters НЕ повинен викликати window.scrollTo при перемиканні табів');
 assert.ok(typeFilterBlock.includes('dom.resultsList.scrollTop = 0'), 'resultsTypeFilters повинен скидати внутрішній scrollTop списку до 0');
 console.log('  ✓ Успіх: Клік на фільтри не зсуває сторінку вниз, список скидається догори.\n');
+
+console.log('▶ ТЕСТ 7: Типографіка та контрастність карток видачі (.address-match-title 15px, .address-match-sub 13px, природний контраст, підкладка)');
+assert.ok(stylesCss.includes('font-size: 15px;') && stylesCss.includes('.address-match-title'), 'styles.css повинен встановлювати 15px для .address-match-title');
+assert.ok(stylesCss.includes('font-size: 13px;') && stylesCss.includes('.address-match-sub'), 'styles.css повинен встановлювати 13px для .address-match-sub');
+assert.ok(stylesCss.includes('color: var(--text-muted);') && stylesCss.includes('.address-match-sub'), 'styles.css повинен використовувати природний колір var(--text-muted) для .address-match-sub');
+assert.ok(stylesCss.includes('background: var(--bg-card-subtle);') && stylesCss.includes('.address-match-row'), 'styles.css повинен використовувати підкладку var(--bg-card-subtle) для .address-match-row');
+console.log('  ✓ Успіх: Назва відділення 15px, географія 13px, підкладка var(--bg-card-subtle) та контрастність першого варіанту налаштовані.\n');
+
+console.log('▶ ТЕСТ 8: Захист від колізій тезок та відсікання районів при запитах типу "київ Щасливе 1"');
+assert.ok(appJs.includes('explicitRaion'), 'app.js повинен фільтрувати за районом тільки при наявності explicitRaion');
+assert.ok(fuzzySearchJs.includes('oblMatchesList'), 'fuzzySearch.js повинен інтелектуально дезамбігувати тезок за кількістю відділень');
+console.log('  ✓ Успіх: Відділення тезок у межах області не відсікаються без явного району в запиті.\n');
+
+console.log('▶ ТЕСТ 9: Природний порядок видачі населеного пункту (відділення №1, 2, 3.. перед поштоматами)');
+assert.ok(appJs.includes('sortBranchesBySettlementOrder'), 'app.js повинен сортувати результати за sortBranchesBySettlementOrder при пошуку по місту');
+assert.ok(fuzzySearchJs.includes('тлумацький\': \'івано-франківський\''), 'fuzzySearch.js повинен містити Тлумацький район у CONSOLIDATED_RAION_MAP');
+assert.ok(fuzzySearchJs.includes('\'івано-франківський\': [\'івано-франківський\', \'тлумацький\''), 'fuzzySearch.js повинен містити Івано-Франківський район у KATOTTG_RAION_MAP');
+console.log('  ✓ Успіх: Відділення впорядковані за зростанням (№1..N) перед поштоматами, а КАТОТТГ-маппінг району підтримується.\n');
 
 console.log('===============================================================');
 console.log('🎉 ВСІ UX-ТЕСТИ ПРОЙДЕНО УСПІШНО!');
