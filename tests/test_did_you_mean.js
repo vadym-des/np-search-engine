@@ -119,6 +119,25 @@ assert(
   `didYouMeanText=${p7.didYouMeanText}`
 );
 
+// ТЕСТ 8: Запит каменець поділ (скорочена/розмовна назва з одруківкою)
+const p8 = window.SmartSearchEngine.parseQuery('каменець поділ');
+const r8 = window.SmartSearchEngine.searchBranches('каменець поділ', pool);
+assert(
+  'каменець поділ повинен запропонувати "Кам\'янець-Подільський" та знайти 130 відділень',
+  p8.didYouMeanText === "Кам'янець-Подільський" && r8.length === 130,
+  `didYouMeanText=${p8.didYouMeanText}, count=${r8.length}`
+);
+
+// ТЕСТ 9: Запит каменець поділ 1 повинен точково замінити токен на Кам'янець-Подільський 1 та знайти відділення №1
+const p9 = window.SmartSearchEngine.parseQuery('каменець поділ 1');
+const rep9 = simulateTokenReplacement('каменець поділ 1', p9.didYouMean, p9.didYouMeanText);
+const r9 = window.SmartSearchEngine.searchBranches('каменець поділ 1', pool);
+assert(
+  'каменець поділ 1 повинен замінити запит на "Кам\'янець-Подільський 1" та знайти відділення №1',
+  p9.didYouMeanText === "Кам'янець-Подільський" && rep9 === "Кам'янець-Подільський 1" && r9.length === 1 && String(r9[0].number) === '1',
+  `didYouMeanText=${p9.didYouMeanText}, replacedQuery="${rep9}", found=${r9.length}`
+);
+
 console.log('===============================================================');
 console.log(`📊 РЕЗУЛЬТАТ: ${passed} / ${total} ТЕСТІВ ПРОЙДЕНО УСПІШНО!`);
 console.log('===============================================================');

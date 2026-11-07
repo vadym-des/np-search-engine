@@ -1,25 +1,25 @@
 /**
  * Service Worker для "Пошук відділень Нова Пошта & Укрпошта"
- * Версія: v1.6.31
+ * Версія: v1.6.32
  * Забезпечує миттєве оновлення (skipWaiting + clients.claim) та офлайн-доступ.
  */
 
-const CACHE_VERSION = 'v1.6.31';
-const CACHE_NAME = 'np-search-cache-v1.6.31';
+const CACHE_VERSION = 'v1.6.32';
+const CACHE_NAME = 'np-search-cache-v1.6.32';
 
 // Ресурси для попереднього кешування з версіонуванням
 const PRECACHE_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.6.31',
-  './favicon.svg?v=1.6.31',
-  './data/branches.js?v=1.6.31',
-  './data/ukrposhta_branches.js?v=1.6.31',
-  './data/all_settlements.js?v=1.6.31',
-  './data/fuzzySearch.js?v=1.6.31',
+  './styles.css?v=1.6.32',
+  './favicon.svg?v=1.6.32',
+  './data/branches.js?v=1.6.32',
+  './data/ukrposhta_branches.js?v=1.6.32',
+  './data/all_settlements.js?v=1.6.32',
+  './data/fuzzySearch.js?v=1.6.32',
   './data/raion_aliases.json',
   './data/settlement_aliases.json',
-  './app.js?v=1.6.31'
+  './app.js?v=1.6.32'
 ];
 
 // Встановлення: попереднє кешування ресурсів

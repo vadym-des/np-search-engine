@@ -300,6 +300,31 @@
     ['кри ріг', 'кривий ріг'],
     ['криріг', 'кривий ріг'],
     ['крив ріг', 'кривий ріг'],
+    ['камянець поділ', "кам'янець-подільський"],
+    ['кам янець поділ', "кам'янець-подільський"],
+    ['кам\'янець поділ', "кам'янець-подільський"],
+    ['каменець поділ', "кам'янець-подільський"],
+    ['каменец подол', "кам'янець-подільський"],
+    ['камянець-поділ', "кам'янець-подільський"],
+    ['кам\'янець-поділ', "кам'янець-подільський"],
+    ['каменец-подол', "кам'янець-подільський"],
+    ['камянець подільськ', "кам'янець-подільський"],
+    ['кам\'янець подільськ', "кам'янець-подільський"],
+    ['каменець подільськ', "кам'янець-подільський"],
+    ['каменец подольск', "кам'янець-подільський"],
+    ['каменец подольский', "кам'янець-подільський"],
+    ['камянець подільський', "кам'янець-подільський"],
+    ['кам янець подільський', "кам'янець-подільський"],
+    ['кам\'янець подільський', "кам'янець-подільський"],
+    ['кампод', "кам'янець-подільський"],
+    ['кам-под', "кам'янець-подільський"],
+    ['кам под', "кам'янець-подільський"],
+    ['каменець', "кам'янець-подільський"],
+    ['каменец', "кам'янець-подільський"],
+    ['могилів поділ', "могилів-подільський"],
+    ['могилев подол', "могилів-подільський"],
+    ['могилів-поділ', "могилів-подільський"],
+    ['могилев-подол', "могилів-подільський"],
     ['степан город', 'степангород'],
     ['степангород', 'степангород'],
     ['велика доб', 'велика добронь'],
@@ -2098,6 +2123,22 @@
       const isNextRegion = next && ((isOblastToken(next) && next !== 'дніпро' && next !== 'днепр') ||
         ((detectRaion(next) || /(?:ський|цький|зький)$/iu.test(next)) && !isKnownSettlement(next)));
 
+      const third = filteredTokens[i + 2];
+      if (next && third && !/^\d+$/.test(cur) && !/^\d+$/.test(next) && !/^\d+$/.test(third)) {
+        const three = cur + ' ' + next + ' ' + third;
+        const foundThree = findSettlementByNameOrFuzzy(three, contextOblast, contextRaion);
+        if (foundThree) {
+          if (!detectedCity) {
+            detectedCity = foundThree;
+            rawCityToken = three;
+            hasCityTypo = true;
+            mergedTokens.push(foundThree.name.toLowerCase());
+          }
+          i += 2;
+          continue;
+        }
+      }
+
       if (next && !/^\d+$/.test(cur) && !/^\d+$/.test(next) && !isNextRegion) {
         const foundCombined = findSettlementByNameOrFuzzy(cur + ' ' + next, contextOblast, contextRaion) ||
                               findSettlementByNameOrFuzzy(cur + '-' + next, contextOblast, contextRaion) ||
@@ -2136,7 +2177,7 @@
           const isExact = (curLower === sLower) ||
                           (normalizeLocativeCase(curLower) === sLower) ||
                           (canonText(curLower) === canonText(sLower)) ||
-                          (foundSingle.aliases && foundSingle.aliases.some(a => a.toLowerCase() === curLower || canonText(a.toLowerCase()) === canonText(curLower)));
+                          (foundSingle.aliases && foundSingle.aliases.some(a => (a.toLowerCase() === curLower || canonText(a.toLowerCase()) === canonText(curLower)) && canonText(a.toLowerCase()) === canonText(sLower)));
 
           if (!detectedCity) {
             detectedCity = foundSingle;
@@ -2537,7 +2578,7 @@
           const isExact = (fCity === sLower) ||
                           (normalizeLocativeCase(fCity) === sLower) ||
                           (canonText(fCity) === canonText(sLower)) ||
-                          (betterS.aliases && betterS.aliases.some(a => a.toLowerCase() === fCity || canonText(a.toLowerCase()) === canonText(fCity)));
+                          (betterS.aliases && betterS.aliases.some(a => (a.toLowerCase() === fCity || canonText(a.toLowerCase()) === canonText(fCity)) && canonText(a.toLowerCase()) === canonText(sLower)));
           if (isExact) {
             hasRealTypo = false;
             didYouMeanText = null;
@@ -4000,6 +4041,16 @@
     const foundSettlementsInOrder = [];
     for (let i = 0; i < words.length; i++) {
       const hasAnchoredCity = foundSettlementsInOrder.length > 0;
+      if (i + 2 < words.length && !/\d/.test(words[i]) && !/\d/.test(words[i + 1]) && !/\d/.test(words[i + 2])) {
+        const three = words[i] + ' ' + words[i + 1] + ' ' + words[i + 2];
+        const s3 = findSettlementByNameOrFuzzy(three, oblast, raion);
+        if (s3) {
+          const sObj = Array.isArray(s3) ? s3[0] : s3;
+          foundSettlementsInOrder.push({ s: sObj, raw: three, startIndex: i });
+          i += 2;
+          continue;
+        }
+      }
       if (i + 1 < words.length && !/\d/.test(words[i]) && !/\d/.test(words[i + 1])) {
         const two = words[i] + ' ' + words[i + 1];
         let s2 = null;

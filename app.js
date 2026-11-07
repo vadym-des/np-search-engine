@@ -2611,9 +2611,11 @@
     if (didYouMeanText && dom.didYouMeanBox && !state.selectedBranch) {
       dom.didYouMeanBox.classList.remove('hidden');
       dom.didYouMeanBox.style.cursor = 'pointer';
+      dom.didYouMeanBox.setAttribute('title', 'Натисніть, щоб підставити виправлену назву');
       dom.didYouMeanBox.innerHTML = `
-        <span>💡 Можливо, ви мали на увазі:</span>
-        <a class="did-you-mean-link" id="linkDidYouMean" href="#">${escapeHtml(didYouMeanText)}</a>
+        <span class="did-you-mean-icon" aria-hidden="true">💡</span>
+        <span class="did-you-mean-label">Можливо, ви мали на увазі:</span>
+        <a class="did-you-mean-link" id="linkDidYouMean" href="#" role="button">${escapeHtml(didYouMeanText)}</a>
       `;
 
       const handleDidYouMeanClick = (e) => {
