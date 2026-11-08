@@ -229,7 +229,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 57;
+  let totalTests = 58;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -3585,6 +3585,33 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 57:', err.message, '\n');
+  }
+
+  // ТЕСТ 58: Автокомпліт для "могилів" повертає як с. Могилів, так і м. Могилів-Подільський (v1.6.41)
+  try {
+    console.log('▶ ТЕСТ 58: Відображення однойменного села та складеного міста в автокомпліті ("могилів" -> Могилів та Могилів-Подільський)');
+    const eng = window.SmartSearchEngine;
+    const pool = window.BRANCHES_DATA.novaposhta;
+    const res = eng.getAutocompleteSuggestions('могилів', 'novaposhta', null, pool);
+    
+    if (!res || res.length < 2) {
+      throw new Error(`Очікувалося щонайменше 2 варіанти для "могилів", отримано: ${res ? res.length : 0}`);
+    }
+
+    const hasVillage = res.some(s => s.title === 'Могилів' && s.subtitle.includes('Дніпропетровська'));
+    const hasCity = res.some(s => s.title.includes('Могилів-Подільський') && s.subtitle.includes('Вінницька'));
+
+    if (!hasVillage) {
+      throw new Error('У підказках відсутнє с. Могилів (Дніпропетровська обл.)');
+    }
+    if (!hasCity) {
+      throw new Error('У підказках відсутнє м. Могилів-Подільський (Вінницька обл.)');
+    }
+
+    console.log('  ✓ Успіх: При введенні "могилів" автокомпліт повертає обидва варіанти: с. Могилів (Дніпропетровська обл.) та м. Могилів-Подільський (Вінницька обл.)!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 58:', err.message, '\n');
   }
 
   console.log('===============================================================');

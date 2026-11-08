@@ -31,7 +31,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.40">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.41">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -47,7 +47,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.40">
+  <link rel="stylesheet" href="styles.css?v=1.6.41">
 </head>
 <body data-service="novaposhta">
 
@@ -265,7 +265,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.40</span>
+          <span class="version-tag">v1.6.41</span>
         </button>
       </div>
 
@@ -291,8 +291,21 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.40 -->
+        <!-- Версія 1.6.41 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.41</span>
+            <span class="version-state">Автокомпліт складених та дефісних міст («могилів» → Могилів та Могилів-Подільський)</span>
+            <span class="version-date">8 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Підтримка складених та дефісних міст в автокомпліті:</strong> Усунено блокування префіксного пошуку, коли точний збіг запиту з маленьким селом (наприклад, <em>«могилів»</em> → с. Могилів у Дніпропетровській обл.) приховував однойменні міста зі складеною назвою (<em>м. Могилів-Подільський</em> у Вінницькій обл.). Тепер у випадаючому списку одразу відображаються обидва варіанти без потреби додруковувати дефіс <code>-</code>.</li>
+            <li><strong>Пошук відділень за коротким префіксом міста:</strong> У <code>searchBranches</code> додано підтримку складених назв: запит <code>могилів 1</code> повертає перші відділення як с. Могилів, так і м. Могилів-Подільський, а <code>могилів 2</code> знаходить відділення №2 у м. Могилів-Подільський.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.40 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.40</span>
             <span class="version-state">Роздільне відображення однойменних міста та смт («Дунаївці» / «Дунаївці (смт)»)</span>
@@ -1357,18 +1370,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.40"></script>
+  <script src="data/branches.js?v=1.6.41"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.40"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.41"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.40"></script>
+  <script src="data/all_settlements.js?v=1.6.41"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.40"></script>
+  <script src="data/fuzzySearch.js?v=1.6.41"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.40"></script>
+  <script src="app.js?v=1.6.41"></script>
 </body>
 </html>

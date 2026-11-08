@@ -3783,6 +3783,36 @@
       }
     }
 
+    // Додаємо складені / дефісні населені пункти, перше слово яких збігається із запитом:
+    // (наприклад: "могилів" -> "Могилів-Подільський", "кам'янка" -> "Кам'янка-Бузька", "Кам'янка-Дніпровська", "рава" -> "Рава-Руська")
+    if (normalizedQuery.length >= 2) {
+      const canonQ = canonText(normalizedQuery);
+      const p2 = canonQ.slice(0, 2);
+      const p2List = _allSettlementsByPrefix2.get(p2) || [];
+      const hyphenPrefix = canonQ + '-';
+      const spacePrefix = canonQ + ' ';
+      const compoundCandidates = [];
+      for (let i = 0; i < p2List.length; i++) {
+        const s = p2List[i];
+        const sLow = canonText(s.cleanName || s.name);
+        if (sLow.startsWith(hyphenPrefix) || sLow.startsWith(spacePrefix)) {
+          compoundCandidates.push(s);
+        }
+      }
+      for (let s of UKRAINE_SETTLEMENTS) {
+        const sLow = canonText(s.name);
+        if (sLow.startsWith(hyphenPrefix) || sLow.startsWith(spacePrefix)) {
+          compoundCandidates.push(s);
+        }
+      }
+      if (compoundCandidates.length > 0) {
+        const sortedCompound = sortSettlementVariants(compoundCandidates);
+        for (let i = 0; i < sortedCompound.length && suggestions.length < 50; i++) {
+          pushSettlementSuggestion(sortedCompound[i]);
+        }
+      }
+    }
+
     if (suggestions.length > 0) {
       return suggestions;
     }
@@ -5164,11 +5194,18 @@
     if (detectedCityName && poolIndex) {
       cityBranchesList = poolIndex.cityBranches.get(detectedCityName) ||
         (SETTLEMENT_ALIASES_MAP.has(detectedCityName) ? poolIndex.cityBranches.get(SETTLEMENT_ALIASES_MAP.get(detectedCityName)) : null) || null;
+      if (!hasExplicitOblast && !facets.raion && poolIndex.cityBranches) {
+        for (const [cName, cBranches] of poolIndex.cityBranches.entries()) {
+          if (cName.startsWith(detectedCityName + '-') || cName.startsWith(detectedCityName + ' ')) {
+            cityBranchesList = (cityBranchesList || []).concat(cBranches);
+          }
+        }
+      }
       if (cityBranchesList && cityBranchesList.length > 0) {
         for (let i = 0; i < cityBranchesList.length; i++) {
           const bItem = cityBranchesList[i];
           const bItemOblast = (bItem.oblast || '').toLowerCase();
-          const oblMatches = !queryOblastClean || bItemOblast.includes(queryOblastClean);
+          const oblMatches = !hasExplicitOblast || (queryOblastClean && bItemOblast.includes(queryOblastClean));
           const raionMatches = !facets.raion || !bItem.raion || areRaionsCompatible(facets.raion, bItem.raion);
           if (oblMatches && raionMatches) {
             hasExactCityInPool = true;
@@ -5257,6 +5294,7 @@
         // заборонено підтягувати відділення з інших сіл (напр. с. Садки) лише через збіг вулиці чи номера будинку.
         const isExactNumTarget = Boolean(strictTargetNumber && (bNum === strictTargetNumber || bPostal === strictTargetNumber));
         const isCityMatch = areCitiesEqualOrAlias(bCity, detectedCityName) ||
+          bCity.startsWith(detectedCityName + '-') || bCity.startsWith(detectedCityName + ' ') ||
           (b._suburbs && b._suburbs.includes(detectedCityName));
         if (hasExactCityInPool && !isCityMatch && !isExactNumTarget) {
           continue;
@@ -5405,7 +5443,7 @@
         // 3. НАСЕЛЕНИЙ ПУНКТ (Місто / Село / СМТ):
         if (detectedCityName) {
           let isCityMatched = false;
-          if (bCity === detectedCityName || (b._suburbs && b._suburbs.includes(detectedCityName))) {
+          if (bCity === detectedCityName || bCity.startsWith(detectedCityName + '-') || bCity.startsWith(detectedCityName + ' ') || (b._suburbs && b._suburbs.includes(detectedCityName))) {
             score += 1000;
             isCityMatched = true;
           } else if (!allowFuzzy) {
