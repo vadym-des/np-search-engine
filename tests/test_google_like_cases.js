@@ -76,7 +76,11 @@ const testCases = [
   // НОВІ КЕЙСИ: Пошук села Борщовичі з одруківкою (бощовичі) та префіксом облцентру (нова пошта - -львів бощовичі 1)
   { q: 'нова пошта - -львів бощовичі 1', expectedCity: 'Борщовичі', expectedNum: '1', expectedStreet: 'Бандери', desc: 'Google-запит "нова пошта - -львів бощовичі 1" -> с. Борщовичі №1 (вул. Степана Бандери, 96)' },
   { q: 'львів бощовичі 1', expectedCity: 'Борщовичі', expectedNum: '1', expectedStreet: 'Бандери', desc: 'Префікс облцентру перед селом з одруківкою: "львів бощовичі 1" -> с. Борщовичі №1' },
-  { q: 'бощовичі 1', expectedCity: 'Борщовичі', expectedNum: '1', expectedStreet: 'Бандери', desc: 'Прямий пошук села з одруківкою: "бощовичі 1" -> с. Борщовичі №1' }
+  { q: 'бощовичі 1', expectedCity: 'Борщовичі', expectedNum: '1', expectedStreet: 'Бандери', desc: 'Прямий пошук села з одруківкою: "бощовичі 1" -> с. Борщовичі №1' },
+  // НОВІ КЕЙСИ: Розрізнення міста Дунаївці та смт Дунаївці (Хмельницька обл.)
+  { q: 'Дунаївці (смт)', expectedCity: 'Дунаївці', expectedType: 'смт', expectedNum: '1', expectedStreet: 'Травнева', desc: 'Пошук смт Дунаївці -> Відділення №1 (вул. Травнева, 2-А)' },
+  { q: 'Дунаївці смт 1', expectedCity: 'Дунаївці', expectedType: 'смт', expectedNum: '1', expectedStreet: 'Травнева', desc: 'Пошук Дунаївці смт 1 -> Відділення №1 (вул. Травнева, 2-А)' },
+  { q: 'Дунаївці місто 1', expectedCity: 'Дунаївці', expectedType: 'місто', expectedNum: '1', expectedStreet: 'Могилівська', desc: 'Пошук Дунаївці місто 1 -> Відділення №1 (вул. Могилівська, 24/2)' }
 ];
 
 console.log('===============================================================');
@@ -91,7 +95,8 @@ for (let i = 0; i < testCases.length; i++) {
   const okCity = top && top.city && (!tc.expectedCity || top.city.toLowerCase().includes(tc.expectedCity.toLowerCase()));
   const okNum = !tc.expectedNum || (top && String(top.number) === String(tc.expectedNum));
   const okStreet = !tc.expectedStreet || (top && top.street && top.street.toLowerCase().includes(tc.expectedStreet.toLowerCase()));
-  const ok = okCity && okNum && okStreet;
+  const okType = !tc.expectedType || (top && top.settlementType && (top.settlementType.toLowerCase().includes(tc.expectedType.toLowerCase()) || (tc.expectedType === 'смт' && top.settlementType.includes('селище'))));
+  const ok = okCity && okNum && okStreet && okType;
 
   if (ok) {
     passed++;

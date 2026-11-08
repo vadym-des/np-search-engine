@@ -180,7 +180,7 @@ async function downloadAllSettlements() {
   for (const item of allItems) {
     if (!item.Description) continue;
     const transformed = transformSettlement(item);
-    const key = `${transformed.cleanName.toLowerCase()}|${transformed.oblast.toLowerCase()}|${transformed.raion.toLowerCase()}`;
+    const key = `${transformed.cleanName.toLowerCase()}|${transformed.oblast.toLowerCase()}|${transformed.raion.toLowerCase()}|${transformed.type.toLowerCase()}`;
     if (!seenKeys.has(key)) {
       seenKeys.add(key);
       cleanSettlements.push(transformed);

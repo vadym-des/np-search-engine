@@ -31,7 +31,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.39">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.40">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -47,7 +47,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.39">
+  <link rel="stylesheet" href="styles.css?v=1.6.40">
 </head>
 <body data-service="novaposhta">
 
@@ -265,7 +265,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.39</span>
+          <span class="version-tag">v1.6.40</span>
         </button>
       </div>
 
@@ -291,8 +291,22 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.39 -->
+        <!-- Версія 1.6.40 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.40</span>
+            <span class="version-state">Роздільне відображення однойменних міста та смт («Дунаївці» / «Дунаївці (смт)»)</span>
+            <span class="version-date">8 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>CRM-відповідність при дезамбігуації міста та смт:</strong> Виправлено проблему, коли при пошуку населеного пункту <em>Дунаївці</em> у випадаючому списку відображалося лише смт з 1 відділенням, а однойменне місто (16 відділень та поштоматів) було відсутнє.</li>
+            <li><strong>Оновлення бази населених пунктів:</strong> Виправлено дедуплікацію в реєстрі поселень з урахуванням типу пункту (місто/смт/село). Додано 27 складських пунктів, що помилково відсікалися (м. Дунаївці, с. Усатове, с. Бахмач, смт Оратів тощо).</li>
+            <li><strong>Автокомпліт та видача:</strong> Тепер автокомпліт показує обидва варіанти як у CRM Нової пошти — <code>Дунаївці</code> (місто) та <code>Дунаївці (смт)</code> (смт). Вибір смт відкриває безпосередньо картку відділення №1 (вул. Травнева, 2-А) з CRM-копіюванням.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.39 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.39</span>
             <span class="version-state">Пошук сіл з одруківками при зазначенні обласного центру («львів бощовичі 1» → с. Борщовичі №1)</span>
@@ -1343,18 +1357,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.39"></script>
+  <script src="data/branches.js?v=1.6.40"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.39"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.40"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.39"></script>
+  <script src="data/all_settlements.js?v=1.6.40"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.39"></script>
+  <script src="data/fuzzySearch.js?v=1.6.40"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.39"></script>
+  <script src="app.js?v=1.6.40"></script>
 </body>
 </html>

@@ -4548,7 +4548,13 @@
       const sOblast = cleanOblastName(item.oblast || settlement.cleanOblast || settlement.oblast || '').replace(/[()]/g, '').trim();
 
       // Гарантуємо чистий формат виключно через одинарні пробіли з кінцевим пробілом для швидкого дописування номера
-      fill = `${sName} ${sRaion} ${sOblast}`.replace(/\s+/g, ' ').trim() + ' ';
+      if (item.title && item.title.includes('(смт)')) {
+        fill = `${sName} (смт) ${sRaion} ${sOblast}`.replace(/\s+/g, ' ').trim() + ' ';
+      } else if (item.title && item.title.includes('(село)')) {
+        fill = `${sName} (село) ${sRaion} ${sOblast}`.replace(/\s+/g, ' ').trim() + ' ';
+      } else {
+        fill = `${sName} ${sRaion} ${sOblast}`.replace(/\s+/g, ' ').trim() + ' ';
+      }
 
       state.selectedSettlement = {
         cleanName: sName,
@@ -4621,10 +4627,17 @@
         matchedVillageBranches = searchPool.filter(b => (b._canonCity || canonCity(b.city)) === sNameCanon);
       }
 
-      if (matchedVillageBranches.length > 0 && (sOblast || sRaion)) {
+      if (matchedVillageBranches.length > 0 && (sOblast || sRaion || item.badge || item.type)) {
+        const itemType = (item.badge || item.type || '').toLowerCase();
         matchedVillageBranches = matchedVillageBranches.filter(b => {
           if (sOblast && b.oblast && !b.oblast.toLowerCase().includes(sOblast.slice(0, 4))) return false;
           if (sRaion && b.raion && !b.raion.toLowerCase().includes(sRaion.slice(0, 4)) && !areRaionsCompatible(sRaion, b.raion)) return false;
+          if (itemType && b.settlementType) {
+            const bType = (window.SmartSearchEngine && window.SmartSearchEngine.normalizeSettlementBadge)
+              ? window.SmartSearchEngine.normalizeSettlementBadge(b.settlementType).toLowerCase()
+              : b.settlementType.toLowerCase();
+            if (bType && bType !== itemType) return false;
+          }
           return true;
         });
       }

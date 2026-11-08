@@ -1560,7 +1560,7 @@
   }
 
   // 5.1. РОЗПІЗНАВАННЯ МІСТА (Точне O(1) або нечітке Levenshtein Distance <= 2)
-  function findSettlementByNameOrFuzzy(word, contextOblast, contextRaion) {
+  function findSettlementByNameOrFuzzy(word, contextOblast, contextRaion, contextType) {
     if (!word || word.length < 2 || /\d/.test(word)) return null;
     let w = word.toLowerCase().trim();
     if (CITY_SHORT_ALIASES.has(w)) {
@@ -1685,18 +1685,30 @@
         const npPool = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.novaposhta)) ? window.BRANCHES_DATA.novaposhta : _lastActiveBranchPool;
         const cName = canonCity(candidates[0].cleanName || candidates[0].name);
         const cityBranches = npPool ? getCityBranchesFromPool(npPool, cName) : [];
-        const typeScore = (t) => t === 'місто' ? 30 : (t === 'селище міського типу' || t === 'смт' || t === 'селище' ? 20 : 10);
+        const typeScore = (t) => {
+          if (contextType) {
+            const tNorm = normalizeSettlementBadge(t).toLowerCase();
+            const cNorm = normalizeSettlementBadge(contextType).toLowerCase();
+            if (tNorm === cNorm) return 50000;
+          }
+          return t === 'місто' ? 30 : (t === 'селище міського типу' || t === 'смт' || t === 'селище' ? 20 : 10);
+        };
         let bestCand = candidates[0];
         let bestScore = -1;
         for (let i = 0; i < candidates.length; i++) {
           const cand = candidates[i];
           const candOblKey = (cand.oblast || '').toLowerCase().slice(0, 4);
           const candRStem = getRaionStem(cand.raion || '');
+          const candBadge = normalizeSettlementBadge(cand.type).toLowerCase();
           let branchCount = 0;
           for (let bIdx = 0; bIdx < cityBranches.length; bIdx++) {
             const b = cityBranches[bIdx];
             if (candOblKey && b.oblast && b.oblast.toLowerCase().includes(candOblKey)) {
               if (!candRStem || !b.raion || b.raion.toLowerCase().includes(candRStem) || areRaionsCompatible(cand.raion, b.raion)) {
+                if (b.settlementType) {
+                  const bBadge = normalizeSettlementBadge(b.settlementType).toLowerCase();
+                  if (bBadge && bBadge !== candBadge) continue;
+                }
                 branchCount++;
               }
             }
@@ -2179,6 +2191,15 @@
     const contextOblast = detectedO ? detectedO.name : null;
     const contextRaion = detectRaion(text);
 
+    let contextType = null;
+    if (/(?<!\p{L})(?:смт|селище міського типу)(?!\p{L})/iu.test(rawQuery)) {
+      contextType = 'смт';
+    } else if (/(?<!\p{L})(?:село|с(?!\p{L}))/iu.test(rawQuery)) {
+      contextType = 'село';
+    } else if (/(?<!\p{L})(?:місто|м(?!\p{L}))/iu.test(rawQuery)) {
+      contextType = 'місто';
+    }
+
     let mergedTokens = [];
     let detectedCity = null;
     let rawCityToken = null;
@@ -2191,7 +2212,7 @@
       const next = filteredTokens[i + 1];
 
       // Якщо токен є скороченням області або районом, зберігаємо його як є і не замінюємо на місто
-      const isKnownSettlement = (c) => _settlementsByName.has(c) || _allSettlementsByName.has(c) || Boolean(findSettlementByNameOrFuzzy(c));
+      const isKnownSettlement = (c) => _settlementsByName.has(c) || _allSettlementsByName.has(c) || Boolean(findSettlementByNameOrFuzzy(c, null, null, contextType));
       const isCurRegion = (isOblastToken(cur) && cur !== 'дніпро' && cur !== 'днепр') ||
         ((detectRaion(cur) || /(?:ський|цький|зький)$/iu.test(cur)) && !isKnownSettlement(cur));
       if (isCurRegion) {
@@ -2205,7 +2226,7 @@
       const third = filteredTokens[i + 2];
       if (next && third && !/^\d+$/.test(cur) && !/^\d+$/.test(next) && !/^\d+$/.test(third)) {
         const three = cur + ' ' + next + ' ' + third;
-        const foundThree = findSettlementByNameOrFuzzy(three, contextOblast, contextRaion);
+        const foundThree = findSettlementByNameOrFuzzy(three, contextOblast, contextRaion, contextType);
         if (foundThree) {
           if (!detectedCity) {
             detectedCity = foundThree;
@@ -2219,9 +2240,9 @@
       }
 
       if (next && !/^\d+$/.test(cur) && !/^\d+$/.test(next) && !isNextRegion) {
-        const foundCombined = findSettlementByNameOrFuzzy(cur + ' ' + next, contextOblast, contextRaion) ||
-                              findSettlementByNameOrFuzzy(cur + '-' + next, contextOblast, contextRaion) ||
-                              findSettlementByNameOrFuzzy((cur + next).replace(/-/g, ''), contextOblast, contextRaion);
+        const foundCombined = findSettlementByNameOrFuzzy(cur + ' ' + next, contextOblast, contextRaion, contextType) ||
+                              findSettlementByNameOrFuzzy(cur + '-' + next, contextOblast, contextRaion, contextType) ||
+                              findSettlementByNameOrFuzzy((cur + next).replace(/-/g, ''), contextOblast, contextRaion, contextType);
         if (foundCombined) {
           if (!detectedCity) {
             detectedCity = foundCombined;
@@ -2249,7 +2270,7 @@
 
       // Якщо слово не склеїлося, перевіряємо нечітке зіставлення одиночного токена
       if (!/^\d+$/.test(cur)) {
-        const foundSingle = findSettlementByNameOrFuzzy(cur, contextOblast || (detectedCity ? detectedCity.oblast : null), contextRaion);
+        const foundSingle = findSettlementByNameOrFuzzy(cur, contextOblast || (detectedCity ? detectedCity.oblast : null), contextRaion, contextType);
         if (foundSingle) {
           const sLower = foundSingle.name.toLowerCase();
           const curLower = cur.toLowerCase();
@@ -2355,7 +2376,8 @@
       hasCargoKeyword,
       detectedCity,
       rawCityToken,
-      hasCityTypo
+      hasCityTypo,
+      contextType
     };
 
     if (_normalizeTokensCache.size >= NORMALIZE_TOKENS_CACHE_LIMIT) {
@@ -2966,8 +2988,8 @@
       preferredType = 'місто';
     }
 
-    qClean = qClean.replace(/(?<!\p{L})(?:селище міського типу|смт|селище|місто|село)\s+(?=[А-Яа-яІіЇїЄєA-Za-z])/giu, ' ')
-                   .replace(/(?<!\p{L})(?:м|с)\s+(?=[А-Яа-яІіЇїЄєA-Za-z])/giu, ' ');
+    qClean = qClean.replace(/(?<!\p{L})(?:селище міського типу|смт|селище|місто|село)(?!\p{L})/giu, ' ')
+                   .replace(/(?<!\p{L})(?:м|с)(?!\p{L})/giu, ' ');
 
     const qLower = qClean.toLowerCase();
     const normalizedQuery = qLower.replace(/[^a-zа-яіїєґ0-9\s]/gi, ' ').replace(/\s+/g, ' ').trim();
@@ -3058,6 +3080,9 @@
       const cleanName = cleanSettlementName(s.cleanName || s.name);
       if (!cleanName) return false;
       const badgeType = normalizeSettlementBadge(s.type);
+      if (preferredType && badgeType !== preferredType) {
+        return false;
+      }
       let cleanRaion = cleanRaionName(s.cleanRaion || s.raion);
       const cleanOblast = cleanOblastName(s.cleanOblast || s.oblast);
 
@@ -3174,10 +3199,19 @@
         }
       }
 
+      let displayTitle = cleanName;
+      let fillText = customTextToFill ? customTextToFill.trim() : fullGeoText;
+      if (badgeType === 'смт' && canonText(cleanName) === 'дунаївці') {
+        displayTitle = `${cleanName} (смт)`;
+        fillText = customTextToFill ? customTextToFill.trim() : `${cleanName} (смт)`;
+      } else if (customTextToFill) {
+        fillText = customTextToFill.trim();
+      }
+
       suggestions.push({
         mode: 'city',
         type: badgeType,
-        title: cleanName,
+        title: displayTitle,
         postalCode: postalCode || null,
         subtitle: displaySub,
         branchCount: branchCount,
@@ -3188,7 +3222,7 @@
         settlement: cleanName,
         raion: cleanRaion,
         oblast: cleanOblast,
-        textToFill: customTextToFill ? customTextToFill.trim() : fullGeoText,
+        textToFill: fillText,
         badge: badgeType,
         icon: isUkr ? '📮' : '📍',
         settlementObj: normObj
@@ -3405,6 +3439,12 @@
             if (aStreetScore !== bStreetScore) return bStreetScore - aStreetScore;
           }
 
+          if (preferredType) {
+            const aPref = normalizeSettlementBadge(a.settlementType).toLowerCase() === preferredType ? 1 : 0;
+            const bPref = normalizeSettlementBadge(b.settlementType).toLowerCase() === preferredType ? 1 : 0;
+            if (aPref !== bPref) return bPref - aPref;
+          }
+
           // Пріоритет типу населеного пункту: місто має вищий пріоритет за село
           const aIsCity = (a.settlementType === 'місто' || a.settlementType === 'м.' || a.settlementType === 'город') ? 1 : 0;
           const bIsCity = (b.settlementType === 'місто' || b.settlementType === 'м.' || b.settlementType === 'город') ? 1 : 0;
@@ -3509,6 +3549,10 @@
         // 1. Звичайні та вантажні відділення строго за номерами №1, №2, №3... №N
         // 2. Далі поштомати за зростанням номерів
         let eligible = cityBranches;
+        if (preferredType) {
+          const prefMatches = eligible.filter(b => normalizeSettlementBadge(b.settlementType).toLowerCase() === preferredType);
+          if (prefMatches.length > 0) eligible = prefMatches;
+        }
         if (targetOblastKey || targetRaionStem) {
           eligible = cityBranches.filter(b => {
             if (targetOblastKey && b.oblast && !b.oblast.toLowerCase().includes(targetOblastKey)) return false;
@@ -4244,9 +4288,18 @@
     }
 
     // 4. Очищення службових слів
+    let settlementType = null;
+    if (/(?<!\p{L})(?:смт|селище міського типу)(?!\p{L})/iu.test(query)) {
+      settlementType = 'смт';
+    } else if (/(?<!\p{L})(?:село|с(?!\p{L}))/iu.test(query)) {
+      settlementType = 'село';
+    } else if (/(?<!\p{L})(?:місто|м(?!\p{L}))/iu.test(query)) {
+      settlementType = 'місто';
+    }
+
     text = text.replace(/(?<!\p{L})(?:район|району|р-н|р-он|область|області|обл|смт|селище|сел|село|с|місто|м|відділення|віділення|відділ|вантажне|вантажний|вантаж|карго|cargo|поштомат|поштомата|поштомати|почтомат|пошт|пм|нова\s+пошта|укрпошта|вулиця|вул|просп|проспект|бульв|бульвар|пл|площа|шосе|провулок|пров|номер|№|#)(?!\p{L})/giu, ' ')
-      .replace(/(?<!\p{L})(?:селище міського типу|смт|селище|місто|село)\s+(?=[А-Яа-яІіЇїЄєA-Za-z])/giu, ' ')
-      .replace(/(?<!\p{L})(?:м|с)\s+(?=[А-Яа-яІіЇїЄєA-Za-z])/giu, ' ')
+      .replace(/(?<!\p{L})(?:селище міського типу|смт|селище|місто|село)(?!\p{L})/giu, ' ')
+      .replace(/(?<!\p{L})(?:м|с)(?!\p{L})/giu, ' ')
       .replace(/[,.;/\\-]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -4261,7 +4314,7 @@
       const hasAnchoredCity = foundSettlementsInOrder.length > 0;
       if (i + 2 < words.length && !/\d/.test(words[i]) && !/\d/.test(words[i + 1]) && !/\d/.test(words[i + 2])) {
         const three = words[i] + ' ' + words[i + 1] + ' ' + words[i + 2];
-        const s3 = findSettlementByNameOrFuzzy(three, oblast, raion);
+        const s3 = findSettlementByNameOrFuzzy(three, oblast, raion, settlementType);
         if (s3) {
           const sObj = Array.isArray(s3) ? s3[0] : s3;
           foundSettlementsInOrder.push({ s: sObj, raw: three, startIndex: i });
@@ -4274,7 +4327,7 @@
         let s2 = null;
         if (hasAnchoredCity) {
           const anchor = foundSettlementsInOrder[0].s;
-          s2 = findSettlementByNameOrFuzzy(two, anchor.oblast || oblast, anchor.raion || raion);
+          s2 = findSettlementByNameOrFuzzy(two, anchor.oblast || oblast, anchor.raion || raion, settlementType);
           if (s2 && !s2.allVariants) {
             const dist = damerauLevenshtein(two.toLowerCase(), s2.name.toLowerCase());
             const isAnchorRegional = REGIONAL_CENTERS.has(anchor.name.toLowerCase());
@@ -4284,7 +4337,7 @@
             }
           }
         } else {
-          s2 = findSettlementByNameOrFuzzy(two, oblast, raion);
+          s2 = findSettlementByNameOrFuzzy(two, oblast, raion, settlementType);
         }
         if (s2) {
           const sObj = Array.isArray(s2) ? s2[0] : s2;
@@ -4298,7 +4351,7 @@
         let s1 = null;
         if (hasAnchoredCity) {
           const anchor = foundSettlementsInOrder[0].s;
-          s1 = findSettlementByNameOrFuzzy(words[i], anchor.oblast || oblast, anchor.raion || raion);
+          s1 = findSettlementByNameOrFuzzy(words[i], anchor.oblast || oblast, anchor.raion || raion, settlementType);
           if (s1 && !s1.allVariants) {
             const dist = damerauLevenshtein(wLow, s1.name.toLowerCase());
             const isAnchorRegional = REGIONAL_CENTERS.has(anchor.name.toLowerCase());
@@ -4308,7 +4361,7 @@
             }
           }
         } else {
-          s1 = findSettlementByNameOrFuzzy(words[i], oblast, raion);
+          s1 = findSettlementByNameOrFuzzy(words[i], oblast, raion, settlementType);
         }
         if (s1) {
           const sObj = Array.isArray(s1) ? s1[0] : s1;
@@ -4713,7 +4766,7 @@
       }
     }
 
-    const result = { city, number, oblast, raion, streetTokens, settlementOblast, building };
+    const result = { city, number, oblast, raion, streetTokens, settlementOblast, building, settlementType };
     if (_extractFacetsCache.size > 200) {
       _extractFacetsCache.clear();
     }
@@ -4991,6 +5044,9 @@
     const hasPostomatKeyword = norm.hasPostomatKeyword || parsed.isPostomat;
     const hasBranchKeyword = norm.hasBranchKeyword;
     const hasCargoKeyword = norm.hasCargoKeyword || isCargoKeyword(rawQuery);
+    const queryHasSmt = /(?<!\p{L})(?:смт|селище міського типу)(?!\p{L})/iu.test(rawQuery);
+    const queryHasMisto = /(?<!\p{L})(?:місто|м\.)(?!\p{L})/iu.test(rawQuery);
+    const queryHasSelo = /(?<!\p{L})(?:село|с\.)(?!\p{L})/iu.test(rawQuery);
     let detectedCityName = null;
     const targetSettlement = (parsed.matchedSettlement && !REGIONAL_CENTERS.has(canonText(parsed.matchedSettlement.name)))
       ? parsed.matchedSettlement
@@ -5432,16 +5488,19 @@
           score += 10;
         }
 
-        // Дезамбігуація тезок без явно вказаної області/району (напр. "п'ятихатки 1"):
-        // при рівному збігу перевага реальному місту (за типом) та населеному пункту з більшою мережею відділень.
-        if (detectedCityName && ambiguousCityNoRegion && bCity === detectedCityName) {
-          if (/(?:^|\s)(?:село|с\.)(?:\s|$)/i.test(rawQuery)) {
-            if ((b.settlementType || '').toLowerCase() === 'село') score += 500;
-          } else if (/(?:^|\s)(?:місто|м\.)(?:\s|$)/i.test(rawQuery)) {
-            if ((b.settlementType || '').toLowerCase() === 'місто') score += 500;
-          } else {
-            score += settlementTypeRank(b.settlementType);
-          }
+        // Дезамбігуація за типом пункту (смт / місто / село) або дезамбігуація тезок без явно вказаної області/району
+        if (queryHasSmt) {
+          const isSmt = (b.settlementType === 'селище міського типу' || b.settlementType === 'смт' || b.settlementType === 'селище');
+          if (isSmt) score += 3000;
+          else score -= 3000;
+        } else if (queryHasMisto) {
+          if (b.settlementType === 'місто') score += 3000;
+          else score -= 3000;
+        } else if (queryHasSelo) {
+          if (b.settlementType === 'село') score += 3000;
+          else score -= 3000;
+        } else if (detectedCityName && ambiguousCityNoRegion && bCity === detectedCityName) {
+          score += settlementTypeRank(b.settlementType);
           score += Math.min(cityBranchCount.get(bCity + '|' + bOblast) || 0, 10) * 5;
         }
 
@@ -5471,6 +5530,13 @@
     // Повертаємо всі відділення цього міста в природному порядку: спочатку відділення №1..N, потім поштомати
     if (detectedCityName && uniqueStreetTokens.length === 0 && !hasExplicitNumber) {
       let cityCandidates = branchesToScore;
+      if (queryHasSmt) {
+        cityCandidates = cityCandidates.filter(b => b.settlementType === 'селище міського типу' || b.settlementType === 'смт' || b.settlementType === 'селище');
+      } else if (queryHasMisto) {
+        cityCandidates = cityCandidates.filter(b => b.settlementType === 'місто');
+      } else if (queryHasSelo) {
+        cityCandidates = cityCandidates.filter(b => b.settlementType === 'село');
+      }
       if (queryOblastClean) {
         cityCandidates = cityCandidates.filter(b => b.oblast && b.oblast.toLowerCase().includes(queryOblastClean));
       }
