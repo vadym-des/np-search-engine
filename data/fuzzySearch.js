@@ -621,6 +621,7 @@
     { name: 'Бердичів', oblast: 'Житомирська', raion: 'Бердичівський', type: 'місто', lat: 49.8928, lng: 28.5833, postalCodes: ['13300'], aliases: ['бердичів', 'бердичев'], streets: ['вул. Європейська', 'вул. Житомирська'] },
     { name: 'Коростень', oblast: 'Житомирська', raion: 'Коростенський', type: 'місто', lat: 50.9500, lng: 28.6333, postalCodes: ['11500'], aliases: ['коростень'], streets: ['вул. Грушевського', 'вул. Сосновського'] },
     { name: 'Звягель', oblast: 'Житомирська', raion: 'Звягельський', type: 'місто', lat: 50.5833, lng: 27.6333, postalCodes: ['11700'], aliases: ['звягель', 'новоград-волинський', 'новоград волинський'], streets: ['вул. Шевченка'] },
+    { name: 'Малин', oblast: 'Житомирська', raion: 'Коростенський', type: 'місто', lat: 50.7688, lng: 29.2593, postalCodes: ['11600', '11601', '11602', '11603', '11604'], aliases: ['малин', 'malyn', 'малын'], streets: ['вул. Грушевського', 'вул. Володимирська', 'вул. Перемоги', 'вул. Огієнка', 'вул. Степана Бандери', 'вул. Івана Мазепи'] },
     { name: 'Запоріжжя', oblast: 'Запорізька', raion: 'Запорізький', type: 'місто', lat: 47.8388, lng: 35.1396, postalCodes: ['69000'], aliases: ['запоріжжя', 'запорожье', 'зп', 'zaporizhzhia'], streets: ['просп. Соборний', 'вул. Брянська', 'вул. Перемоги'] },
     { name: 'Вінниця', oblast: 'Вінницька', raion: 'Вінницький', type: 'місто', lat: 49.2331, lng: 28.4682, postalCodes: ['21000'], aliases: ['вінниця', 'винница', 'vinnytsia'], streets: ['вул. Соборна', 'вул. Якова Шепеля', 'вул. Келецька'] },
     { name: 'Полтава', oblast: 'Полтавська', raion: 'Полтавський', type: 'місто', lat: 49.5883, lng: 34.5514, postalCodes: ['36000'], aliases: ['полтава', 'poltava'], streets: ['вул. Соборності', 'вул. Ветеринарна', 'вул. Європейська'] },
@@ -1435,6 +1436,7 @@
     { name: 'Буялик', old_name: 'Петрівка', new_raion: 'Березівський', old_raion: 'Іванівський', oblast: 'Одеська' },
     { name: 'Великий Буялик', old_name: 'Благоєве', new_raion: 'Березівський', old_raion: 'Іванівський', oblast: 'Одеська' },
     { name: 'Березнегувате', new_raion: 'Баштанський', old_raion: 'Березнегуватський', oblast: 'Миколаївська' },
+    { name: 'Малин', new_raion: 'Коростенський', old_raion: 'Малинський', oblast: 'Житомирська' },
     { name: 'Попільня', new_raion: 'Житомирський', old_raion: 'Попільнянський', oblast: 'Житомирська' },
     { name: 'Братське', new_raion: 'Вознесенський', old_raion: 'Братський', oblast: 'Миколаївська' },
     { name: 'Самар', old_name: 'Новомосковськ', new_raion: 'Самарівський', old_raion: 'Новомосковський', oblast: 'Дніпропетровська' },
@@ -1662,6 +1664,36 @@
         } else if (exactBase) {
           return exactBase;
         }
+      } else if (candidates.length > 1) {
+        // Коли область та район не вказані явно, а є кілька населених пунктів-тезок:
+        // 1. Обираємо варіант, який реально має відділення у діючій службі доставки (напр. місто Малин має 30 відділень, а село Малин — 0)!
+        // 2. Якщо кількість відділень однакова, пріоритет має тип (місто > смт > село).
+        const npPool = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.novaposhta)) ? window.BRANCHES_DATA.novaposhta : _lastActiveBranchPool;
+        const cName = canonCity(candidates[0].cleanName || candidates[0].name);
+        const cityBranches = npPool ? getCityBranchesFromPool(npPool, cName) : [];
+        const typeScore = (t) => t === 'місто' ? 30 : (t === 'селище міського типу' || t === 'смт' || t === 'селище' ? 20 : 10);
+        let bestCand = candidates[0];
+        let bestScore = -1;
+        for (let i = 0; i < candidates.length; i++) {
+          const cand = candidates[i];
+          const candOblKey = (cand.oblast || '').toLowerCase().slice(0, 4);
+          const candRStem = getRaionStem(cand.raion || '');
+          let branchCount = 0;
+          for (let bIdx = 0; bIdx < cityBranches.length; bIdx++) {
+            const b = cityBranches[bIdx];
+            if (candOblKey && b.oblast && b.oblast.toLowerCase().includes(candOblKey)) {
+              if (!candRStem || !b.raion || b.raion.toLowerCase().includes(candRStem) || areRaionsCompatible(cand.raion, b.raion)) {
+                branchCount++;
+              }
+            }
+          }
+          const score = branchCount * 1000 + typeScore(cand.type);
+          if (score > bestScore) {
+            bestScore = score;
+            bestCand = cand;
+          }
+        }
+        chosen = bestCand;
       }
       return {
         name: chosen.cleanName,
@@ -2037,6 +2069,7 @@
   // 5.1.5 Перевірка наявності вулиці у відділеннях населеного пункту (Cross-Street Disambiguation)
   function isStreetOfCity(cityName, streetCandidate, targetOblast = null, targetRaion = null) {
     if (!cityName || !streetCandidate) return false;
+    if (canonCity(cityName) === canonCity(streetCandidate)) return false;
     const src = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.novaposhta))
       ? window.BRANCHES_DATA.novaposhta
       : _lastActiveBranchPool;
@@ -2048,6 +2081,7 @@
 
     const stLow = canonText(streetCandidate).replace(/^(?:вул|просп|проспект|пров|провулок|площа|пл|бульв|бульвар|шосе)\.?\s*/i, '').trim();
     if (stLow.length < 3) return false;
+    if (isOblastToken(stLow)) return false;
     const stStem = getUkrainianStem(stLow);
     const oblClean = targetOblast ? targetOblast.toLowerCase().slice(0, 4) : null;
     const rClean = targetRaion ? targetRaion.toLowerCase().slice(0, 4) : null;
@@ -2063,16 +2097,6 @@
       }
     }
     return false;
-  }
-
-  function getCityBranchesFromPool(cityName) {
-    const src = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.novaposhta))
-      ? window.BRANCHES_DATA.novaposhta : _lastActiveBranchPool;
-    if (!src) return [];
-    const poolIndex = getOrBuildBranchPoolIndex(src);
-    if (!poolIndex || !poolIndex.cityBranches) return [];
-    const cCanon = canonCity(cityName);
-    return poolIndex.cityBranches.get(cCanon) || [];
   }
 
   // 5.2. ІНТЕЛЕКТУАЛЬНА НОРМАЛІЗАЦІЯ ПОШУКОВОГО ЗАПИТУ (Smart Spellcheck & Fuzzy Normalization)
@@ -2635,6 +2659,7 @@
       const ctxRaion = detectedRaion || facets.raion;
       const shouldUpgradeSettlement = !matchedSettlement ||
         (ctxObl && matchedSettlement.oblast && !matchedSettlement.oblast.toLowerCase().includes(ctxObl.toLowerCase().slice(0, 4))) ||
+        (ctxRaion && matchedSettlement.raion && !matchedSettlement.raion.toLowerCase().includes(ctxRaion.toLowerCase().slice(0, 4)) && !areRaionsCompatible(ctxRaion, matchedSettlement.raion)) ||
         (matchedSettlement && facets.city.toLowerCase() !== matchedSettlement.name.toLowerCase() && (
           (matchedSettlement.type === 'місто' && (areRaionsCompatible(matchedSettlement.name, facets.raion || ctxRaion) || areRaionsCompatible(matchedSettlement.name, facets.city))) ||
           (ctxRaion && areRaionsCompatible(ctxRaion, matchedSettlement.name) && !areRaionsCompatible(ctxRaion, facets.city)) ||
@@ -2837,8 +2862,19 @@
 
   // Швидкий O(1) вибір відділень конкретного міста з пулу через WeakMap
   const _poolByCityWeakMap = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
-  function getCityBranchesFromPool(targetPool, cityKey) {
-    if (!targetPool || targetPool.length === 0 || !cityKey) return [];
+  function getCityBranchesFromPool(targetPoolOrCity, maybeCityKey) {
+    let targetPool, rawCity;
+    if (Array.isArray(targetPoolOrCity)) {
+      targetPool = targetPoolOrCity;
+      rawCity = maybeCityKey;
+    } else {
+      rawCity = targetPoolOrCity;
+      targetPool = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.novaposhta))
+        ? window.BRANCHES_DATA.novaposhta : _lastActiveBranchPool;
+    }
+    if (!targetPool || targetPool.length === 0 || !rawCity) return [];
+    const cityKey = canonCity(rawCity);
+    if (!cityKey) return [];
     if (_poolByCityWeakMap && targetPool.length > 500) {
       let byCity = _poolByCityWeakMap.get(targetPool);
       if (!byCity) {
@@ -4533,7 +4569,7 @@
     // Якщо номер було виділено як number, але він стоїть після назви вулиці і в цьому місті є відділення на цій вулиці з таким номером будинку:
     // переносимо цей номер у building, щоб не відсікати відділення з іншим номером на цій самій вулиці
     if (number && !building && city) {
-      const wordsInText = (text + ' ' + (query || '')).split(/\s+/).filter(w => w.length >= 3);
+      const wordsInText = (text + ' ' + (query || '')).split(/\s+/).filter(w => w.length >= 3 && canonCity(w) !== canonCity(city) && !isOblastToken(w));
       for (const w of wordsInText) {
         if (isStreetOfCity(city, w)) {
           const cityBranches = getCityBranchesFromPool(city);
@@ -5583,6 +5619,7 @@
     detectRaion,
     detectRenaming,
     findSettlementByNameOrFuzzy,
+    isStreetOfCity,
     normalizeSearchTokens,
     extractFacets,
     normalizeApostrophes,
