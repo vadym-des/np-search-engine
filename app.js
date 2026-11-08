@@ -1315,6 +1315,10 @@
       state.selectedBranch = hasExplicitTargetNum
         ? results.find(b => String(b.number) === String(parsed.targetBranchNumber))
         : results[0];
+      if (hasExplicitTargetNum && !hasStreetInQuery && state.selectedBranch) {
+        results = [state.selectedBranch];
+        state.currentResults = results;
+      }
       if (results[0]) {
         state.selectedSettlement = {
           cleanName: cleanSettlementName(results[0].city),
@@ -4953,12 +4957,12 @@
       clearTimeout(liveSearchDebounceTimer);
 
       if (val.length >= 2) {
+        const hasDigitOrBranch = /\d/.test(val) || /(?:поштомат|відділення|віділення|відділ|№|#)/i.test(val);
         const isFixedSettlement = hasFixedSettlementContext(val);
 
-        if (isFixedSettlement) {
-          // 1. Придушення попапу, коли населений пункт уже зафіксовано або введено повний геоконтекст:
-          // При дописуванні/стиранні числа або швидкому уточненні номера (напр. "Київ Київська", "Олександрія 2")
-          // спливаючий дропдаун автокомпліту під інпутом НЕ відкривається і миттєво ховається
+        if (isFixedSettlement && !hasDigitOrBranch) {
+          // 1. Придушення попапу, коли населений пункт уже зафіксовано або введено повний геоконтекст БЕЗ номера:
+          // (напр. "Київ Київська", "Олександрія Кіровоградська")
           closeAutocomplete();
 
           // Якщо користувач видалив номер або запит не містить номера відділення (напр. стер "1" з "Київ Київська 1"),

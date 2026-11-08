@@ -991,6 +991,12 @@
         }
         continue;
       }
+      if (w === 'кропивницький' || w === 'кропивницкий' || w === 'кропивницьк') {
+        if (/\b(?:кропивницьк\w*|кропивницк\w*)\s+(?:обл|область)\b/i.test(text)) {
+          return { name: 'Кіровоградська', rawMatched: w };
+        }
+        continue;
+      }
       const oblName = isOblastToken(w);
       if (oblName) {
         const fullObj = OBLASTS.find(o => o.name === oblName);
@@ -1041,6 +1047,12 @@
     for (let cand of m) {
       let r = cand.replace(/(?:район|району|р-н)/gi, '').trim().toLowerCase();
       if (isOblastToken(r)) continue;
+      // Захист: якщо немає явного слова "район/р-н", а токен є обласним центром (наприклад "Хмельницький 2"),
+      // це місто, а не район!
+      const hasExplicitRaionWord = /(?:район|району|р-н)/i.test(cand);
+      if (!hasExplicitRaionWord && (REGIONAL_CENTERS.has(r) || REGIONAL_CENTERS.has(canonText(r)))) {
+        continue;
+      }
       if (RAION_ROOT_MAP[r]) return RAION_ROOT_MAP[r];
       r = r.replace(/ського$/i, 'ський').replace(/цького$/i, 'цький').replace(/зького$/i, 'зький')
            .replace(/ському$/i, 'ський').replace(/цькому$/i, 'цький').replace(/зькому$/i, 'зький')
@@ -3336,7 +3348,7 @@
       // Якщо введено номер (напр. "Київ 1", "Київ 111", "київ 222"), збираємо точні та префіксні збіги за номером відділення/поштомату
       if (facets.number) {
         const numPrefix = String(facets.number);
-        const prefixCandidates = [];
+        let prefixCandidates = [];
 
         for (let i = 0; i < cityBranches.length; i++) {
           const b = cityBranches[i];
@@ -3413,6 +3425,29 @@
 
           return String(a.number || '').localeCompare(String(b.number || ''));
         });
+
+        // Пріоритизація та обмеження підказок при введенні номера (Exact match first, max 5-6 total)
+        // Захист від показу 200+ варіантів з десятками поштоматів при пошуку звичайного відділення
+        const exactMatches = prefixCandidates.filter(b => String(b.number) === numPrefix || String(b.postalCode) === numPrefix);
+        let finalCandidates = [];
+        if (exactMatches.length > 0) {
+          finalCandidates.push(...exactMatches);
+          const others = prefixCandidates.filter(b => !exactMatches.includes(b));
+          const filteredOthers = others.filter(b => {
+            const isPost = b.typeClass === 'poshtomat' || b.type === 'poshtomat' || /поштомат/i.test(b.name || '') || /поштомат/i.test(b.typeName || '');
+            if (!hasPostomatKeyword && numPrefix.length <= 2 && isPost) return false;
+            return true;
+          });
+          finalCandidates.push(...filteredOthers.slice(0, 4));
+        } else {
+          const nonPosts = prefixCandidates.filter(b => !(b.typeClass === 'poshtomat' || b.type === 'poshtomat' || /поштомат/i.test(b.name || '') || /поштомат/i.test(b.typeName || '')));
+          if (!hasPostomatKeyword && nonPosts.length > 0 && numPrefix.length <= 2) {
+            finalCandidates = nonPosts.slice(0, 5);
+          } else {
+            finalCandidates = prefixCandidates.slice(0, 5);
+          }
+        }
+        prefixCandidates = finalCandidates;
 
         for (let i = 0; i < prefixCandidates.length; i++) {
           const b = prefixCandidates[i];
@@ -3625,7 +3660,16 @@
     // Якщо в інпуті вже вказано розпізнане місто, а наступний токен — цифра або маркер відділення/поштомату
     // (наприклад: "Київ 1", "Київ 100", "львів поштомат 33159")
     if (hasDigits || hasPostomatKeyword || hasBranchKeyword || hasCargoKeyword) {
-      const facets = extractFacets(normalizedQuery);
+      let facets = extractFacets(normalizedQuery);
+      if (!facets.city) {
+        const pq = parseQuery(normalizedQuery);
+        if (pq && pq.matchedSettlement) {
+          facets.city = pq.matchedSettlement.name;
+          if (!facets.oblast && pq.matchedSettlement.oblast) facets.oblast = pq.matchedSettlement.oblast;
+          if (!facets.raion && pq.matchedSettlement.raion) facets.raion = pq.matchedSettlement.raion;
+          if (!facets.number && pq.targetBranchNumber) facets.number = pq.targetBranchNumber;
+        }
+      }
       if (!facets.city) {
         return [];
       }
@@ -4644,6 +4688,19 @@
 
     if (building && !streetTokens.includes(building)) {
       streetTokens.push(building);
+    }
+
+    // Fallback: якщо місто не виділено, але raion є обласним центром або містом
+    if (!city && raion) {
+      const rCanon = canonCity(raion);
+      if (REGIONAL_CENTERS.has(rCanon)) {
+        city = raion;
+        raion = null;
+        if (!settlementOblast) {
+          const sObj = findSettlementByNameOrFuzzy(city, oblast);
+          if (sObj) settlementOblast = (Array.isArray(sObj) ? sObj[0] : sObj).oblast || oblast;
+        }
+      }
     }
 
     const result = { city, number, oblast, raion, streetTokens, settlementOblast, building };

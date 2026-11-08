@@ -229,7 +229,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 56;
+  let totalTests = 57;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -3531,6 +3531,60 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 56:', err.message, '\n');
+  }
+
+  // ТЕСТ 57: Точне підтягування цільового відділення при введенні міста + номера (Хмельницький 2, Київ 1, обмеження до 5-6 підказок)
+  try {
+    console.log('▶ ТЕСТ 57: Точне підтягування цільового відділення та компактний список підказок при введенні міста + номера (v1.6.38)');
+    const eng = window.SmartSearchEngine;
+    const pool = (window.BRANCHES_DATA && window.BRANCHES_DATA.novaposhta) ? window.BRANCHES_DATA.novaposhta : [];
+
+    // 1. Хмельницький 2
+    const resKhm = eng.getAutocompleteSuggestions('Хмельницький 2', 'novaposhta', null, pool);
+    if (!resKhm || resKhm.length === 0) {
+      throw new Error('Для "Хмельницький 2" очікувалися підказки відділень, але отримано 0');
+    }
+    if (resKhm[0].title !== 'Вантажне відділення №2' && resKhm[0].title !== 'Відділення №2') {
+      throw new Error(`Першим результатом для "Хмельницький 2" очікувалось Відділення №2, отримано: ${resKhm[0].title}`);
+    }
+    if (resKhm.length > 6) {
+      throw new Error(`Список підказок для "Хмельницький 2" перевантажений: ${resKhm.length} елементів (очікувалося <= 6)`);
+    }
+
+    // 2. Хмельницький Хмельницька 2
+    const resKhmObl = eng.getAutocompleteSuggestions('Хмельницький Хмельницька 2', 'novaposhta', null, pool);
+    if (!resKhmObl || resKhmObl.length === 0) {
+      throw new Error('Для "Хмельницький Хмельницька 2" очікувалися підказки відділень, але отримано 0');
+    }
+    if (resKhmObl[0].title !== 'Вантажне відділення №2' && resKhmObl[0].title !== 'Відділення №2') {
+      throw new Error(`Першим результатом для "Хмельницький Хмельницька 2" очікувалось Відділення №2, отримано: ${resKhmObl[0].title}`);
+    }
+
+    // 3. Київ 1
+    const resKyiv = eng.getAutocompleteSuggestions('Київ 1', 'novaposhta', null, pool);
+    if (!resKyiv || resKyiv.length === 0) {
+      throw new Error('Для "Київ 1" очікувалися підказки відділень');
+    }
+    if (!resKyiv[0].title.includes('№1')) {
+      throw new Error(`Першим результатом для "Київ 1" очікувалось Відділення №1, отримано: ${resKyiv[0].title}`);
+    }
+    if (resKyiv.length > 6) {
+      throw new Error(`Список підказок для "Київ 1" перевантажений: ${resKyiv.length} елементів (очікувалося <= 6, раніше було 202)`);
+    }
+
+    // 4. Кропивницький 1
+    const resKrop = eng.getAutocompleteSuggestions('Кропивницький 1', 'novaposhta', null, pool);
+    if (!resKrop || resKrop.length === 0) {
+      throw new Error('Для "Кропивницький 1" очікувалися підказки відділень');
+    }
+    if (!resKrop[0].title.includes('№1')) {
+      throw new Error(`Першим результатом для "Кропивницький 1" очікувалось Відділення №1, отримано: ${resKrop[0].title}`);
+    }
+
+    console.log('  ✓ Успіх: При введенні населеного пункту та номера (Хмельницький 2, Київ 1, Кропивницький 1) підказка №1 це точне відділення, а список скорочено до 5 компактних підказок без зайвих поштоматів!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 57:', err.message, '\n');
   }
 
   console.log('===============================================================');
