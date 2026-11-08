@@ -4275,8 +4275,13 @@
         if (hasAnchoredCity) {
           const anchor = foundSettlementsInOrder[0].s;
           s2 = findSettlementByNameOrFuzzy(two, anchor.oblast || oblast, anchor.raion || raion);
-          if (s2 && !s2.allVariants && damerauLevenshtein(two.toLowerCase(), s2.name.toLowerCase()) > 0) {
-            s2 = null;
+          if (s2 && !s2.allVariants) {
+            const dist = damerauLevenshtein(two.toLowerCase(), s2.name.toLowerCase());
+            const isAnchorRegional = REGIONAL_CENTERS.has(anchor.name.toLowerCase());
+            const maxAllowedDist = (isAnchorRegional && two.length >= 6) ? 1 : 0;
+            if (dist > maxAllowedDist) {
+              s2 = null;
+            }
           }
         } else {
           s2 = findSettlementByNameOrFuzzy(two, oblast, raion);
@@ -4294,8 +4299,13 @@
         if (hasAnchoredCity) {
           const anchor = foundSettlementsInOrder[0].s;
           s1 = findSettlementByNameOrFuzzy(words[i], anchor.oblast || oblast, anchor.raion || raion);
-          if (s1 && !s1.allVariants && damerauLevenshtein(wLow, s1.name.toLowerCase()) > 0) {
-            s1 = null;
+          if (s1 && !s1.allVariants) {
+            const dist = damerauLevenshtein(wLow, s1.name.toLowerCase());
+            const isAnchorRegional = REGIONAL_CENTERS.has(anchor.name.toLowerCase());
+            const maxAllowedDist = (isAnchorRegional && wLow.length >= 6) ? 1 : 0;
+            if (dist > maxAllowedDist) {
+              s1 = null;
+            }
           }
         } else {
           s1 = findSettlementByNameOrFuzzy(words[i], oblast, raion);
@@ -4981,9 +4991,18 @@
     const hasPostomatKeyword = norm.hasPostomatKeyword || parsed.isPostomat;
     const hasBranchKeyword = norm.hasBranchKeyword;
     const hasCargoKeyword = norm.hasCargoKeyword || isCargoKeyword(rawQuery);
-    let detectedCityName = facets.city ? canonText(facets.city) :
-      (norm.detectedCity ? canonText(norm.detectedCity.name) :
-      (parsed.matchedSettlement ? canonText(parsed.matchedSettlement.name) : null));
+    let detectedCityName = null;
+    const targetSettlement = (parsed.matchedSettlement && !REGIONAL_CENTERS.has(canonText(parsed.matchedSettlement.name)))
+      ? parsed.matchedSettlement
+      : ((norm.detectedCity && !REGIONAL_CENTERS.has(canonText(norm.detectedCity.name))) ? norm.detectedCity : null);
+
+    if (facets.city && REGIONAL_CENTERS.has(canonText(facets.city)) && targetSettlement) {
+      detectedCityName = canonText(targetSettlement.name);
+    } else {
+      detectedCityName = facets.city ? canonText(facets.city) :
+        (norm.detectedCity ? canonText(norm.detectedCity.name) :
+        (parsed.matchedSettlement ? canonText(parsed.matchedSettlement.name) : null));
+    }
 
     // Попереднє розпізнавання популярних сленгових скорочень міст ("днепр", "льв", "кв", "хар", "од")
     if (!detectedCityName) {

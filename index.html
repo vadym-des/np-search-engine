@@ -31,7 +31,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.38">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.39">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -47,7 +47,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.38">
+  <link rel="stylesheet" href="styles.css?v=1.6.39">
 </head>
 <body data-service="novaposhta">
 
@@ -265,7 +265,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.38</span>
+          <span class="version-tag">v1.6.39</span>
         </button>
       </div>
 
@@ -291,8 +291,22 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.38 -->
+        <!-- Версія 1.6.39 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.39</span>
+            <span class="version-state">Пошук сіл з одруківками при зазначенні обласного центру («львів бощовичі 1» → с. Борщовичі №1)</span>
+            <span class="version-date">8 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Топонімічна стійкість сіл при префіксах облцентрів:</strong> Усунено проблему, коли при введенні префіксу обласного центру та назви села з одруківкою (наприклад, <em>«нова пошта - -львів бощовичі 1»</em> або <em>«львів бощовичі 1»</em> замість <em>Борщовичі</em>) система помилково фіксувала місто Львів і видавала відділення Львова.</li>
+            <li><strong>Адаптивний Левенштейн для регіональних контекстів:</strong> Дозволено 1-літерну одруківку для назв населених пунктів довжиною $\ge 6$ літер при наявності префіксу обласного центру, що повністю відповідає Конституційному Інваріанту №2.</li>
+            <li><strong>Автокомпліт та видача:</strong> Тепер запит <code>львів бощовичі 1</code> у випадаючому списку та на екрані видачі безпомилково відкриває Відділення №1 у с. Борщовичі (вул. Степана Бандери, 96, Львівський р-н).</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.38 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.38</span>
             <span class="version-state">Точне підтягування цільового відділення в табі та показ суто 1 картки на Enter («Хмельницький 2», компактні 5 підказок)</span>
@@ -1329,18 +1343,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.38"></script>
+  <script src="data/branches.js?v=1.6.39"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.38"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.39"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.38"></script>
+  <script src="data/all_settlements.js?v=1.6.39"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.38"></script>
+  <script src="data/fuzzySearch.js?v=1.6.39"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.38"></script>
+  <script src="app.js?v=1.6.39"></script>
 </body>
 </html>
