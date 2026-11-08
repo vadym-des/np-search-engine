@@ -2998,15 +2998,9 @@
       const sObl = (s.cleanOblast || s.oblast || '').toLowerCase();
       const sRai = (s.cleanRaion || s.raion || '').toLowerCase();
 
-      const searchList = (Array.isArray(pool) && pool.length > 0 && isUkrposhtaActive)
-        ? pool
-        : ((typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.ukrposhta))
-            ? window.BRANCHES_DATA.ukrposhta
-            : null);
-
-      if (Array.isArray(searchList)) {
-        for (let i = 0; i < searchList.length; i++) {
-          const b = searchList[i];
+      if (Array.isArray(pool) && pool.length > 0 && isUkrposhtaActive) {
+        for (let i = 0; i < pool.length; i++) {
+          const b = pool[i];
           if ((b._canonCity || canonCity(b.city)) === cName) {
             const bObl = (b.oblast || '').toLowerCase();
             const bRai = (b.raion || '').toLowerCase();
@@ -3018,6 +3012,13 @@
           }
         }
       }
+
+      // Використовуємо O(1) індексований реєстр Укрпошти (UKRPOSHTA_BRANCHES_DATA або BRANCHES_DATA.ukrposhta)
+      const upBranches = getUkrposhtaBranchesForSettlement(s.cleanName || s.name, s.cleanOblast || s.oblast, s.cleanRaion || s.raion);
+      if (upBranches && upBranches.length > 0) {
+        return String(upBranches[0].postalCode || upBranches[0].index || upBranches[0].number || '');
+      }
+
       return null;
     }
 

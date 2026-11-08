@@ -229,7 +229,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 55;
+  let totalTests = 56;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -3505,6 +3505,32 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 55:', err.message, '\n');
+  }
+
+  // ТЕСТ 56: Миттєве виявлення індексів Укрпошти для сіл без точок НП на холодному старті (Високопілля Донецька 84020)
+  try {
+    console.log('▶ ТЕСТ 56: Миттєве відображення індексу Укрпошти (84020) у підказці автокомпліту для с. Високопілля (v1.6.37)');
+    const eng = window.SmartSearchEngine;
+    const pool = (window.BRANCHES_DATA && window.BRANCHES_DATA.novaposhta) ? window.BRANCHES_DATA.novaposhta : [];
+
+    // Холодний старт: симулюємо перший вхід без попереднього кліку на вкладку Укрпошта
+    const suggestions = eng.getAutocompleteSuggestions('Високопілля', 'novaposhta', null, pool);
+    const donItem = suggestions.find(s => s.subtitle && s.subtitle.includes('Донецьк'));
+
+    if (!donItem) {
+      throw new Error("У списку автокомпліту відсутнє село Високопілля (Донецька обл.)");
+    }
+    if (donItem.branchCount !== 0) {
+      throw new Error(`Для Високопілля Донецької обл. branchCount очікувався 0, отримано: ${donItem.branchCount}`);
+    }
+    if (donItem.postalCode !== '84020') {
+      throw new Error(`Для Високопілля Донецької обл. очікувався поштовий індекс Укрпошти '84020', отримано: '${donItem.postalCode}'`);
+    }
+
+    console.log('  ✓ Успіх: Підказка для с. Високопілля (Донецька обл.) миттєво повертає postalCode: 84020 без необхідності попереднього переходу в Укрпошту!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 56:', err.message, '\n');
   }
 
   console.log('===============================================================');

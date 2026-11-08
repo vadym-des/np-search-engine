@@ -2835,21 +2835,29 @@
 
         let altBranchFound = null;
         if (altService === 'ukrposhta') {
-          const upList = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.ukrposhta))
-            ? window.BRANCHES_DATA.ukrposhta
-            : null;
-          if (upList) {
-            const cName = canonCity(sName);
-            const sObl = sOblast.toLowerCase().slice(0, 4);
-            const sRai = sRaion.toLowerCase();
-            altBranchFound = upList.find(b => {
-              if ((b._canonCity || canonCity(b.city)) !== cName) return false;
-              const bObl = (b.oblast || b.region || '').toLowerCase();
-              const bRai = (b.raion || b.district || '').toLowerCase();
-              if (sObl && !bObl.includes(sObl)) return false;
-              if (sRai && !bRai.includes(sRai.slice(0, 4)) && !areRaionsCompatible(sRai, bRai)) return false;
-              return true;
-            });
+          if (window.SmartSearchEngine && typeof window.SmartSearchEngine.getUkrposhtaBranchesForSettlement === 'function') {
+            const upBranches = window.SmartSearchEngine.getUkrposhtaBranchesForSettlement(sName, sOblast, sRaion);
+            if (upBranches && upBranches.length > 0) {
+              altBranchFound = upBranches[0];
+            }
+          }
+          if (!altBranchFound) {
+            const upList = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.ukrposhta))
+              ? window.BRANCHES_DATA.ukrposhta
+              : null;
+            if (upList) {
+              const cName = canonCity(sName);
+              const sObl = sOblast.toLowerCase().slice(0, 4);
+              const sRai = sRaion.toLowerCase();
+              altBranchFound = upList.find(b => {
+                if ((b._canonCity || canonCity(b.city)) !== cName) return false;
+                const bObl = (b.oblast || b.region || '').toLowerCase();
+                const bRai = (b.raion || b.district || '').toLowerCase();
+                if (sObl && !bObl.includes(sObl)) return false;
+                if (sRai && !bRai.includes(sRai.slice(0, 4)) && !areRaionsCompatible(sRai, bRai)) return false;
+                return true;
+              });
+            }
           }
         } else {
           const npList = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.novaposhta))
@@ -4471,12 +4479,17 @@
           if (dom.searchInput) dom.searchInput.value = targetQuery;
           closeAutocomplete();
 
-          const upList = (window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.ukrposhta))
-            ? window.BRANCHES_DATA.ukrposhta
-            : null;
           let upBranch = null;
-          if (upList && targetIndex) {
-            upBranch = upList.find(b => String(b.index || b.postalCode || b.number) === String(targetIndex));
+          if (targetIndex && window.SmartSearchEngine && typeof window.SmartSearchEngine.getUkrposhtaBranchByIndex === 'function') {
+            upBranch = window.SmartSearchEngine.getUkrposhtaBranchByIndex(targetIndex);
+          }
+          if (!upBranch) {
+            const upList = (window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.ukrposhta))
+              ? window.BRANCHES_DATA.ukrposhta
+              : null;
+            if (upList && targetIndex) {
+              upBranch = upList.find(b => String(b.index || b.postalCode || b.number) === String(targetIndex));
+            }
           }
 
           if (upBranch) {
