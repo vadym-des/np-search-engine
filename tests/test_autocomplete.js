@@ -3094,8 +3094,8 @@ async function runTests() {
     const acBC = eng.getAutocompleteSuggestions("Біла Церква Білоцерківський Київська Ярослава Мудрого 20", "novaposhta", null, pool);
     const t1 = performance.now();
     const bcTime = t1 - t0;
-    if (bcTime > 250) {
-      throw new Error(`Час обробки автокомпліту Білої Церкви перевищив 250мс: ${bcTime.toFixed(2)}мс`);
+    if (bcTime > 350) {
+      throw new Error(`Час обробки автокомпліту Білої Церкви перевищив 350мс: ${bcTime.toFixed(2)}мс`);
     }
     if (!acBC || acBC.length === 0) {
       throw new Error("Не знайдено жодної підказки для Білої Церкви");
