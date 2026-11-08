@@ -94,6 +94,8 @@ assert(
 );
 
 assert(
+  (htmlContent.includes('v1.6.33') && htmlContent.includes('styles.css?v=1.6.33')) ||
+  (htmlContent.includes('v1.6.32') && htmlContent.includes('styles.css?v=1.6.32')) ||
   (htmlContent.includes('v1.6.31') && htmlContent.includes('styles.css?v=1.6.31')) ||
   (htmlContent.includes('v1.6.30') && htmlContent.includes('styles.css?v=1.6.30')),
   'Версію index.html та query-параметри підключення актуалізовано до актуальної версії'
@@ -121,6 +123,8 @@ const swContent = fs.readFileSync(swJsPath, 'utf8');
 const changelogContent = fs.readFileSync(changelogPath, 'utf8');
 
 assert(
+  (swContent.includes("const CACHE_VERSION = 'v1.6.33';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v1.6.33';")) ||
+  (swContent.includes("const CACHE_VERSION = 'v1.6.32';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v1.6.32';")) ||
   (swContent.includes("const CACHE_VERSION = 'v1.6.31';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v1.6.31';")) ||
   (swContent.includes("const CACHE_VERSION = 'v1.6.30';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v1.6.30';")),
   'Service Worker оновлено до актуальної версії'

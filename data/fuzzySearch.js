@@ -2034,6 +2034,47 @@
     return null;
   }
 
+  // 5.1.5 Перевірка наявності вулиці у відділеннях населеного пункту (Cross-Street Disambiguation)
+  function isStreetOfCity(cityName, streetCandidate, targetOblast = null, targetRaion = null) {
+    if (!cityName || !streetCandidate) return false;
+    const src = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.novaposhta))
+      ? window.BRANCHES_DATA.novaposhta
+      : _lastActiveBranchPool;
+    if (!src || src.length === 0) return false;
+    const poolIndex = getOrBuildBranchPoolIndex(src);
+    const cCanon = canonCity(cityName);
+    const branches = (poolIndex && poolIndex.cityBranches) ? (poolIndex.cityBranches.get(cCanon) || []) : [];
+    if (branches.length === 0) return false;
+
+    const stLow = canonText(streetCandidate).replace(/^(?:вул|просп|проспект|пров|провулок|площа|пл|бульв|бульвар|шосе)\.?\s*/i, '').trim();
+    if (stLow.length < 3) return false;
+    const stStem = getUkrainianStem(stLow);
+    const oblClean = targetOblast ? targetOblast.toLowerCase().slice(0, 4) : null;
+    const rClean = targetRaion ? targetRaion.toLowerCase().slice(0, 4) : null;
+
+    for (let i = 0; i < branches.length; i++) {
+      const b = branches[i];
+      if (oblClean && b.oblast && !b.oblast.toLowerCase().includes(oblClean)) continue;
+      if (rClean && b.raion && !b.raion.toLowerCase().includes(rClean)) {
+        if (!areRaionsCompatible(b.raion, targetRaion)) continue;
+      }
+      if (matchStreetOrAddress(b, stLow)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function getCityBranchesFromPool(cityName) {
+    const src = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.novaposhta))
+      ? window.BRANCHES_DATA.novaposhta : _lastActiveBranchPool;
+    if (!src) return [];
+    const poolIndex = getOrBuildBranchPoolIndex(src);
+    if (!poolIndex || !poolIndex.cityBranches) return [];
+    const cCanon = canonCity(cityName);
+    return poolIndex.cityBranches.get(cCanon) || [];
+  }
+
   // 5.2. ІНТЕЛЕКТУАЛЬНА НОРМАЛІЗАЦІЯ ПОШУКОВОГО ЗАПИТУ (Smart Spellcheck & Fuzzy Normalization)
   const _normalizeTokensCache = new Map();
   const NORMALIZE_TOKENS_CACHE_LIMIT = 150;
@@ -2185,6 +2226,36 @@
             hasCityTypo = !isExact;
             mergedTokens.push(foundSingle.name.toLowerCase());
           } else {
+            // Перевірка: чи не є попередньо виявлене "місто" насправді вулицею у щойно знайденому населеному пункті?
+            // Наприклад: "культури 6 слобожнаське 1" -> "культури" помилково зіставилося з с. Культура, але у смт Слобожанське є вул. Культури!
+            const prevCityName = detectedCity.cleanName || detectedCity.name;
+            const curCityName = foundSingle.cleanName || foundSingle.name;
+            const curIsRegCenter = REGIONAL_CENTERS.has(curCityName.toLowerCase());
+            const curObl = (foundSingle.oblast || '').toLowerCase();
+            const prevObl = (detectedCity.oblast || '').toLowerCase();
+            const prevHasVarInCurObl = detectedCity.allVariants && detectedCity.allVariants.some(v => (v.oblast || '').toLowerCase().includes(curCityName.toLowerCase().slice(0, 4)) || (curObl && (v.oblast || '').toLowerCase().includes(curObl.slice(0, 4))));
+            const isSameOblast = (curObl && prevObl && (curObl.includes(prevObl.slice(0, 4)) || prevObl.includes(curObl.slice(0, 4)))) ||
+                                 (curIsRegCenter && prevObl.includes(curCityName.toLowerCase().slice(0, 4))) ||
+                                 (curIsRegCenter && prevHasVarInCurObl);
+
+            const isPrevStreetInCur = (!curIsRegCenter || !isSameOblast) && (isStreetOfCity(curCityName, rawCityToken) || isStreetOfCity(curCityName, prevCityName));
+            const isCurStreetInPrev = isStreetOfCity(prevCityName, cur) || isStreetOfCity(prevCityName, curCityName);
+
+            if (isPrevStreetInCur && !isCurStreetInPrev) {
+              const prevIndex = mergedTokens.lastIndexOf(detectedCity.name.toLowerCase());
+              if (prevIndex !== -1) {
+                mergedTokens[prevIndex] = rawCityToken ? rawCityToken.toLowerCase() : curLower;
+              }
+              detectedCity = foundSingle;
+              rawCityToken = cur;
+              hasCityTypo = !isExact;
+              mergedTokens.push(foundSingle.name.toLowerCase());
+              continue;
+            }
+            if (isCurStreetInPrev && !isPrevStreetInCur) {
+              mergedTokens.push(cur);
+              continue;
+            }
             // Малий населений пункт (село/смт) має безумовний пріоритет як цільове місто над містом/райцентром
             const isVillage = foundSingle.type === 'село' || foundSingle.type === 'смт' || foundSingle.type === 'селище';
             const prevIsCity = !detectedCity.type || detectedCity.type === 'місто';
@@ -2566,7 +2637,9 @@
         (ctxObl && matchedSettlement.oblast && !matchedSettlement.oblast.toLowerCase().includes(ctxObl.toLowerCase().slice(0, 4))) ||
         (matchedSettlement && facets.city.toLowerCase() !== matchedSettlement.name.toLowerCase() && (
           (matchedSettlement.type === 'місто' && (areRaionsCompatible(matchedSettlement.name, facets.raion || ctxRaion) || areRaionsCompatible(matchedSettlement.name, facets.city))) ||
-          (ctxRaion && areRaionsCompatible(ctxRaion, matchedSettlement.name) && !areRaionsCompatible(ctxRaion, facets.city))
+          (ctxRaion && areRaionsCompatible(ctxRaion, matchedSettlement.name) && !areRaionsCompatible(ctxRaion, facets.city)) ||
+          isStreetOfCity(facets.city, matchedSettlement.name) ||
+          isStreetOfCity(facets.city, rawCityToken)
         ));
       if (shouldUpgradeSettlement) {
         const betterS = findSettlementByNameOrFuzzy(facets.city, ctxObl, ctxRaion);
@@ -2575,25 +2648,42 @@
           const sName = betterS.cleanName || betterS.name;
           const fCity = facets.city.toLowerCase();
           const sLower = sName.toLowerCase();
-          const isExact = (fCity === sLower) ||
-                          (normalizeLocativeCase(fCity) === sLower) ||
-                          (canonText(fCity) === canonText(sLower)) ||
-                          (betterS.aliases && betterS.aliases.some(a => (a.toLowerCase() === fCity || canonText(a.toLowerCase()) === canonText(fCity)) && canonText(a.toLowerCase()) === canonText(sLower)));
+          const isExact = rawCityToken ? (
+                            rawCityToken.toLowerCase() === sLower ||
+                            canonText(rawCityToken.toLowerCase()) === canonText(sLower) ||
+                            normalizeLocativeCase(rawCityToken.toLowerCase()) === sLower
+                          ) : (
+                            (fCity === sLower) ||
+                            (normalizeLocativeCase(fCity) === sLower) ||
+                            (canonText(fCity) === canonText(sLower)) ||
+                            (betterS.aliases && betterS.aliases.some(a => (a.toLowerCase() === fCity || canonText(a.toLowerCase()) === canonText(fCity)) && canonText(a.toLowerCase()) === canonText(sLower)))
+                          );
           if (isExact) {
             hasRealTypo = false;
             didYouMeanText = null;
             didYouMean = null;
           } else {
             hasRealTypo = true;
-            rawCityToken = facets.city;
+            rawCityToken = rawCityToken || facets.city;
             didYouMeanText = sName;
             didYouMean = {
-              rawToken: facets.city,
+              rawToken: rawCityToken,
               correctedToken: sName,
               text: sName
             };
           }
         }
+      }
+    }
+
+    if (facets) {
+      if (facets.number) {
+        targetBranchNumber = facets.number;
+      } else if (facets.building && targetBranchNumber === facets.building) {
+        targetBranchNumber = null;
+      }
+      if (facets.streetTokens && facets.streetTokens.length > 0 && !detectedStreet) {
+        detectedStreet = 'вул. ' + facets.streetTokens.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
       }
     }
 
@@ -3964,13 +4054,20 @@
     text = text.replace(/([А-Яа-яІіЇїЄєA-Za-z]{2,})(\d+)/gu, '$1 $2')
       .replace(/(\d+)([А-Яа-яІіЇїЄєA-Za-z]{2,})/gu, '$1 $2');
 
-    // 0.8. Виділення номера будинку (наприклад "9а", "9-а", "9/1", "40а", "22/1", "1А")
+    // 0.8. Виділення номера будинку (наприклад "9а", "9-а", "9/1", "40а", "22/1", "1А", або "буд. 6", "будинок 6")
     let building = null;
-    const buildingTokenRegex = /(?<![0-9a-zа-яіїєґ])(\d+[-/]?[а-яіїєґa-z]|\d+\/\d+)(?![0-9a-zа-яіїєґ])/iu;
-    const bMatch = text.match(buildingTokenRegex);
-    if (bMatch) {
-      building = bMatch[1].toLowerCase();
-      text = text.replace(bMatch[0], ' ');
+    const explicitBuildingMatch = text.match(/(?:буд|будинок|б)\.?\s*(\d+[-/]?[а-яіїєґa-z]?)/iu);
+    if (explicitBuildingMatch) {
+      building = explicitBuildingMatch[1].toLowerCase();
+      text = text.replace(explicitBuildingMatch[0], ' ');
+    }
+    if (!building) {
+      const buildingTokenRegex = /(?<![0-9a-zа-яіїєґ])(\d+[-/]?[а-яіїєґa-z]|\d+\/\d+)(?![0-9a-zа-яіїєґ])/iu;
+      const bMatch = text.match(buildingTokenRegex);
+      if (bMatch) {
+        building = bMatch[1].toLowerCase();
+        text = text.replace(bMatch[0], ' ');
+      }
     }
 
     // 1. Номер відділення або поштомату
@@ -3980,20 +4077,32 @@
     if (explicitBranchMatch) {
       const cand = explicitBranchMatch[1];
       if (isPostomatKeyword(explicitBranchMatch[0]) && parseInt(cand, 10) < 1000) {
-        // Число після слова поштомат < 1000 — це номер будинку, не номер поштомату
+        if (!building) building = cand;
       } else {
         number = cand;
-        text = text.replace(explicitBranchMatch[0], ' ');
       }
+      text = text.replace(explicitBranchMatch[0], ' ');
     } else {
-      const numMatch = text.match(/\b\d{1,6}\b/);
-      if (numMatch) {
-        const cand = numMatch[0];
+      const allNumMatches = Array.from(text.matchAll(/\b\d{1,6}\b/g));
+      if (allNumMatches.length >= 2) {
+        const firstMatch = allNumMatches[0];
+        const secondMatch = allNumMatches[1];
+        const textBeforeFirst = text.slice(0, firstMatch.index).trim();
+        const lastWordBeforeFirst = (textBeforeFirst.match(/([А-Яа-яІіЇїЄєA-Za-z]+)$/u) || [])[1];
+        if (!building && lastWordBeforeFirst) {
+          building = firstMatch[0];
+          number = secondMatch[0];
+        } else {
+          number = firstMatch[0];
+          if (!building) building = secondMatch[0];
+        }
+        text = text.replace(firstMatch[0], ' ').replace(secondMatch[0], ' ');
+      } else if (allNumMatches.length === 1) {
+        const cand = allNumMatches[0][0];
         const val = parseInt(cand, 10);
-        // Якщо це запит на поштомат і число < 1000 — це номер будинку або адреси, залишаємо його для вулиці!
         if (!isPostomatQuery || val >= 1000) {
           number = cand;
-          text = text.replace(numMatch[0], ' ');
+          text = text.replace(allNumMatches[0][0], ' ');
         }
       }
     }
@@ -4104,25 +4213,72 @@
     });
 
     // 2. Primary Settlement Anchor & Cross-Street Filter:
-    // Якщо кандидат А містить кандидата Б у своєму списку вулиць (наприклад, Гриців містить 'вул. Київська', або Львів містить 'просп. Червоної Калини'):
+    // Якщо кандидат А містить кандидата Б у своєму списку вулиць або у своїх відділеннях (наприклад, Гриців містить 'вул. Київська', або Слобожанське містить 'вул. Культури'):
     // тоді кандидат Б є вулицею міста А, а не конкуруючим населеним пунктом!
     effectiveSettlements = effectiveSettlements.filter(itemB => {
       const isStreetOfOther = effectiveSettlements.some(itemA => {
         if (itemA === itemB) return false;
+        const aName = itemA.s.cleanName || itemA.s.name;
+        // Захист: якщо itemA є обласним центром, а itemB - населений пункт цієї ж області,
+        // це зазначення області через облцентр ("володимирець рівне", "варва чернігів", "любінь львів"),
+        // а не вулиця облцентру!
+        const aObl = (itemA.s.oblast || '').toLowerCase();
+        const bObl = (itemB.s.oblast || '').toLowerCase();
+        const bHasVarInAObl = itemB.s.allVariants && itemB.s.allVariants.some(v => (v.oblast || '').toLowerCase().includes(aName.toLowerCase().slice(0, 4)) || (aObl && (v.oblast || '').toLowerCase().includes(aObl.slice(0, 4))));
+        const isSameOblast = (aObl && bObl && (aObl.includes(bObl.slice(0, 4)) || bObl.includes(aObl.slice(0, 4)))) ||
+                             (REGIONAL_CENTERS.has(aName.toLowerCase()) && bObl.includes(aName.toLowerCase().slice(0, 4))) ||
+                             (REGIONAL_CENTERS.has(aName.toLowerCase()) && bHasVarInAObl);
+        if (REGIONAL_CENTERS.has(aName.toLowerCase()) && isSameOblast) {
+          return false;
+        }
+
         const streets = itemA.s.streets || [];
         const bName = itemB.s.name.toLowerCase();
-        return streets.some(st => {
+        const inKnown = streets.some(st => {
           const stLow = st.toLowerCase();
           return stLow.includes(bName) || bName.includes(stLow.replace(/^(?:вул\.?|просп\.?|пров\.?)\s*/i, ''));
         });
+        if (inKnown) return true;
+        if (isStreetOfCity(aName, bName) || isStreetOfCity(aName, itemB.raw)) return true;
+        return false;
       });
       return !isStreetOfOther;
     });
 
+    let chosenSettlementItem = null;
+    let isVariantChosenByStreet = false;
     if (effectiveSettlements.length === 1) {
+      chosenSettlementItem = effectiveSettlements[0];
       const match = effectiveSettlements[0];
       city = cleanSettlementName(match.s.cleanName || match.s.name);
       settlementOblast = match.s.oblast;
+      if (!oblast && !raion && match.s.allVariants && match.s.allVariants.length > 1) {
+        const queryWords = (query || '').split(/\s+/).filter(w => {
+          const wLow = w.toLowerCase();
+          if (wLow.length < 3) return false;
+          if (canonCity(wLow) === canonCity(city)) return false;
+          if (isOblastToken(wLow) || detectOblast(wLow)) return false;
+          if (detectRaion(wLow) || /(?:ський|цький|зький)$/i.test(wLow)) return false;
+          if (/^\d+$/.test(wLow)) return false;
+          return true;
+        });
+        for (const w of queryWords) {
+          const matchingVar = match.s.allVariants.find(v => isStreetOfCity(city, w, v.oblast, v.raion));
+          if (matchingVar) {
+            match.s = {
+              name: cleanSettlementName(matchingVar.cleanName || match.s.name),
+              oblast: matchingVar.oblast,
+              raion: matchingVar.raion,
+              type: matchingVar.type || match.s.type,
+              allVariants: match.s.allVariants
+            };
+            settlementOblast = matchingVar.oblast;
+            if (matchingVar.raion) raion = matchingVar.raion;
+            isVariantChosenByStreet = true;
+            break;
+          }
+        }
+      }
       text = text.replace(new RegExp('(?<!\\p{L})' + match.raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?!\\p{L})', 'iu'), ' ').trim();
     } else if (effectiveSettlements.length >= 2) {
       // 1. Пошук села / смт / селища серед кандидатів
@@ -4286,6 +4442,7 @@
         }
       }
 
+      chosenSettlementItem = selectedMatch;
       city = cleanSettlementName(selectedMatch.s.cleanName || selectedMatch.s.name);
       settlementOblast = selectedMatch.s.oblast;
       if (!oblast) oblast = selectedMatch.s.oblast;
@@ -4367,8 +4524,50 @@
         // Якщо користувач не вказав ні район, ні область, а місто існує в кількох областях:
         const sameCityVariants = UKRAINE_SETTLEMENTS.filter(s => s.name.toLowerCase() === city.toLowerCase());
         const hasMultipleInAll = _allSettlementsByName.has(city.toLowerCase()) && _allSettlementsByName.get(city.toLowerCase()).length > 1;
-        if (sameCityVariants.length > 1 || hasMultipleInAll) {
+        if ((sameCityVariants.length > 1 || hasMultipleInAll) && !isVariantChosenByStreet) {
           settlementOblast = null; // Не обмежуємо примусово першою знайденою областю
+        }
+      }
+    }
+
+    // Якщо номер було виділено як number, але він стоїть після назви вулиці і в цьому місті є відділення на цій вулиці з таким номером будинку:
+    // переносимо цей номер у building, щоб не відсікати відділення з іншим номером на цій самій вулиці
+    if (number && !building && city) {
+      const wordsInText = (text + ' ' + (query || '')).split(/\s+/).filter(w => w.length >= 3);
+      for (const w of wordsInText) {
+        if (isStreetOfCity(city, w)) {
+          const cityBranches = getCityBranchesFromPool(city);
+          const hasBranchAtStreetBuilding = cityBranches.some(b => {
+            const bSt = canonText((b.street || '') + ' ' + (b.address || ''));
+            const numRe = new RegExp('(?:^|[^0-9])' + number + '(?![0-9])');
+            return bSt.includes(canonText(w)) && numRe.test(bSt);
+          });
+          const hasWarehouseWithNumber = cityBranches.some(b => String(b.number) === String(number));
+          if (hasBranchAtStreetBuilding && !hasWarehouseWithNumber) {
+            building = number;
+            number = null;
+            break;
+          }
+        }
+      }
+    }
+
+    // ДЕЗАМБІГУАЦІЯ ВАРІАНТІВ МІСТА ЗА ВУЛИЦЕЮ (напр. Слобожанське з вул. Культури знаходиться у Харківській обл., Чугуївський р-н)
+    if (city && chosenSettlementItem && chosenSettlementItem.s && Array.isArray(chosenSettlementItem.s.allVariants) && chosenSettlementItem.s.allVariants.length > 1 && !oblast) {
+      const streetWords = (text + ' ' + (building || '') + ' ' + (query || '')).split(/\s+/).filter(w => w.length >= 3);
+      for (const w of streetWords) {
+        const matchingVar = chosenSettlementItem.s.allVariants.find(v => isStreetOfCity(city, w, v.oblast, v.raion));
+        if (matchingVar) {
+          settlementOblast = matchingVar.oblast;
+          if (matchingVar.raion) raion = matchingVar.raion;
+          chosenSettlementItem.s = {
+            ...chosenSettlementItem.s,
+            cleanName: matchingVar.cleanName || matchingVar.name,
+            oblast: matchingVar.oblast,
+            raion: matchingVar.raion,
+            type: matchingVar.type || chosenSettlementItem.s.type
+          };
+          break;
         }
       }
     }
@@ -4991,7 +5190,11 @@
           if (!numMatched) {
             const isUkrMicro = isUkrposhta && numTokens.some(t => t.length <= 2) && detectedCityName && bCity === detectedCityName;
             if (!isUkrMicro) {
-              if (isPostomat && !hasPostomatKeyword) {
+              if (streetMatched && houseNumMatched) {
+                // Якщо відділення/поштомат знаходиться саме на шуканій вулиці та в шуканому будинку (наприклад поштомат на вул. Культури, 6)
+                // заборонено штрафувати за чужий номер, оскільки точка знаходиться за точним місцем призначення!
+                score += 500;
+              } else if (isPostomat && !hasPostomatKeyword) {
                 score -= 1200;
               } else if (streetMatched || houseNumMatched) {
                 score -= 100;

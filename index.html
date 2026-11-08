@@ -31,7 +31,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.32">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.33">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -47,7 +47,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.32">
+  <link rel="stylesheet" href="styles.css?v=1.6.33">
 </head>
 <body data-service="novaposhta">
 
@@ -265,7 +265,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.32</span>
+          <span class="version-tag">v1.6.33</span>
         </button>
       </div>
 
@@ -291,8 +291,22 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.32 -->
+        <!-- Версія 1.6.33 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.33</span>
+            <span class="version-state">Комбінований пошук «Вулиця + Будинок + Місто + Відділення», валідація вулиць і точний Did-You-Mean</span>
+            <span class="version-date">8 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Інтелектуальне розпізнавання вулиць у містах-тезках:</strong> Реалізовано перевірку <code>isStreetOfCity</code>, яка враховує реальну наявність шуканої вулиці у населеному пункті при колізіях однакових назв (наприклад, Слобожанське Харківської обл. vs Слобожанське Дніпровського р-ну).</li>
+            <li><strong>Підтримка складних комбінованих запитів з кількома числами:</strong> Якщо користувач одночасно вводить номер будинку та номер відділення (як <code>культури 6 слобожнаське 1</code>), система коректно знаходить як відділення за адресою (відділення №2), так і поштомати (поштомат №45694 на вул. Культури, 6).</li>
+            <li><strong>Збереження Did-You-Mean при адресних запитах:</strong> Одруки в назві міста (наприклад, <code>слобожнаське</code>) коректно виправляються рекомендаційним блоком «Можливо, ви мали на увазі: Слобожанське» навіть при наявності назви вулиці в пошуковому рядку.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.32 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.32</span>
             <span class="version-state">Інтелектуальні аліаси для складених міст (Кам'янець-Подільський), Did-You-Mean та типографіка</span>
@@ -1243,18 +1257,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.32"></script>
+  <script src="data/branches.js?v=1.6.33"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.32"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.33"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.32"></script>
+  <script src="data/all_settlements.js?v=1.6.33"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.32"></script>
+  <script src="data/fuzzySearch.js?v=1.6.33"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.32"></script>
+  <script src="app.js?v=1.6.33"></script>
 </body>
 </html>

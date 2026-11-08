@@ -1062,9 +1062,18 @@
         );
 
         if (exactMatches.length > 0) {
-          results = exactMatches;
-          didYouMeanText = null;
-          didYouMeanData = null;
+          if (hasStreetInQuery) {
+            // Якщо користувач також шукав вулицю (напр. "культури 6 слобожанське 1"):
+            // зберігаємо точки за вулицею разом із точним номером відділення
+            const streetMatches = staticMatches.filter(b => !exactMatches.includes(b));
+            results = streetMatches.concat(exactMatches);
+          } else {
+            results = exactMatches;
+          }
+          if (!parsed.didYouMeanText) {
+            didYouMeanText = null;
+            didYouMeanData = null;
+          }
         } else {
           const targetNumStr = parsed.targetBranchNumber.toString();
           const isPostomatPrefix = targetNumStr.length >= 3 && staticMatches.some(b => (b.typeClass === 'poshtomat' || b.type === 'poshtomat') && b.number && b.number.toString().startsWith(targetNumStr));
@@ -1073,14 +1082,18 @@
             : [];
           if (prefixMatches.length > 0) {
             results = prefixMatches;
-            didYouMeanText = null;
-            didYouMeanData = null;
+            if (!parsed.didYouMeanText) {
+              didYouMeanText = null;
+              didYouMeanData = null;
+            }
           } else if (hasStreetInQuery && staticMatches.length > 0) {
             // Якщо точного номера немає серед результатів, але вказано слово-вулицю (випадок "145 драгоманов київ"),
             // відображаємо результат скорингового рушія за цією вулицею
             results = staticMatches;
-            didYouMeanText = null;
-            didYouMeanData = null;
+            if (!parsed.didYouMeanText) {
+              didYouMeanText = null;
+              didYouMeanData = null;
+            }
           } else {
             // Перевірка наявності точного номера в іншому місті або близького номера (distance 1) у поточному місті
             const crossCityExact = allStaticBranches.filter(b => (b.number && b.number.toString() === targetNumStr) || (b.postalCode && b.postalCode.toString() === targetNumStr));
