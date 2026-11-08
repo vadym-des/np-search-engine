@@ -624,6 +624,7 @@
     { name: 'Малин', oblast: 'Житомирська', raion: 'Коростенський', type: 'місто', lat: 50.7688, lng: 29.2593, postalCodes: ['11600', '11601', '11602', '11603', '11604'], aliases: ['малин', 'malyn', 'малын'], streets: ['вул. Грушевського', 'вул. Володимирська', 'вул. Перемоги', 'вул. Огієнка', 'вул. Степана Бандери', 'вул. Івана Мазепи'] },
     { name: 'Запоріжжя', oblast: 'Запорізька', raion: 'Запорізький', type: 'місто', lat: 47.8388, lng: 35.1396, postalCodes: ['69000'], aliases: ['запоріжжя', 'запорожье', 'зп', 'zaporizhzhia'], streets: ['просп. Соборний', 'вул. Брянська', 'вул. Перемоги'] },
     { name: 'Вінниця', oblast: 'Вінницька', raion: 'Вінницький', type: 'місто', lat: 49.2331, lng: 28.4682, postalCodes: ['21000'], aliases: ['вінниця', 'винница', 'vinnytsia'], streets: ['вул. Соборна', 'вул. Якова Шепеля', 'вул. Келецька'] },
+    { name: 'Козятин', oblast: 'Вінницька', raion: 'Хмільницький', type: 'місто', lat: 49.7167, lng: 28.8333, postalCodes: ['22100', '22101', '22102', '22103', '22104'], aliases: ['козятин', 'kozyatyn', 'козятын', 'казатин'], streets: ['вул. Винниченка', 'вул. Грушевського', 'вул. Героїв Майдану', 'вул. Незалежності', 'вул. П. Орлика', 'вул. Довженка', 'вул. Захисників України', 'вул. Тимка Падури', 'вул. Миру'] },
     { name: 'Полтава', oblast: 'Полтавська', raion: 'Полтавський', type: 'місто', lat: 49.5883, lng: 34.5514, postalCodes: ['36000'], aliases: ['полтава', 'poltava'], streets: ['вул. Соборності', 'вул. Ветеринарна', 'вул. Європейська'] },
     { name: 'Кременчук', oblast: 'Полтавська', raion: 'Кременчуцький', type: 'місто', lat: 49.0631, lng: 33.4217, postalCodes: ['39600'], aliases: ['кременчук', 'кременчуг'], streets: ['вул. Соборна', 'вул. Першотравнева'] },
     { name: 'Миргород', oblast: 'Полтавська', raion: 'Миргородський', type: 'місто', lat: 49.9667, lng: 33.6000, postalCodes: ['37600'], aliases: ['миргород'], streets: ['вул. Гоголя'] },
@@ -1450,6 +1451,7 @@
     { name: 'Кам\'янське', old_name: 'Дніпродзержинськ', new_raion: 'Кам\'янський', old_raion: 'Кам\'янський', oblast: 'Дніпропетровська' },
     { name: 'Покров', old_name: 'Орджонікідзе', new_raion: 'Нікопольський', old_raion: 'Нікопольський', oblast: 'Дніпропетровська' },
     { name: 'Олешки', old_name: 'Цюрупинськ', new_raion: 'Херсонський', old_raion: 'Олешківський', oblast: 'Херсонська' },
+    { name: 'Козятин', new_raion: 'Хмільницький', old_raion: 'Козятинський', oblast: 'Вінницька' },
     { name: 'Доброслав', old_name: 'Комінтернівське', new_raion: 'Одеський', old_raion: 'Комінтернівський', oblast: 'Одеська' }
   ];
 
@@ -2822,6 +2824,13 @@
       const r = getRaionStem(b.raion || '');
       _activeBranchSettlementSet.add(c + '|' + o);
       if (r) _activeBranchSettlementSet.add(c + '|' + o + '|' + r);
+      if (b.settlementType) {
+        const t = normalizeSettlementBadge(b.settlementType).toLowerCase();
+        if (t) {
+          _activeBranchSettlementSet.add(c + '|' + o + '|' + t);
+          if (r) _activeBranchSettlementSet.add(c + '|' + o + '|' + r + '|' + t);
+        }
+      }
     }
     return _activeBranchSettlementSet;
   }
@@ -3069,7 +3078,8 @@
       if (!rStem && !isRegCenter) {
         rStem = getRaionStem(cleanName);
       }
-      const sKey = `${canonText(cleanName)}-${rStem}-${canonText(cleanOblast)}`;
+      const sTypeNorm = (badgeType || s.type || '').toLowerCase();
+      const sKey = `${canonText(cleanName)}-${rStem}-${canonText(cleanOblast)}-${sTypeNorm}`;
       if (seen.has(sKey)) return false;
       seen.add(sKey);
       const normObj = {
@@ -3112,6 +3122,10 @@
             const b = cityBranches[i];
             if (sObl && b.oblast && !b.oblast.toLowerCase().includes(sObl)) continue;
             if (sRai && b.raion && !b.raion.toLowerCase().includes(sRai.slice(0, 4)) && !areRaionsCompatible(sRai, b.raion)) continue;
+            if (b.settlementType && sTypeNorm) {
+              const bTypeNorm = normalizeSettlementBadge(b.settlementType).toLowerCase();
+              if (bTypeNorm && bTypeNorm !== sTypeNorm) continue;
+            }
             branchCount++;
             const isPost = b.typeClass === 'poshtomat' || b.type === 'poshtomat' || /поштомат/i.test(b.name || '') || /поштомат/i.test(b.typeName || '');
             if (isPost) {
@@ -3137,6 +3151,10 @@
               const b = npBranches[i];
               if (sObl && b.oblast && !b.oblast.toLowerCase().includes(sObl)) continue;
               if (sRai && b.raion && !b.raion.toLowerCase().includes(sRai.slice(0, 4)) && !areRaionsCompatible(sRai, b.raion)) continue;
+              if (b.settlementType && sTypeNorm) {
+                const bTypeNorm = normalizeSettlementBadge(b.settlementType).toLowerCase();
+                if (bTypeNorm && bTypeNorm !== sTypeNorm) continue;
+              }
               npBranchCount++;
             }
           }
@@ -3628,9 +3646,17 @@
           const bO = (b.oblast || '').toLowerCase().slice(0, 5);
           const aR = getRaionStem(a.raion || '');
           const bR = getRaionStem(b.raion || '');
+          const aT = normalizeSettlementBadge(a.type).toLowerCase();
+          const bT = normalizeSettlementBadge(b.type).toLowerCase();
+          const aHasRT = (aR && aT && activeSet.has(aC + '|' + aO + '|' + aR + '|' + aT)) ? 1 : 0;
+          const bHasRT = (bR && bT && activeSet.has(bC + '|' + bO + '|' + bR + '|' + bT)) ? 1 : 0;
+          if (aHasRT !== bHasRT) return bHasRT - aHasRT;
           const aHasR = (aR && activeSet.has(aC + '|' + aO + '|' + aR)) ? 1 : 0;
           const bHasR = (bR && activeSet.has(bC + '|' + bO + '|' + bR)) ? 1 : 0;
           if (aHasR !== bHasR) return bHasR - aHasR;
+          const aHasT = (aT && activeSet.has(aC + '|' + aO + '|' + aT)) ? 1 : 0;
+          const bHasT = (bT && activeSet.has(bC + '|' + bO + '|' + bT)) ? 1 : 0;
+          if (aHasT !== bHasT) return bHasT - aHasT;
           const aHas = activeSet.has(aC + '|' + aO) ? 1 : 0;
           const bHas = activeSet.has(bC + '|' + bO) ? 1 : 0;
           if (aHas !== bHas) return bHas - aHas;
@@ -5332,7 +5358,13 @@
         // Дезамбігуація тезок без явно вказаної області/району (напр. "п'ятихатки 1"):
         // при рівному збігу перевага реальному місту (за типом) та населеному пункту з більшою мережею відділень.
         if (detectedCityName && ambiguousCityNoRegion && bCity === detectedCityName) {
-          score += settlementTypeRank(b.settlementType);
+          if (/(?:^|\s)(?:село|с\.)(?:\s|$)/i.test(rawQuery)) {
+            if ((b.settlementType || '').toLowerCase() === 'село') score += 500;
+          } else if (/(?:^|\s)(?:місто|м\.)(?:\s|$)/i.test(rawQuery)) {
+            if ((b.settlementType || '').toLowerCase() === 'місто') score += 500;
+          } else {
+            score += settlementTypeRank(b.settlementType);
+          }
           score += Math.min(cityBranchCount.get(bCity + '|' + bOblast) || 0, 10) * 5;
         }
 

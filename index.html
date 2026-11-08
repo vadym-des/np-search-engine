@@ -31,7 +31,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.35">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.36">
   
   <!-- Theme initialization (Default: Light; persists in localStorage; resets to Light on cache clear) -->
   <script>
@@ -47,7 +47,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.35">
+  <link rel="stylesheet" href="styles.css?v=1.6.36">
 </head>
 <body data-service="novaposhta">
 
@@ -265,7 +265,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.35</span>
+          <span class="version-tag">v1.6.36</span>
         </button>
       </div>
 
@@ -291,8 +291,23 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.35 -->
+        <!-- Версія 1.6.36 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.36</span>
+            <span class="version-state">Розрізнення однойменних міста та села в одному районі («Козятин місто vs село»), точний підрахунок точок та дедуплікація типів</span>
+            <span class="version-date">8 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Роздільне відображення міста та села Козятин (Вінницька обл.):</strong> Додано місто Козятин до реєстру населених пунктів та базового топонімічного списку. Тепер при введенні «Козятин» автокомпліт пропонує обидва діючі варіанти з точним розподілом відділень: місто Козятин (40 точок: 8 відділень та 32 поштомати) та село Козятин (3 відділення).</li>
+            <li><strong>Дедуплікація з урахуванням типу населеного пункту:</strong> Оновлено ключ дедуплікації підказок, що дозволяє населеним пунктам з однаковою назвою в одному районі (місто та село) виводитися як окремі повноцінні варіанти.</li>
+            <li><strong>Точна фільтрація мережі відділень:</strong> Лічильник відділень тепер суворо враховує <code>settlementType</code>, усуваючи злиття міських та сільських точок в одну картку.</li>
+            <li><strong>Підтримка запитів за типом:</strong> Запити «місто козятин 1» та «село козятин 1» точно знаходять відповідні цільові відділення (№1 вул. Винниченка у місті та №1 вул. Миру у селі).</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.35 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.35</span>
             <span class="version-state">Ієрархія префіксів обласних центрів («Львів Павлів 1»), дезамбігуація сіл та покращення парсера</span>
@@ -1285,18 +1300,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.35"></script>
+  <script src="data/branches.js?v=1.6.36"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.35"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.36"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.35"></script>
+  <script src="data/all_settlements.js?v=1.6.36"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.35"></script>
+  <script src="data/fuzzySearch.js?v=1.6.36"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.35"></script>
+  <script src="app.js?v=1.6.36"></script>
 </body>
 </html>

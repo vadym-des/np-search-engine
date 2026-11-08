@@ -229,7 +229,7 @@ async function runTests() {
   console.log('===============================================================\n');
 
   let passedTests = 0;
-  let totalTests = 54;
+  let totalTests = 55;
   const canon = (s) => String(s || '').toLowerCase().replace(/['`ʼʻʽ’‘ʹ′´ˈ]/g, '');
 
   const { mockDocument, elementsById } = createMockEnvironment();
@@ -3457,6 +3457,54 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 54:', err.message, '\n');
+  }
+
+  // ТЕСТ 55: Розрізнення міста та села Козятин (Вінницька обл.) в автокомпліті
+  try {
+    console.log('▶ ТЕСТ 55: Розрізнення однойменних міста та села Козятин (Вінницька обл.) в автокомпліті (v1.6.36)');
+    const eng = window.SmartSearchEngine;
+    const pool = (window.BRANCHES_DATA && window.BRANCHES_DATA.novaposhta) ? window.BRANCHES_DATA.novaposhta : [];
+
+    const suggestions = eng.getAutocompleteSuggestions('Козятин', 'novaposhta', null, pool);
+    if (!Array.isArray(suggestions) || suggestions.length < 2) {
+      throw new Error(`Для 'Козятин' очікувалось щонайменше 2 варіанти, отримано: ${suggestions ? suggestions.length : 0}`);
+    }
+
+    const cityKoz = suggestions.find(s => s.type === 'місто' && s.oblast && s.oblast.includes('Вінницьк'));
+    const villageKoz = suggestions.find(s => s.type === 'село' && s.oblast && s.oblast.includes('Вінницьк'));
+
+    if (!cityKoz) {
+      throw new Error('У списку автокомпліту відсутнє місто Козятин (Вінницька обл.)');
+    }
+    if (!villageKoz) {
+      throw new Error('У списку автокомпліту відсутнє село Козятин (Вінницька обл.)');
+    }
+
+    if (cityKoz.branchCount !== 40) {
+      throw new Error(`Для міста Козятин очікувалось 40 точок (8 відд. + 32 пошт.), отримано: ${cityKoz.branchCount} (відд: ${cityKoz.regularCount}, пошт: ${cityKoz.postomatCount})`);
+    }
+    if (cityKoz.regularCount !== 8 || cityKoz.postomatCount !== 32) {
+      throw new Error(`Для міста Козятин невірний розподіл точок: regularCount=${cityKoz.regularCount}, postomatCount=${cityKoz.postomatCount}`);
+    }
+
+    if (villageKoz.branchCount !== 3) {
+      throw new Error(`Для села Козятин очікувалось 3 точки (3 відд.), отримано: ${villageKoz.branchCount} (відд: ${villageKoz.regularCount}, пошт: ${villageKoz.postomatCount})`);
+    }
+    if (villageKoz.regularCount !== 3 || villageKoz.postomatCount !== 0) {
+      throw new Error(`Для села Козятин невірний розподіл точок: regularCount=${villageKoz.regularCount}, postomatCount=${villageKoz.postomatCount}`);
+    }
+
+    // Місто Козятин має стояти попереду села в автокомпліті
+    const cityIdx = suggestions.indexOf(cityKoz);
+    const villageIdx = suggestions.indexOf(villageKoz);
+    if (cityIdx >= villageIdx) {
+      throw new Error(`Місто Козятин повинно бути вище за село Козятин: cityIdx=${cityIdx}, villageIdx=${villageIdx}`);
+    }
+
+    console.log('  ✓ Успіх: Автокомпліт бездоганно розрізняє місто Козятин (40 точок: 8 відд. • 32 пошт.) та село Козятин (3 відд.)!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 55:', err.message, '\n');
   }
 
   console.log('===============================================================');
