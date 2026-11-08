@@ -2661,6 +2661,7 @@
         (ctxObl && matchedSettlement.oblast && !matchedSettlement.oblast.toLowerCase().includes(ctxObl.toLowerCase().slice(0, 4))) ||
         (ctxRaion && matchedSettlement.raion && !matchedSettlement.raion.toLowerCase().includes(ctxRaion.toLowerCase().slice(0, 4)) && !areRaionsCompatible(ctxRaion, matchedSettlement.raion)) ||
         (matchedSettlement && facets.city.toLowerCase() !== matchedSettlement.name.toLowerCase() && (
+          REGIONAL_CENTERS.has(matchedSettlement.name.toLowerCase()) ||
           (matchedSettlement.type === 'місто' && (areRaionsCompatible(matchedSettlement.name, facets.raion || ctxRaion) || areRaionsCompatible(matchedSettlement.name, facets.city))) ||
           (ctxRaion && areRaionsCompatible(ctxRaion, matchedSettlement.name) && !areRaionsCompatible(ctxRaion, facets.city)) ||
           isStreetOfCity(facets.city, matchedSettlement.name) ||
@@ -2673,7 +2674,8 @@
           const sName = betterS.cleanName || betterS.name;
           const fCity = facets.city.toLowerCase();
           const sLower = sName.toLowerCase();
-          const isExact = rawCityToken ? (
+          const isLiteralInQuery = rawQuery.toLowerCase().includes(sLower) || canonText(rawQuery.toLowerCase()).includes(canonText(sLower));
+          const isExact = isLiteralInQuery || (rawCityToken ? (
                             rawCityToken.toLowerCase() === sLower ||
                             canonText(rawCityToken.toLowerCase()) === canonText(sLower) ||
                             normalizeLocativeCase(rawCityToken.toLowerCase()) === sLower
@@ -2682,7 +2684,7 @@
                             (normalizeLocativeCase(fCity) === sLower) ||
                             (canonText(fCity) === canonText(sLower)) ||
                             (betterS.aliases && betterS.aliases.some(a => (a.toLowerCase() === fCity || canonText(a.toLowerCase()) === canonText(fCity)) && canonText(a.toLowerCase()) === canonText(sLower)))
-                          );
+                          ));
           if (isExact) {
             hasRealTypo = false;
             didYouMeanText = null;
