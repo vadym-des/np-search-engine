@@ -405,6 +405,60 @@ runTest('Комбінація скорочень для смт Середнє: "
   assert(!result.includes('-'), 'Рядок не повинен містити паразитарного дефіса "-"');
 });
 
+// 14. Канонічне вставляння тегів при поверненні в шаблон (insertTagInCanonicalOrder)
+runTest('Канонічне повернення тегів у шаблон (insertTagInCanonicalOrder не стрибає в кінець)', () => {
+  // А: settlementType повертається перед city, а не в кінець
+  let tags = ['city', 'branchType', 'number', 'street'];
+  tags = window.insertTagInCanonicalOrder(tags, 'settlementType');
+  assert.deepStrictEqual(
+    tags,
+    ['settlementType', 'city', 'branchType', 'number', 'street'],
+    'settlementType має стати перед city, а не в кінці'
+  );
+
+  // Б: raion повертається перед weight та oblast
+  tags = ['settlementType', 'city', 'branchType', 'number', 'street', 'weight'];
+  tags = window.insertTagInCanonicalOrder(tags, 'raion');
+  assert.deepStrictEqual(
+    tags,
+    ['settlementType', 'city', 'branchType', 'number', 'street', 'raion', 'weight'],
+    'raion має стати між street та weight'
+  );
+
+  // В: service повертається на самий початок
+  tags = window.insertTagInCanonicalOrder(tags, 'service');
+  assert.strictEqual(tags[0], 'service', 'service має стати найпершим елементом');
+});
+
+// 15. Захист від багу стрибка "селище" в кінець речення
+runTest('Захист від багу стрибка "селище" в кінець речення при видаленні та поверненні тегу', () => {
+  const config = {
+    tags: ['settlementType', 'city', 'branchType', 'number', 'street', 'raion', 'oblast', 'weight'],
+    options: {
+      smtShort: false,
+      noBranchWord: false,
+      noStreetPrefix: false,
+      shortRegion: true
+    }
+  };
+
+  // Видаляємо settlementType
+  const sIdx = config.tags.indexOf('settlementType');
+  assert(sIdx >= 0);
+  config.tags.splice(sIdx, 1);
+
+  let strWithoutType = window.assembleCopyStringFromPreset(benchmarkBranch, config);
+  assert(!strWithoutType.includes('селище'), 'Селище прибрано з рядка');
+
+  // Повертаємо settlementType через канонічне вставляння
+  config.tags = window.insertTagInCanonicalOrder(config.tags, 'settlementType');
+  assert.strictEqual(config.tags[0], 'settlementType', 'settlementType має повернутися на 1-шу позицію');
+
+  let restoredStr = window.assembleCopyStringFromPreset(benchmarkBranch, config);
+  assert(restoredStr.startsWith('селище Середнє'), `Рядок повинен починатися з "селище Середнє", отримано: "${restoredStr}"`);
+  assert(!restoredStr.endsWith('селище'), `Рядок НЕ повинен закінчуватися на "селище", отримано: "${restoredStr}"`);
+});
+
 console.log('===============================================================');
 console.log(`📊 РЕЗУЛЬТАТ: ${passedTests} / ${totalTests} ТЕСТІВ ПРОЙДЕНО УСПІШНО!`);
 console.log('===============================================================\n');

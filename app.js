@@ -145,6 +145,9 @@
     optNoBranchWord: document.getElementById('optNoBranchWord'),
     optShortRegion: document.getElementById('optShortRegion'),
     optNoStreetPrefix: document.getElementById('optNoStreetPrefix'),
+    btnToggleAdvancedPreset: document.getElementById('btnToggleAdvancedPreset'),
+    presetAdvancedContainer: document.getElementById('presetAdvancedContainer'),
+    presetLiveInteractiveChips: document.getElementById('presetLiveInteractiveChips'),
 
     // Фідбек
     btnFeedback: (typeof document !== 'undefined' && typeof document.querySelector === 'function') ? document.querySelector('.btn-feedback') : null
@@ -157,10 +160,23 @@
 
   function getStoredTheme() {
     try {
+      if (typeof window !== 'undefined' && window.location && window.location.search) {
+        const urlTheme = new URLSearchParams(window.location.search).get('theme');
+        if (urlTheme === 'dark' || urlTheme === 'light') {
+          try { localStorage.setItem(THEME_STORAGE_KEY, urlTheme); } catch (e) {}
+          return urlTheme;
+        }
+      }
+      if (typeof document !== 'undefined' && document.documentElement) {
+        const attrTheme = document.documentElement.getAttribute('data-theme');
+        if (attrTheme === 'dark' || attrTheme === 'light') {
+          return attrTheme;
+        }
+      }
       const stored = localStorage.getItem(THEME_STORAGE_KEY);
       return stored === 'dark' ? 'dark' : 'light';
     } catch (e) {
-      return 'light';
+      return (typeof document !== 'undefined' && document.documentElement && document.documentElement.getAttribute('data-theme')) || 'light';
     }
   }
 
@@ -176,6 +192,14 @@
       dom.btnThemeToggle.setAttribute('title', label);
     }
 
+    // Синхронізуємо посилання на сторінку "Про проєкт" з поточною темою
+    if (typeof document !== 'undefined') {
+      const btnAbout = document.getElementById('btnHeaderAbout');
+      if (btnAbout) {
+        btnAbout.setAttribute('href', 'about.html?theme=' + theme);
+      }
+    }
+
     if (typeof updateMapTileLayerTheme === 'function') {
       updateMapTileLayerTheme(theme);
     }
@@ -186,12 +210,39 @@
       } catch (e) {
         console.error('Помилка запису теми в localStorage', e);
       }
+      if (typeof window !== 'undefined' && window.history && window.history.replaceState) {
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set('theme', theme);
+          window.history.replaceState({}, '', url.toString());
+        } catch (e) {}
+      }
     }
   }
 
   function toggleTheme() {
     const nextTheme = state.theme === 'dark' ? 'light' : 'dark';
     applyTheme(nextTheme, true);
+  }
+
+  // Синхронізація теми в реальному часі між вкладками (наприклад, зміна теми на сторінці about.html)
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('storage', (e) => {
+      if (e.key === THEME_STORAGE_KEY && e.newValue && e.newValue !== state.theme) {
+        applyTheme(e.newValue, false);
+      }
+    });
+
+    // Перехоплення кліку на перехід до "Про проєкт" для гарантованої передачі теми
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener('click', (e) => {
+        const link = e.target && e.target.closest ? e.target.closest('a[href*="about.html"]') : null;
+        if (link) {
+          const curTheme = state.theme || document.documentElement.getAttribute('data-theme') || 'light';
+          link.setAttribute('href', 'about.html?theme=' + curTheme);
+        }
+      });
+    }
   }
 
   // ==========================================================================
@@ -259,7 +310,8 @@
     if (directBranchTarget) {
       const cityClean = cleanSettlementName(directBranchTarget.city);
       const bIdx = directBranchTarget.index || directBranchTarget.postalCode || directBranchTarget.number || '';
-      const displayQuery = explicitTargetQuery || `${cityClean} ${bIdx}`.trim();
+      const fullGeoQuery = buildFullGeoQuery(directBranchTarget, bIdx);
+      const displayQuery = explicitTargetQuery || fullGeoQuery || `${cityClean} ${bIdx}`.trim();
 
       state.searchQuery = displayQuery;
       dom.searchInput.value = displayQuery;
@@ -267,7 +319,15 @@
       dom.btnClearSearch.classList.remove('hidden');
 
       state.selectedBranch = directBranchTarget;
-      state.selectedSettlement = null;
+      state.selectedSettlement = {
+        cleanName: cityClean,
+        name: cityClean,
+        cleanRaion: cleanRaionName(directBranchTarget.raion || ''),
+        raion: cleanRaionName(directBranchTarget.raion || ''),
+        cleanOblast: cleanOblastName(directBranchTarget.oblast || ''),
+        oblast: cleanOblastName(directBranchTarget.oblast || ''),
+        type: directBranchTarget.settlementType || 'місто'
+      };
       state.currentResults = [directBranchTarget];
 
       if (dom.didYouMeanBox) dom.didYouMeanBox.classList.add('hidden');
@@ -925,7 +985,7 @@
     dom.searchInput.setSelectionRange(len, len);
   }
 
-  async function executeSearch(query, shouldRecordAnalytics = true, isExplicitSubmit = false) {
+  async function executeSearch(query, shouldRecordAnalytics = true, isExplicitSubmit = false, allowSingleAutoSelect = true) {
     try {
       const rawQuery = (query || '').trim().replace(/\s+/g, ' ');
       if (!rawQuery) return;
@@ -1027,12 +1087,25 @@
         : (parsed.detectedRaion || (parsed.facets && parsed.facets.raion));
       const selRaionClean = cleanRaionName(explicitRaion || '').toLowerCase();
       const selRaion = selRaionClean.slice(0, 4);
+      const targetNum = (parsed.targetBranchNumber || parsed.postalCode || '').toString();
       staticMatches = staticMatches.filter(b => {
+        const bNum = String(b.index || b.number || b.postalCode || '');
+        // Якщо в статичній базі є точний збіг за 5-значним індексом (або 4-6 значним поштоматом/відділенням),
+        // колізія омонімів населеного пункту в іншій області (наприклад, село Київ у Миколаївській обл. vs столиця Київ)
+        // категорично не повинна відсікати діюче відділення з цим точним індексом!
+        if (targetNum && bNum === targetNum && targetNum.length >= 4) {
+          const bc = b._canonCity || canonCity(b.city);
+          if (bc === selName || (b._suburbs && b._suburbs.includes(selName))) {
+            return true;
+          }
+        }
         const bc = b._canonCity || canonCity(b.city);
         const matchesCity = bc === selName || (b._suburbs && b._suburbs.includes(selName));
         if (!matchesCity) return false;
-        if (selObl && b.oblast && !b.oblast.toLowerCase().includes(selObl)) return false;
-        if (selRaionClean && b.raion && !b.raion.toLowerCase().includes(selRaion) && !areRaionsCompatible(selRaionClean, b.raion)) return false;
+        const bObl = (b.oblast || b.region || '').toLowerCase();
+        if (selObl && bObl && !bObl.includes(selObl)) return false;
+        const bRai = (b.raion || b.district || '').toLowerCase();
+        if (selRaionClean && bRai && !bRai.includes(selRaion) && !areRaionsCompatible(selRaionClean, b.raion || b.district)) return false;
         return true;
       });
     } else if (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast)) {
@@ -1047,7 +1120,11 @@
 
       if (parsed.targetBranchNumber && !isHouseNumberNotBranch) {
         // Якщо шукали конкретний номер, залишаємо відділення саме з цим номером (відсікаючи номери будинків з адреси)
-        let exactMatches = staticMatches.filter(b => (b.number && b.number.toString() === parsed.targetBranchNumber.toString()) || (b.postalCode && b.postalCode.toString() === parsed.targetBranchNumber.toString()));
+        let exactMatches = staticMatches.filter(b => 
+          (b.number && b.number.toString() === parsed.targetBranchNumber.toString()) || 
+          (b.postalCode && b.postalCode.toString() === parsed.targetBranchNumber.toString()) ||
+          (b.index && b.index.toString() === parsed.targetBranchNumber.toString())
+        );
 
         // ФОЛЛБЕК ДЛЯ УКРПОШТИ:
         // Якщо клієнт шукає населений пункт + номер ("житомир нові білокоровичі 1"),
@@ -1096,7 +1173,11 @@
             }
           } else {
             // Перевірка наявності точного номера в іншому місті або близького номера (distance 1) у поточному місті
-            const crossCityExact = allStaticBranches.filter(b => (b.number && b.number.toString() === targetNumStr) || (b.postalCode && b.postalCode.toString() === targetNumStr));
+            const crossCityExact = allStaticBranches.filter(b => 
+              (b.number && b.number.toString() === targetNumStr) || 
+              (b.postalCode && b.postalCode.toString() === targetNumStr) ||
+              (b.index && b.index.toString() === targetNumStr)
+            );
             const nearMatches = staticMatches.filter(b => {
               const num = String(b.number || '');
               return num.length === targetNumStr.length && engine && engine.damerauLevenshtein && engine.damerauLevenshtein(num, targetNumStr) <= 1;
@@ -1310,8 +1391,9 @@
     }
 
     state.currentResults = results;
+    let fullGeoQuery = '';
     const hasExplicitTargetNum = parsed.targetBranchNumber && results.some(b => String(b.number) === String(parsed.targetBranchNumber));
-    if (results.length === 1 || (isExplicitSubmit && results.length > 0 && hasExplicitTargetNum)) {
+    if ((allowSingleAutoSelect && results.length === 1) || (isExplicitSubmit && results.length > 0 && hasExplicitTargetNum)) {
       state.selectedBranch = hasExplicitTargetNum
         ? results.find(b => String(b.number) === String(parsed.targetBranchNumber))
         : results[0];
@@ -1329,6 +1411,14 @@
           oblast: cleanOblastName(results[0].oblast || ''),
           type: results[0].settlementType || 'місто'
         };
+      }
+      if ((isExplicitSubmit || hasExplicitTargetNum) && state.selectedBranch) {
+        fullGeoQuery = buildFullGeoQuery(state.selectedBranch, parsed.targetBranchNumber);
+        if (fullGeoQuery && dom.searchInput) {
+          dom.searchInput.value = fullGeoQuery;
+          state.searchQuery = fullGeoQuery;
+          state.lockedInputValue = fullGeoQuery;
+        }
       }
     } else {
       state.selectedBranch = null;
@@ -1349,7 +1439,8 @@
     if (shouldRecordAnalytics) {
       const recordTitle = parsed.matchedSettlement ? parsed.matchedSettlement.name : rawQuery;
       recordFrequentQuery(recordTitle);
-      recordSearchHistory(rawQuery, results.length);
+      const historyQuery = (state.selectedBranch && fullGeoQuery) ? fullGeoQuery : rawQuery;
+      recordSearchHistory(historyQuery, results.length);
       trackEvent('search_performed', {
         query_length: rawQuery.length,
         tab_type: state.currentService === 'novaposhta' ? 'NP' : 'UKR',
@@ -1679,6 +1770,78 @@
     { id: 'postalCode', label: '[Індекс]', desc: 'Поштовий індекс' },
     { id: 'weight', label: '[Вага/Габарити]', desc: 'до 30 кг / до 1100 кг' }
   ];
+
+  const CANONICAL_TAG_ORDER = [
+    'service',
+    'settlementType',
+    'city',
+    'branchType',
+    'number',
+    'street',
+    'house',
+    'raion',
+    'oblast',
+    'postalCode',
+    'weight'
+  ];
+
+  function getTagDisplayInfo(tagId, options) {
+    const isSmtShort = !!(options && options.smtShort);
+    const noBranch = !!(options && options.noBranchWord);
+    const noStreet = !!(options && options.noStreetPrefix);
+    const shortReg = !!(options && options.shortRegion);
+
+    switch (tagId) {
+      case 'settlementType':
+        return { label: isSmtShort ? 'смт' : 'селище', title: 'Тип населеного пункту (смт / селище / місто / село)' };
+      case 'city':
+        return { label: 'Середнє', title: 'Назва населеного пункту' };
+      case 'service':
+        return { label: 'Нова Пошта', title: 'Служба доставки (Нова Пошта / Укрпошта)' };
+      case 'branchType':
+        return { label: noBranch ? 'Вантажне' : 'відділення', title: 'Тип відділення чи поштомату' };
+      case 'number':
+        return { label: '№1', title: 'Номер відділення чи поштомату' };
+      case 'street':
+        return { label: noStreet ? 'Закарпатська, 75' : 'вул. Закарпатська, 75', title: 'Вулиця та номер будинку' };
+      case 'house':
+        return { label: 'буд. 75', title: 'Номер будинку (якщо окремо від вулиці)' };
+      case 'raion':
+        return { label: shortReg ? 'Ужгородський р-н' : 'Ужгородський район', title: 'Район області' };
+      case 'oblast':
+        return { label: shortReg ? 'Закарпатська обл.' : 'Закарпатська область', title: 'Область' };
+      case 'postalCode':
+        return { label: '89432', title: 'Поштовий індекс' };
+      case 'weight':
+        return { label: 'до 1100 кг', title: 'Вагові та габаритні обмеження' };
+      default:
+        return { label: tagId, title: tagId };
+    }
+  }
+
+  function insertTagInCanonicalOrder(tags, tagId) {
+    if (!Array.isArray(tags)) tags = [];
+    if (tags.includes(tagId)) return tags;
+    const targetRank = CANONICAL_TAG_ORDER.indexOf(tagId);
+    if (targetRank === -1) {
+      tags.push(tagId);
+      return tags;
+    }
+    let insertIdx = -1;
+    for (let i = 0; i < tags.length; i++) {
+      const currentRank = CANONICAL_TAG_ORDER.indexOf(tags[i]);
+      if (currentRank !== -1 && currentRank > targetRank) {
+        insertIdx = i;
+        break;
+      }
+    }
+    if (insertIdx !== -1) {
+      tags.splice(insertIdx, 0, tagId);
+    } else {
+      tags.push(tagId);
+    }
+    return tags;
+  }
 
   const DEFAULT_COPY_PRESETS = {
     short: {
@@ -2310,8 +2473,6 @@
     }
 
     const branchNumber = (branch.number || branch.Number || branch.postalCode || branch.PostalCode || branch.index || '').toString().trim();
-    const primaryLineText = `${sType} ${branch.city || ''} - ${typeDisplay} №${branchNumber}: ${cleanStreet}`;
-
     const cleanCity = cleanSettlementName(branch.city || '');
 
     if (!raion && OBLAST_CENTER_RAIONS[cleanCity]) {
@@ -2349,6 +2510,11 @@
     const hlNumber = highlightMatch(branchNumber, query);
     const hlStreet = highlightMatch(cleanStreet, query);
     const hlGeoSub = geoSub ? highlightMatch(geoSub, query) : '';
+
+    const oblDisplay = oblClean ? (oblClean.endsWith('область') ? oblClean : `${oblClean} область`) : '';
+    const hlObl = oblDisplay ? highlightMatch(oblDisplay, query) : '';
+    const cityWithOblast = oblDisplay ? `${escapeHtml(sType)} ${hlCity}, ${hlObl}` : `${escapeHtml(sType)} ${hlCity}`;
+    const primaryLineText = `${sType} ${cleanCity}${oblDisplay ? ', ' + oblDisplay : ''} - ${typeDisplay} №${branchNumber}: ${cleanStreet}`;
 
     const fullSettlementText = `${sType} ${cleanCity}${geoSub ? ' ' + geoSub : ''}`;
     const hlSettlement = `${escapeHtml(sType)} ${hlCity}${hlGeoSub ? ' ' + hlGeoSub : ''}`;
@@ -2407,9 +2573,9 @@
     }
 
     card.innerHTML = `
-      <!-- Рядок 1: місто [Місто] - [Тип] №[Номер]: [Вулиця] (одне речення без іконок та крапок) -->
+      <!-- Рядок 1: місто [Місто], [Область] - [Тип] №[Номер]: [Вулиця] (одне речення без іконок та крапок) -->
       <div class="card-primary-line" title="${escapeHtml(primaryLineText)}">
-        <span class="city-highlight">${escapeHtml(sType)} ${hlCity}</span>
+        <span class="city-highlight">${cityWithOblast}</span>
         <span class="line-sep">-</span>
         <span class="branch-highlight">${escapeHtml(typeDisplay)} №${hlNumber}:</span>
         <span class="street-highlight">${hlStreet}</span>
@@ -2506,9 +2672,75 @@
     return card;
   }
 
+  // Автоматичне формування розширеного пошукового рядка: назва міста + район + обл + номер відділення
+  function buildFullGeoQuery(branch, targetNum) {
+    if (!branch) return '';
+    const parts = [];
+    const cName = cleanSettlementName(branch.city || '');
+    if (cName) parts.push(cName);
+
+    const cRaion = cleanRaionName(branch.raion || '');
+    const cOblast = cleanOblastName(branch.oblast || '');
+
+    if (cRaion) {
+      const rStem = cRaion.toLowerCase().slice(0, 4);
+      const nStem = cName.toLowerCase().slice(0, 4);
+      // Додаємо район, якщо він не має спільного кореня з містом (наприклад Ужгородський для Середнє, Бучанський для Макарів)
+      if (rStem !== nStem) {
+        parts.push(cRaion);
+      }
+    }
+
+    if (cOblast) {
+      parts.push(cOblast);
+    }
+
+    const num = (targetNum || branch.number || branch.postalCode || branch.index || '').toString().trim();
+    if (num) {
+      parts.push(num);
+    }
+
+    return parts.join(' ').replace(/\s+/g, ' ').trim();
+  }
+
+  // Очищення номера відділення/поштомату з пошукового рядка при закритті обраної картки
+  function extractSettlementQueryFromInput(inputVal, branch) {
+    let q = (inputVal || '').trim();
+    if (branch && branch.number) {
+      const numRegex = new RegExp(`(?:№|#|відділення|віділення|відділ|відд|вд|поштомат|почтомат|склад)?\\s*\\b${escapeRegex(branch.number.toString())}\\b`, 'gi');
+      q = q.replace(numRegex, ' ');
+    }
+    if (branch && (branch.postalCode || branch.index)) {
+      const idx = (branch.postalCode || branch.index).toString();
+      const idxRegex = new RegExp(`\\b${escapeRegex(idx)}\\b`, 'g');
+      q = q.replace(idxRegex, ' ');
+    }
+    q = q
+      .replace(/(?<!\p{L})(?:поштомат|поштомати|почтомат|відділення|віділення|відділ|відд|вд|склад|п\/м|пм|№|#)(?!\p{L})/giu, ' ')
+      .replace(/\b\d+\b/g, ' ')
+      .replace(/[,\-:—–]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (q.length >= 2 && /[а-яА-Яa-zA-ZіІїЇєЄґҐ]/.test(q)) {
+      return q;
+    }
+
+    if (branch && branch.city) {
+      let base = cleanSettlementName(branch.city);
+      const oblClean = cleanOblastName(branch.oblast || '');
+      if (oblClean && !base.toLowerCase().includes(oblClean.toLowerCase().slice(0, 4))) {
+        return `${base} ${oblClean}`;
+      }
+      return base;
+    }
+    return q;
+  }
+
   function resetBranchSelection() {
     const previousBranch = state.selectedBranch;
     state.selectedBranch = null;
+    activeResultIndex = -1;
 
     // 1) Знімати підсвітку/активний стан із маркера на карті
     if (typeof updateMapMarkersHighlight === 'function') {
@@ -2542,7 +2774,19 @@
       updateMapTypeFilterUI();
     }
 
-    // 3) Плавне закриття картки та скидання вибору
+    // 3) Очищаємо номер відділення/поштомату з інпуту, повертаючи запит населеного пункту
+    const currentInputVal = dom.searchInput ? dom.searchInput.value : '';
+    const targetCityQuery = extractSettlementQueryFromInput(currentInputVal, previousBranch);
+
+    if (targetCityQuery) {
+      if (dom.searchInput) {
+        dom.searchInput.value = targetCityQuery;
+      }
+      state.searchQuery = targetCityQuery;
+      state.lockedInputValue = null;
+    }
+
+    // 4) Плавне закриття картки та повернення до списку запропонованих відділень населеного пункту
     const container = dom.resultsList ? (dom.resultsList.querySelector('.selected-branch-container') || dom.resultsList.querySelector('.branch-card')) : null;
     if (container) {
       container.classList.add('closing');
@@ -2552,8 +2796,17 @@
       if (dom.btnResetSelectedBranch) {
         dom.btnResetSelectedBranch.classList.add('hidden');
       }
-      if (state.currentResults && state.currentResults.length > 1) {
-        renderSearchResults(state.currentResults, state.searchQuery || (previousBranch ? previousBranch.city : '') || '');
+
+      const hasFullCityCache = state.currentResults &&
+        state.currentResults.length > 1 &&
+        previousBranch &&
+        state.currentResults.every(b => canonCity(b.city) === canonCity(previousBranch.city));
+
+      if (hasFullCityCache) {
+        renderSearchResults(state.currentResults, targetCityQuery || state.searchQuery || '');
+      } else if (targetCityQuery) {
+        // Миттєво шукаємо та відображаємо всі інші відділення цього населеного пункту
+        executeSearch(targetCityQuery, false, false, false);
       } else {
         if (dom.searchResultsSection) {
           dom.searchResultsSection.classList.add('hidden');
@@ -3005,6 +3258,7 @@
 
     currentSearchResults = filtered;
     renderedSearchResultsCount = 0;
+    activeResultIndex = -1;
 
     if (searchResultsIntersectionObserver) {
       searchResultsIntersectionObserver.disconnect();
@@ -3159,13 +3413,38 @@
 
     const selectThis = () => {
       state.selectedBranch = branch;
-      renderSearchResults(currentSearchResults.length > 0 ? currentSearchResults : state.currentResults, query, null, null, null, null);
+      const bNum = branch.number || branch.postalCode || branch.index;
+      const fullGeoQuery = buildFullGeoQuery(branch, bNum);
+      if (fullGeoQuery && dom.searchInput) {
+        dom.searchInput.value = fullGeoQuery;
+        state.searchQuery = fullGeoQuery;
+        state.lockedInputValue = fullGeoQuery;
+      }
+      state.selectedSettlement = {
+        cleanName: cleanSettlementName(branch.city),
+        name: cleanSettlementName(branch.city),
+        cleanRaion: cleanRaionName(branch.raion || ''),
+        raion: cleanRaionName(branch.raion || ''),
+        cleanOblast: cleanOblastName(branch.oblast || ''),
+        oblast: cleanOblastName(branch.oblast || ''),
+        type: branch.settlementType || 'місто'
+      };
+      renderSearchResults(currentSearchResults.length > 0 ? currentSearchResults : state.currentResults, fullGeoQuery || query, null, null, null, null);
       if (state.isMapVisible && state.leafletMap && branch.lat && branch.lng) {
         state.leafletMap.flyTo([branch.lat, branch.lng], 15, { duration: 1.0 });
       }
     };
 
-    row.addEventListener('mouseenter', () => setMarkerHighlightedOnMap(branch, true));
+    row.addEventListener('mouseenter', () => {
+      setMarkerHighlightedOnMap(branch, true);
+      if (activeResultIndex !== -1 && dom.resultsList) {
+        const prevFocused = dom.resultsList.querySelector('.address-match-row.focused');
+        if (prevFocused && prevFocused !== row) {
+          prevFocused.classList.remove('focused');
+          prevFocused.removeAttribute('aria-selected');
+        }
+      }
+    });
     row.addEventListener('mouseleave', () => setMarkerHighlightedOnMap(branch, false));
 
     row.addEventListener('click', selectThis);
@@ -3173,6 +3452,22 @@
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         selectThis();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = row.nextElementSibling;
+        if (next && next.classList && next.classList.contains('address-match-row')) {
+          next.focus();
+          if (typeof next.scrollIntoView === 'function') next.scrollIntoView({ block: 'nearest' });
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = row.previousElementSibling;
+        if (prev && prev.classList && prev.classList.contains('address-match-row')) {
+          prev.focus();
+          if (typeof prev.scrollIntoView === 'function') prev.scrollIntoView({ block: 'nearest' });
+        } else if (dom.searchInput) {
+          dom.searchInput.focus();
+        }
       }
     });
 
@@ -3245,11 +3540,40 @@
 
       chip.addEventListener('click', (e) => {
         e.preventDefault();
-        dom.searchInput.value = item.query + ' ';
+        const q = (item.query || '').trim();
+        if (!q) return;
+
+        dom.searchInput.value = q;
         dom.btnClearSearch.classList.remove('hidden');
-        executeSearch(item.query, true, true);
-        focusSearchInputAtEnd(true);
-        setTimeout(() => focusSearchInputAtEnd(true), 25);
+
+        // Якщо в запиті є цифри (наприклад, конкретне відділення або індекс), виконуємо прямий пошук
+        if (/\d/.test(q)) {
+          executeSearch(q, true, true);
+          focusSearchInputAtEnd(true);
+          setTimeout(() => focusSearchInputAtEnd(true), 25);
+          return;
+        }
+
+        // Якщо це шаблон населеного пункту (Львів, Київ тощо):
+        // Скидаємо попередній вибір, приховуємо нижній масив карток відділень
+        // та миттєво відкриваємо випадаючий список автокомпліту з варіантами (із областями/районами)
+        state.selectedSettlement = null;
+        state.selectedBranch = null;
+        state.lockedInputValue = null;
+        if (dom.btnResetSelectedBranch) {
+          dom.btnResetSelectedBranch.classList.add('hidden');
+        }
+        if (dom.searchResultsSection) {
+          dom.searchResultsSection.classList.add('hidden');
+        }
+        closeAutocomplete();
+        triggerAutocomplete(q);
+
+        suppressNextFocusActivation = true;
+        dom.searchInput.focus();
+        suppressNextFocusActivation = false;
+        const len = dom.searchInput.value.length;
+        dom.searchInput.setSelectionRange(len, len);
       });
 
       dom.frequentChipsGrid.appendChild(chip);
@@ -4581,8 +4905,15 @@
     if (item.branchObj) {
       const b = item.branchObj;
       if (item.isCrossService && item.service && item.service !== state.currentService) {
-        await switchService(item.service, fill.trim());
+        await switchService(item.service, fill.trim(), b);
         return;
+      }
+      const bNum = b.number || b.postalCode || b.index;
+      const fullGeoQuery = buildFullGeoQuery(b, bNum);
+      if (fullGeoQuery) {
+        fill = fullGeoQuery;
+        dom.searchInput.value = fullGeoQuery;
+        state.lockedInputValue = fullGeoQuery;
       }
       state.searchQuery = fill.trim();
       state.selectedBranch = b;
@@ -4688,6 +5019,38 @@
         item.classList.remove('focused');
       }
     });
+  }
+
+  let activeResultIndex = -1;
+
+  function updateSearchResultsFocus() {
+    if (!dom.resultsList) return;
+    if (activeResultIndex >= renderedSearchResultsCount && renderedSearchResultsCount < currentSearchResults.length) {
+      appendNextSearchResultsChunk(SEARCH_RESULTS_CHUNK_SIZE);
+    }
+    const items = dom.resultsList.querySelectorAll('.address-match-row');
+    if (items.length === 0) return;
+
+    items.forEach((item, idx) => {
+      if (idx === activeResultIndex) {
+        item.classList.add('focused');
+        item.setAttribute('aria-selected', 'true');
+        if (typeof item.scrollIntoView === 'function') {
+          item.scrollIntoView({ block: 'nearest' });
+        }
+        const branch = currentSearchResults[idx];
+        if (branch && typeof setMarkerHighlightedOnMap === 'function') {
+          setMarkerHighlightedOnMap(branch, true);
+        }
+      } else {
+        item.classList.remove('focused');
+        item.removeAttribute('aria-selected');
+      }
+    });
+
+    if (activeResultIndex === -1 && typeof updateMapMarkersHighlight === 'function') {
+      updateMapMarkersHighlight(null);
+    }
   }
 
   // Показує панель табів; для Укрпошти ховає «Вантажні» та «Поштомати»
@@ -4898,6 +5261,8 @@
     // Автодоповнення та миттєвий живий пошук при введенні (LP-CRM City Mode <-> Branch Mode + дебаунс + AbortController)
     dom.searchInput.addEventListener('input', () => {
       const val = dom.searchInput.value.trim();
+      activeResultIndex = -1;
+      updateSearchResultsFocus();
 
       // Скидання зафіксованого вибору при ручному редагуванні (Input Event):
       // Якщо поточне значення змінилося і більше не збігається з раніше зафіксованим рядком
@@ -5018,12 +5383,73 @@
       updateBottomBarVisibility();
     });
 
-    // Навігація клавішами в autocomplete (ArrowUp, ArrowDown, Enter, Esc)
+    // Навігація клавішами в autocomplete та списку карток (ArrowUp, ArrowDown, Enter, Esc)
     dom.searchInput.addEventListener('keydown', (e) => {
-      if (!dom.autocompleteDropdown || dom.autocompleteDropdown.classList.contains('hidden') || autocompleteItems.length === 0) {
-        if (e.key === 'Escape') {
+      if (e.key === 'Escape') {
+        if (dom.autocompleteDropdown && !dom.autocompleteDropdown.classList.contains('hidden') && autocompleteItems.length > 0) {
+          e.preventDefault();
           closeAutocomplete();
-        } else if (e.key === 'Enter') {
+        } else if (activeResultIndex >= 0) {
+          e.preventDefault();
+          activeResultIndex = -1;
+          updateSearchResultsFocus();
+        } else if (dom.searchInput) {
+          e.preventDefault();
+          dom.searchInput.focus();
+          dom.searchInput.select();
+        }
+        return;
+      }
+
+      if (!dom.autocompleteDropdown || dom.autocompleteDropdown.classList.contains('hidden') || autocompleteItems.length === 0) {
+        const hasSearchResults = dom.searchResultsSection && 
+          !dom.searchResultsSection.classList.contains('hidden') && 
+          !state.selectedBranch && 
+          currentSearchResults && 
+          currentSearchResults.length > 0;
+
+        if (hasSearchResults) {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (activeResultIndex < currentSearchResults.length - 1) {
+              activeResultIndex++;
+              if (activeResultIndex >= renderedSearchResultsCount - 3 && renderedSearchResultsCount < currentSearchResults.length) {
+                appendNextSearchResultsChunk(SEARCH_RESULTS_CHUNK_SIZE);
+              }
+              updateSearchResultsFocus();
+            }
+            return;
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (activeResultIndex > 0) {
+              activeResultIndex--;
+              updateSearchResultsFocus();
+            } else if (activeResultIndex === 0) {
+              activeResultIndex = -1;
+              updateSearchResultsFocus();
+              if (dom.searchInput) {
+                dom.searchInput.focus();
+              }
+            }
+            return;
+          } else if (e.key === 'Enter' && activeResultIndex >= 0) {
+            e.preventDefault();
+            clearTimeout(autocompleteDebounceTimer);
+            clearTimeout(liveSearchDebounceTimer);
+            const items = dom.resultsList ? dom.resultsList.querySelectorAll('.address-match-row') : [];
+            if (items[activeResultIndex]) {
+              if (typeof items[activeResultIndex].click === 'function') {
+                items[activeResultIndex].click();
+              } else if (typeof items[activeResultIndex].dispatchEvent === 'function') {
+                items[activeResultIndex].dispatchEvent({ type: 'click' });
+              }
+            }
+            activeResultIndex = -1;
+            return;
+          }
+        }
+
+        if (e.key === 'Enter') {
           const val = (dom.searchInput ? dom.searchInput.value : '').trim();
           const engine = window.SmartSearchEngine;
           if (engine && engine.findSettlementsByName) {
@@ -5119,6 +5545,49 @@
         closeAutocomplete();
       }
     });
+
+    // Десктопні гарячі клавіші для оператора: / або Esc для миттєвого фокусу на рядок пошуку
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener('keydown', (e) => {
+        const isModalOpen = (dom.copyPresetModal && dom.copyPresetModal.open) ||
+                            (dom.versionModal && dom.versionModal.open);
+        if (isModalOpen) return;
+
+        if (e.key === '/' && document.activeElement !== dom.searchInput) {
+          const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+          if (tag !== 'input' && tag !== 'textarea') {
+            e.preventDefault();
+            if (dom.searchInput) {
+              dom.searchInput.focus();
+              dom.searchInput.select();
+            }
+          }
+        } else if (e.key === 'Escape') {
+          if (dom.autocompleteDropdown && !dom.autocompleteDropdown.classList.contains('hidden')) {
+            e.preventDefault();
+            closeAutocomplete();
+          } else if (dom.searchInput) {
+            e.preventDefault();
+            dom.searchInput.focus();
+            dom.searchInput.select();
+          }
+        }
+      });
+
+      // Клік по інтерактивних бейджах клавіш у підказці
+      document.querySelectorAll('.kbd-key').forEach(kbd => {
+        kbd.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const text = (kbd.textContent || '').trim();
+          if (dom.searchInput) {
+            dom.searchInput.focus();
+            if (text === 'Esc') {
+              dom.searchInput.select();
+            }
+          }
+        });
+      });
+    }
 
     // Оптимізована підгрузка чанків при скролі дропдауну (віртуалізація / progressive lazy-loading)
     if (dom.autocompleteDropdown) {
@@ -5416,42 +5885,49 @@
       });
     }
 
-    // 3. Рендер активних чіпів з підтримкою HTML5 Drag-and-Drop
+    // 3. Рендер активних чіпів з підтримкою HTML5 Drag-and-Drop в актуальному порядку шаблону
     if (dom.presetActiveChips) {
       dom.presetActiveChips.innerHTML = '';
       const tags = currentConfig.tags || [];
       tags.forEach((tagId, index) => {
-        const meta = COPY_PRESET_TAGS.find(t => t.id === tagId);
+        const info = getTagDisplayInfo(tagId, currentConfig.options);
         const chip = document.createElement('div');
         chip.className = 'preset-chip';
         chip.setAttribute('draggable', 'true');
         chip.dataset.index = index;
         chip.dataset.tag = tagId;
-        chip.title = 'Перетягніть мишкою для зміни порядку';
+        chip.title = `${info.title} (перетягніть мишкою для зміни порядку)`;
         chip.innerHTML = `
           <span class="chip-grip" aria-hidden="true" title="Перетягнути">⋮⋮</span>
-          <span class="chip-label">${escapeHtml(meta ? meta.label : tagId)}</span>
-          <button type="button" class="chip-del-btn" data-index="${index}" title="Видалити елемент" aria-label="Видалити елемент" draggable="false">✕</button>
+          <span class="chip-label">${escapeHtml(info.label)}</span>
+          <button type="button" class="chip-del-btn" data-index="${index}" title="Видалити «${escapeHtml(info.label)}» із шаблону" aria-label="Видалити" draggable="false">✕</button>
         `;
         dom.presetActiveChips.appendChild(chip);
       });
+      if (tags.length === 0) {
+        const emptyHint = document.createElement('span');
+        emptyHint.className = 'preset-palette-empty';
+        emptyHint.textContent = 'Усі елементи видалено. Додайте потрібні елементи з палітри нижче.';
+        dom.presetActiveChips.appendChild(emptyHint);
+      }
     }
 
-    // 4. Рендер палітри доступних чіпів (динамічний пул без дублювання)
+    // 4. Рендер палітри доступних чіпів (динамічний пул без дублювання в канонічному порядку)
     if (dom.presetChipPalette) {
       dom.presetChipPalette.innerHTML = '';
       const activeTags = currentConfig.tags || [];
-      const availableTags = COPY_PRESET_TAGS.filter(meta => !activeTags.includes(meta.id));
-      availableTags.forEach(meta => {
+      const availableTagIds = CANONICAL_TAG_ORDER.filter(id => !activeTags.includes(id));
+      availableTagIds.forEach(tagId => {
+        const info = getTagDisplayInfo(tagId, currentConfig.options);
         const item = document.createElement('button');
         item.type = 'button';
         item.className = 'preset-palette-item';
-        item.dataset.tag = meta.id;
-        item.title = meta.desc;
-        item.innerHTML = `<span>+</span> <span>${escapeHtml(meta.label)}</span>`;
+        item.dataset.tag = tagId;
+        item.title = `${info.title} (натисніть, щоб додати)`;
+        item.innerHTML = `<span class="palette-plus">+</span> <span class="palette-label">${escapeHtml(info.label)}</span>`;
         dom.presetChipPalette.appendChild(item);
       });
-      if (availableTags.length === 0) {
+      if (availableTagIds.length === 0) {
         const emptyHint = document.createElement('span');
         emptyHint.className = 'preset-palette-empty';
         emptyHint.textContent = 'Усі доступні елементи додано до шаблону';
@@ -5474,7 +5950,9 @@
     });
 
     // 6. Оновлення Live Preview зі спалахом підсвітки (Flash Highlight)
-    const previewBranch = state.selectedBranch || BENCHMARK_SAMPLE_BRANCH;
+    // У конструкторі шаблону зразок завжди будується на стандартизованому BENCHMARK_SAMPLE_BRANCH (Середнє),
+    // щоб не було розсинхрону між полем зразка, інтерактивними чіпсами та підказкою
+    const previewBranch = BENCHMARK_SAMPLE_BRANCH;
     let previewStr = '';
     if (detectedName === 'default') {
       previewStr = activePresetTab === 'detailed'
@@ -5662,7 +6140,7 @@
           if (sourceIdx !== insertIndex && insertIndex >= 0 && insertIndex <= tags.length) {
             const moved = tags.splice(sourceIdx, 1)[0];
             tags.splice(insertIndex, 0, moved);
-            draftCopyPresets[activePresetTab].presetName = 'custom';
+            draftCopyPresets[activePresetTab].presetName = detectPresetType(activePresetTab, draftCopyPresets[activePresetTab]);
             renderPresetModalUI();
           }
         } else {
@@ -5670,7 +6148,7 @@
           if (sourceIdx !== tags.length - 1) {
             const moved = tags.splice(sourceIdx, 1)[0];
             tags.push(moved);
-            draftCopyPresets[activePresetTab].presetName = 'custom';
+            draftCopyPresets[activePresetTab].presetName = detectPresetType(activePresetTab, draftCopyPresets[activePresetTab]);
             renderPresetModalUI();
           }
         }
@@ -5699,29 +6177,27 @@
           e.stopPropagation();
           e.preventDefault();
           const idx = parseInt(delBtn.dataset.index, 10);
-          const tags = draftCopyPresets && draftCopyPresets[activePresetTab] ? draftCopyPresets[activePresetTab].tags : null;
-          if (tags && !isNaN(idx) && idx >= 0 && idx < tags.length) {
-            tags.splice(idx, 1);
-            draftCopyPresets[activePresetTab].presetName = 'custom';
+          const currentConfig = draftCopyPresets && draftCopyPresets[activePresetTab];
+          if (currentConfig && Array.isArray(currentConfig.tags) && !isNaN(idx) && idx >= 0 && idx < currentConfig.tags.length) {
+            currentConfig.tags.splice(idx, 1);
+            currentConfig.presetName = detectPresetType(activePresetTab, currentConfig);
             renderPresetModalUI();
           }
         }
       });
     }
 
-    // Додавання чіпів із палітри (без дублювання)
+    // Додавання чіпів із палітри в канонічному порядку (без стрибків у кінець)
     if (dom.presetChipPalette) {
       dom.presetChipPalette.addEventListener('click', e => {
         const item = e.target.closest('.preset-palette-item');
         if (!item) return;
         const tagId = item.dataset.tag;
         if (draftCopyPresets && draftCopyPresets[activePresetTab]) {
-          const tags = draftCopyPresets[activePresetTab].tags;
-          if (!tags.includes(tagId)) {
-            tags.push(tagId);
-            draftCopyPresets[activePresetTab].presetName = 'custom';
-            renderPresetModalUI();
-          }
+          const currentConfig = draftCopyPresets[activePresetTab];
+          currentConfig.tags = insertTagInCanonicalOrder(currentConfig.tags || [], tagId);
+          currentConfig.presetName = detectPresetType(activePresetTab, currentConfig);
+          renderPresetModalUI();
         }
       });
     }
@@ -5988,12 +6464,17 @@
   window.assembleCopyStringFromPreset = assembleCopyStringFromPreset;
   window.selectAutocompleteItem = selectAutocompleteItem;
   window.triggerAutocomplete = triggerAutocomplete;
+  window.renderFrequentChips = renderFrequentChips;
   window.executeSearch = executeSearch;
   window._appStateForTesting = state;
+  window.getActiveResultIndex = () => activeResultIndex;
+  window.updateSearchResultsFocus = updateSearchResultsFocus;
   window.cleanOutputString = cleanOutputString;
   window.DEFAULT_COPY_PRESETS = DEFAULT_COPY_PRESETS;
   window.QUICK_PRESETS = QUICK_PRESETS;
   window.COPY_PRESET_TAGS = COPY_PRESET_TAGS;
+  window.CANONICAL_TAG_ORDER = CANONICAL_TAG_ORDER;
+  window.insertTagInCanonicalOrder = insertTagInCanonicalOrder;
   if (window.SmartSearchEngine) {
     window.SmartSearchEngine.highlightMatch = highlightMatch;
     window.SmartSearchEngine.formatClassicCopyString = formatClassicCopyString;

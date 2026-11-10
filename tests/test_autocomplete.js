@@ -174,6 +174,10 @@ class MockElement {
     return true;
   }
 
+  click() {
+    this.dispatchEvent({ type: 'click' });
+  }
+
   focus() { this.isFocused = true; }
   blur() { this.isFocused = false; }
   select() { this.isSelected = true; }
@@ -477,7 +481,19 @@ async function runTests() {
       throw new Error('Поп-ап не закрився після натискання Escape');
     }
 
-    console.log('  ✓ Успіх: Клавіша Escape коректно закрила поп-ап.\n');
+    // Крок 2: повторне натискання Escape при закритому поп-апі виділяє текст
+    let textSelected = false;
+    searchInput.select = () => { textSelected = true; };
+    searchInput.dispatchEvent({
+      type: 'keydown',
+      key: 'Escape',
+      preventDefault: () => {}
+    });
+    if (!textSelected) {
+      throw new Error('Клавіша Escape не викликала select() для швидкого перевведення');
+    }
+
+    console.log('  ✓ Успіх: Клавіша Escape коректно закрила поп-ап та реалізувала Smart 2-Step виділення тексту для заміни в 1 дотик.\n');
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 5:', err.message, '\n');
@@ -3612,6 +3628,237 @@ async function runTests() {
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 58:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 59: Крос-сервісний перехід по 5-значному індексу Укрпошти (56463) при виборі з підказки автокомпліту
+  // --------------------------------------------------------------------------
+  totalTests++;
+  try {
+    console.log('▶ ТЕСТ 59: Вибір крос-сервісної підказки 5-значного індексу Укрпошти ("56463") відкриває точне відділення, а не список 170 адрес столиці');
+    const engine = window.SmartSearchEngine;
+    const pool = window.BRANCHES_DATA.novaposhta;
+    const suggestions = engine.getAutocompleteSuggestions('56463', 'novaposhta', null, pool);
+    const upItem = suggestions.find(s => s.service === 'ukrposhta' && s.branchObj && String(s.branchObj.index) === '56463');
+
+    if (!upItem) {
+      throw new Error('У підказках автокомпліту для "56463" не знайдено відділення Укрпошти 56463');
+    }
+
+    // Симуляція вибору елемента зі списку автокомпліту
+    await window.selectAutocompleteItem(upItem);
+
+    const appState = window._appStateForTesting;
+    if (appState.currentService !== 'ukrposhta') {
+      throw new Error(`Очікувалось перемикання служби на "ukrposhta", поточна: ${appState.currentService}`);
+    }
+    if (!appState.selectedBranch || String(appState.selectedBranch.index) !== '56463') {
+      throw new Error(`Очікувалось цільове відділення 56463, отримано: ${appState.selectedBranch ? appState.selectedBranch.index : 'null'}`);
+    }
+    if (appState.currentResults.length !== 1) {
+      throw new Error(`Очікувався рівно 1 результат (цільове відділення), отримано ${appState.currentResults.length} адрес`);
+    }
+
+    console.log('  ✓ Успіх: При кліку на підказку індексу 56463 відкрито точне відділення Укрпошти (с. Київ, Миколаївська обл., №56463) без дефолтного відкриття 170 адрес м. Київ!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 59:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 60: Закриття картки результату (✕) повертає список відділень населеного пункту
+  // --------------------------------------------------------------------------
+  totalTests++;
+  try {
+    console.log('▶ ТЕСТ 60: Закриття картки результату (✕) повертає список відділень населеного пункту ("Львів 41" -> ✕ -> "Львів" з усіма відділеннями)');
+
+    // 1. Перемикаємо службу на Нову пошту та виконуємо пошук "Львів 41" на Enter
+    await window.switchService('novaposhta', 'Львів 41');
+    searchInput.value = 'Львів 41';
+    await window.executeSearch('Львів 41', true, true);
+    await sleep(50);
+
+    const appState = window._appStateForTesting;
+    if (!appState.selectedBranch || String(appState.selectedBranch.number) !== '41') {
+      throw new Error(`Очікувалось виділення відділення №41 у Львові, поточне: ${appState.selectedBranch ? appState.selectedBranch.number : 'null'}`);
+    }
+
+    const countElem = elementsById['resultsCount'];
+    if (!countElem || !countElem.textContent.includes('1 обране відділення')) {
+      throw new Error(`Очікувався статус "1 обране відділення", отримано: "${countElem ? countElem.textContent : ''}"`);
+    }
+
+    // 1b. Перевіряємо автопідвантаження області в рядок пошуку та наявність області в картці результату
+    if (searchInput.value.trim() !== 'Львів Львівська 41') {
+      throw new Error(`Очікувалось автопідвантаження області в інпуті ("Львів Львівська 41"), поточне: "${searchInput.value}"`);
+    }
+    const cardPrimary = elementsById['resultsList'].querySelector('.card-primary-line');
+    if (!cardPrimary || !cardPrimary.innerHTML.includes('Львівська')) {
+      throw new Error('Очікувалось відображення "Львівська область" у головному рядку картки');
+    }
+
+    // 2. Клікаємо хрестик ✕ закриття обраного відділення
+    window.resetBranchSelection();
+    await sleep(150); // Чекаємо таймер плавного закриття картки (120 мс)
+
+    // 3. Перевіряємо очищення номера з інпуту та збереження гео-контексту (Львів Львівська)
+    const valClean = searchInput.value.trim();
+    if (valClean !== 'Львів Львівська') {
+      throw new Error(`Очікувалось очищення номера та повернення "Львів Львівська" в інпуті, поточне значення: "${searchInput.value}"`);
+    }
+
+    // 4. Перевіряємо, що selectedBranch скинуто в null
+    if (appState.selectedBranch !== null) {
+      throw new Error('Очікувалось скидання selectedBranch у null');
+    }
+
+    // 5. Перевіряємо, що список результатів тепер показує всі відділення Львова
+    if (!appState.currentResults || appState.currentResults.length <= 1) {
+      throw new Error(`Очікувався список усіх відділень Львова (> 1), отримано: ${appState.currentResults ? appState.currentResults.length : 0}`);
+    }
+
+    if (!countElem.textContent.includes('адрес')) {
+      throw new Error(`Очікувався лічильник знайдених адрес міста, отримано: "${countElem.textContent}"`);
+    }
+
+    const resSection = elementsById['searchResultsSection'];
+    if (resSection && resSection.classList.contains('hidden')) {
+      throw new Error('Секція результатів searchResultsSection не повинна бути прихованою після закриття 1 картки!');
+    }
+
+    console.log('  ✓ Успіх: Натискання ✕ на картці "Львів 41" очистило номер, повернуло місто "Львів" та миттєво відкрило повний список запропонованих відділень!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 60:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 61: Клавіатурна навігація списком карток відділень (ArrowDown, ArrowUp, Enter, Esc)
+  // --------------------------------------------------------------------------
+  totalTests++;
+  try {
+    console.log('▶ ТЕСТ 61: Клавіатурна навігація списком карток відділень (ArrowDown, ArrowUp, Enter, Esc)');
+
+    await window.switchService('novaposhta', 'Київ Київська');
+    searchInput.value = 'Київ Київська';
+    await window.executeSearch('Київ Київська', false, false);
+    await sleep(50);
+
+    const appState = window._appStateForTesting;
+    if (!appState.currentResults || appState.currentResults.length === 0) {
+      throw new Error('Очікувався список відділень Києва');
+    }
+
+    const resultsList = elementsById['resultsList'];
+    let items = resultsList.querySelectorAll('.address-match-row');
+    if (items.length === 0) {
+      throw new Error('Не знайдено .address-match-row елементів у результатах');
+    }
+
+    // 1. Натискаємо ArrowDown -> фокус на 1-шу картку
+    searchInput.dispatchEvent({ type: 'keydown', key: 'ArrowDown', preventDefault() {} });
+    if (window.getActiveResultIndex() !== 0) {
+      throw new Error(`Очікувався activeIndex 0 після першого ArrowDown, отримано: ${window.getActiveResultIndex()}`);
+    }
+    if (!items[0].classList.contains('focused')) {
+      throw new Error('Перша картка повинна мати клас .focused');
+    }
+
+    // 2. Натискаємо ArrowDown -> перехід на 2-гу картку
+    searchInput.dispatchEvent({ type: 'keydown', key: 'ArrowDown', preventDefault() {} });
+    if (window.getActiveResultIndex() !== 1) {
+      throw new Error(`Очікувався activeIndex 1 після другого ArrowDown, отримано: ${window.getActiveResultIndex()}`);
+    }
+    if (!items[1].classList.contains('focused') || items[0].classList.contains('focused')) {
+      throw new Error('Друга картка повинна мати .focused, а перша має втратити цей клас');
+    }
+
+    // 3. Натискаємо ArrowUp -> повернення на 1-шу картку
+    searchInput.dispatchEvent({ type: 'keydown', key: 'ArrowUp', preventDefault() {} });
+    if (window.getActiveResultIndex() !== 0) {
+      throw new Error(`Очікувався activeIndex 0 після ArrowUp, отримано: ${window.getActiveResultIndex()}`);
+    }
+    if (!items[0].classList.contains('focused')) {
+      throw new Error('Перша картка знову повинна мати .focused');
+    }
+
+    // 4. Натискаємо Escape -> скидання підсвітки
+    searchInput.dispatchEvent({ type: 'keydown', key: 'Escape', preventDefault() {} });
+    if (window.getActiveResultIndex() !== -1) {
+      throw new Error(`Очікувався activeIndex -1 після Escape, отримано: ${window.getActiveResultIndex()}`);
+    }
+    if (items[0].classList.contains('focused')) {
+      throw new Error('Підсвітка повинна бути скинута після Escape');
+    }
+
+    // 5. Натискаємо ArrowDown двічі та Enter -> вибір відділення
+    searchInput.dispatchEvent({ type: 'keydown', key: 'ArrowDown', preventDefault() {} });
+    searchInput.dispatchEvent({ type: 'keydown', key: 'ArrowDown', preventDefault() {} });
+    searchInput.dispatchEvent({ type: 'keydown', key: 'Enter', preventDefault() {} });
+    await sleep(50);
+
+    if (!appState.selectedBranch || String(appState.selectedBranch.number) !== '2') {
+      throw new Error(`Очікувався вибір відділення №2 по Enter, вибрано: ${appState.selectedBranch ? appState.selectedBranch.number : 'null'}`);
+    }
+
+    console.log('  ✓ Успіх: Стрілки ArrowDown/ArrowUp плавно перемикають підсвітку карток, Escape скидає виділення, а Enter миттєво відкриває обране відділення!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 61:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 62: Клік на шаблон міста у "Найчастіші запити" ("Львів")
+  // --------------------------------------------------------------------------
+  totalTests++;
+  try {
+    console.log('▶ ТЕСТ 62: Клік на шаблон міста у "Найчастіші запити" ("Львів") відкриває поп-ап із варіантами міст/областей');
+
+    await window.switchService('novaposhta');
+    window.renderFrequentChips([{ query: 'Львів', count: 70 }]);
+
+    const chipsGrid = elementsById['frequentChipsGrid'];
+    const chipBtns = chipsGrid.querySelectorAll('.query-chip-btn');
+    if (chipBtns.length === 0) {
+      throw new Error('Не знайдено кнопок чипсів у frequentChipsGrid');
+    }
+
+    // Клікаємо на чіп "Львів"
+    chipBtns[0].click ? chipBtns[0].click() : chipBtns[0].dispatchEvent({ type: 'click', preventDefault() {} });
+    await sleep(50);
+
+    // 1. Поле пошуку отримало "Львів"
+    if (searchInput.value !== 'Львів') {
+      throw new Error(`Очікувалось значення інпуту 'Львів', отримано: '${searchInput.value}'`);
+    }
+
+    // 2. Нижня секція результатів (картки відділень) прихована, щоб не вивалювати 3000 відділень одразу
+    const resultsSection = elementsById['searchResultsSection'];
+    if (resultsSection && !resultsSection.classList.contains('hidden')) {
+      throw new Error('Секція результатів searchResultsSection повинна бути прихована (.hidden)');
+    }
+
+    // 3. Відкрито поп-ап автокомпліту з варіантами населеного пункту (з областями)
+    const dropdown = elementsById['autocompleteDropdown'];
+    if (!dropdown || dropdown.classList.contains('hidden')) {
+      throw new Error('Поп-ап автокомпліту autocompleteDropdown має бути відкритим');
+    }
+
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    if (items.length === 0) {
+      throw new Error('Очікувались варіанти населених пунктів у випадаючому списку');
+    }
+
+    // Перевіряємо наявність варіантів (Львівська обл., Дніпропетровська, тощо)
+    const hasLvivOblast = items.some(it => it.textContent.includes('Львівська'));
+    if (!hasLvivOblast) {
+      throw new Error('У списку варіантів обов’язково має бути Львів (Львівська обл.)');
+    }
+
+    console.log('  ✓ Успіх: Клік на шаблон міста "Львів" відкрив поп-ап автокомпліту з варіантами областей без передчасного вивантаження 3000 карток відділень!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 62:', err.message, '\n');
   }
 
   console.log('===============================================================');

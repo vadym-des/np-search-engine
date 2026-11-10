@@ -94,6 +94,7 @@ assert(
 );
 
 assert(
+  (htmlContent.includes('v1.6.42') && htmlContent.includes('styles.css?v=1.6.42')) ||
   (htmlContent.includes('v1.6.41') && htmlContent.includes('styles.css?v=1.6.41')) ||
   (htmlContent.includes('v1.6.40') && htmlContent.includes('styles.css?v=1.6.40')) ||
   (htmlContent.includes('v1.6.39') && htmlContent.includes('styles.css?v=1.6.39')) ||
@@ -120,9 +121,13 @@ assert(
 );
 
 assert(
-  htmlContent.includes('<div class="top-nav-actions">\n        <!-- Кнопка налаштувань шаблону копіювання -->\n        <button id="btnHeaderCopySettings"') &&
-  htmlContent.includes('<button id="btnThemeToggle" class="theme-toggle-btn icon-tool-btn"'),
-  'Кнопки зміни теми та налаштувань розташовані у правому верхньому куті'
+  htmlContent.includes('class="top-nav-actions"') &&
+  htmlContent.indexOf('id="btnHeaderCopySettings"') !== -1 &&
+  htmlContent.indexOf('id="btnHeaderAbout"') !== -1 &&
+  htmlContent.indexOf('id="btnThemeToggle"') !== -1 &&
+  htmlContent.indexOf('id="btnHeaderCopySettings"') < htmlContent.indexOf('id="btnHeaderAbout"') &&
+  htmlContent.indexOf('id="btnHeaderAbout"') < htmlContent.indexOf('id="btnThemeToggle"'),
+  'Кнопки зміни теми та налаштувань розташовані у правому верхньому куті у послідовності [Налаштування, Про проєкт, Зміна теми]'
 );
 
 // 4. sw.js та CHANGELOG.md
@@ -131,6 +136,7 @@ const swContent = fs.readFileSync(swJsPath, 'utf8');
 const changelogContent = fs.readFileSync(changelogPath, 'utf8');
 
 assert(
+  (swContent.includes("const CACHE_VERSION = 'v1.6.42';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v1.6.42';")) ||
   (swContent.includes("const CACHE_VERSION = 'v1.6.41';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v1.6.41';")) ||
   (swContent.includes("const CACHE_VERSION = 'v1.6.40';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v1.6.40';")) ||
   (swContent.includes("const CACHE_VERSION = 'v1.6.39';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v1.6.39';")) ||

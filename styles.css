@@ -221,7 +221,30 @@ body[data-service="ukrposhta"] #btnNovaPoshta:hover {
   box-shadow: var(--shadow-sm);
 }
 
+.top-about-btn {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+}
+
 .icon-tool-btn:hover,
+.top-about-btn:hover,
 .theme-toggle-btn:hover {
   background: var(--bg-card-subtle);
   border-color: var(--border-subtle);
@@ -231,6 +254,7 @@ body[data-service="ukrposhta"] #btnNovaPoshta:hover {
 }
 
 .top-nav-actions .icon-tool-btn,
+.top-nav-actions .top-about-btn,
 .top-nav-actions .theme-toggle-btn {
   position: static;
 }
@@ -327,9 +351,9 @@ body[data-service="ukrposhta"] #btnNovaPoshta:hover {
 
 .search-actions-left {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
 }
 
 .search-heading {
@@ -345,6 +369,85 @@ body[data-service="ukrposhta"] #btnNovaPoshta:hover {
 .search-tip {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.search-hotkey-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  flex-wrap: wrap;
+}
+
+.hotkey-hint-prefix {
+  font-weight: 700;
+  color: var(--text-subtle);
+}
+
+.hotkey-hint-body {
+  color: var(--text-muted);
+}
+
+.kbd-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 0 var(--border-subtle);
+  color: var(--text-main);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.kbd-key:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--brand-color);
+  color: var(--brand-color);
+  transform: translateY(-1px);
+}
+
+.hotkey-hint-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--brand-primary, #e11d48);
+  font-weight: 600;
+  font-size: 11.5px;
+  text-decoration: none;
+  padding: 1px 7px;
+  border-radius: var(--radius-sm);
+  background: rgba(225, 29, 72, 0.05);
+  border: 1px solid rgba(225, 29, 72, 0.15);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.hotkey-hint-link:hover {
+  background: rgba(225, 29, 72, 0.12);
+  border-color: rgba(225, 29, 72, 0.35);
+  color: var(--brand-primary, #e11d48);
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .hotkey-hint-link {
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.1);
+  border-color: rgba(244, 63, 94, 0.25);
+}
+
+[data-theme="dark"] .hotkey-hint-link:hover {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(244, 63, 94, 0.45);
 }
 
 .search-actions-right {
@@ -846,6 +949,34 @@ body[data-service="ukrposhta"] .custom-leaflet-marker.marker-hovered {
 .search-box-card:focus-within {
   border-color: var(--brand-color);
   box-shadow: 0 0 0 1px var(--brand-color), var(--shadow-md);
+}
+
+.search-hint-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+  padding: 0 6px;
+}
+
+.search-hint-badge {
+  font-size: 0.72rem;
+  color: var(--text-subtle);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.search-hint-badge b {
+  font-family: var(--font-mono, monospace);
+  background: var(--bg-card, #FFFFFF);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.12));
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: 600;
+  font-size: 0.70rem;
+  color: var(--text-main, #1c1917);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .search-input-wrapper {
@@ -1855,14 +1986,18 @@ html[data-theme="dark"] .btn-header-up-switch {
   user-select: none;
 }
 
-.address-match-row:hover {
+.address-match-row:hover,
+.address-match-row.focused {
   background: var(--bg-card-hover, rgba(0, 0, 0, 0.04));
   border-color: var(--primary-color);
   transform: translateX(2px);
   box-shadow: 0 3px 6px -1px rgba(15, 23, 42, 0.06);
+  outline: 2px solid var(--primary-color);
+  outline-offset: -1px;
 }
 
-[data-theme="dark"] .address-match-row:hover {
+[data-theme="dark"] .address-match-row:hover,
+[data-theme="dark"] .address-match-row.focused {
   background: var(--bg-card-hover, rgba(255, 255, 255, 0.05));
 }
 
@@ -2769,11 +2904,22 @@ body[data-theme="dark"] .status-pill {
   border-radius: var(--radius-lg);
   padding: 0;
   background: transparent;
-  max-width: 640px;
-  width: 92%;
+  max-width: 820px;
+  width: min(820px, 94vw);
   margin: auto;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+  box-shadow: none !important;
+  overflow: visible;
   z-index: 1000;
+}
+
+#versionModal {
+  max-width: 640px;
+  width: min(640px, 92vw);
+}
+
+#copyPresetModal {
+  max-width: 820px;
+  width: min(820px, 94vw);
 }
 
 .app-modal[open] {
@@ -2781,7 +2927,7 @@ body[data-theme="dark"] .status-pill {
 }
 
 .app-modal::backdrop {
-  background: rgba(5, 7, 12, 0.75);
+  background: rgba(5, 7, 12, 0.65);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   animation: backdropFadeIn 0.2s ease-out;
@@ -2810,6 +2956,12 @@ body[data-theme="dark"] .status-pill {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.25), 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="dark"] .modal-card {
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .modal-header {
@@ -3129,6 +3281,18 @@ body[data-theme="dark"] .status-pill {
     gap: 8px;
   }
 
+  .top-nav-actions .icon-tool-btn,
+  .top-nav-actions .theme-toggle-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .top-nav-actions .top-about-btn {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+
   .switcher-btn {
     padding: 8px 14px;
     font-size: 13px;
@@ -3230,23 +3394,25 @@ body[data-theme="dark"] .status-pill {
 
 /* Модальне вікно конструктора */
 .preset-modal-card {
-  max-width: 660px;
-  width: 94%;
+  max-width: 820px;
+  width: 100%;
 }
 
 .preset-modal-body {
-  padding: 16px 20px;
-  max-height: 80vh;
+  padding: 18px 24px 22px;
+  max-height: 82vh;
   overflow-y: auto;
 }
 
-/* Таби */
+/* Таби (Segmented Control) */
 .copy-preset-tabs {
   display: flex;
-  gap: 8px;
-  border-bottom: 1px solid var(--border-light);
-  padding-bottom: 10px;
-  margin-bottom: 12px;
+  gap: 6px;
+  background: var(--bg-card-subtle);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  margin-bottom: 16px;
 }
 
 .copy-preset-tab {
@@ -3254,10 +3420,10 @@ body[data-theme="dark"] .status-pill {
   padding: 8px 14px;
   font-family: var(--font-main);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-card-subtle);
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -3265,62 +3431,198 @@ body[data-theme="dark"] .status-pill {
 }
 
 .copy-preset-tab:hover {
-  background: var(--bg-card-hover);
   color: var(--text-main);
 }
 
 .copy-preset-tab.active {
-  background: var(--brand-color);
-  color: var(--brand-contrast-text);
-  border-color: var(--brand-color);
-  box-shadow: 0 2px 8px var(--brand-glow);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-weight: 700;
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Попередній перегляд (Live Preview) */
+/* ==========================================================================
+   КРОКИ ТА ГОТОВІ ПРЕСЕТ-КАРТКИ В 1 КЛІК (Progressive Disclosure)
+   ========================================================================== */
+.preset-level-one {
+  margin-bottom: 16px;
+}
+
+.preset-step-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 10px;
+}
+
+.preset-step-label .step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--brand-bg-subtle, rgba(217, 37, 52, 0.1));
+  color: var(--brand-color);
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.preset-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .preset-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.preset-card-btn {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-subtle);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  outline: none;
+  min-height: 82px;
+}
+
+.preset-card-btn:hover {
+  border-color: var(--brand-color);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.preset-card-btn.active {
+  border-color: var(--brand-color) !important;
+  border-width: 2px !important;
+  background: var(--brand-bg-subtle, rgba(217, 37, 52, 0.05)) !important;
+  box-shadow: 0 0 0 1px var(--brand-color), var(--shadow-sm) !important;
+}
+
+.preset-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 6px;
+}
+
+.preset-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 1;
+}
+
+.preset-card-icon {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.preset-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preset-card-btn.active .preset-card-title {
+  color: var(--brand-color);
+}
+
+.preset-card-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--brand-color);
+  color: #FFFFFF;
+  line-height: 1.2;
+  white-space: nowrap;
+  display: none;
+  flex-shrink: 0;
+}
+
+.preset-card-btn.active .preset-card-badge {
+  display: inline-flex;
+}
+
+.preset-card-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.preset-card-btn.active .preset-card-sub {
+  color: var(--text-main);
+}
+
+/* ==========================================================================
+   КРОК 2: ЖИВИЙ ІНТЕРАКТИВНИЙ КЛІК-ПРЕВ'Ю (Live Preview)
+   ========================================================================== */
 .preset-preview-section {
   background: var(--bg-card-subtle);
   border: 1px solid var(--border-subtle);
   border-left: 3.5px solid var(--brand-color);
   border-radius: var(--radius-md);
-  padding: 10px 14px;
-  margin-bottom: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
 }
 
+.preset-preview-header,
 .preset-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   gap: 10px;
 }
 
 .preset-section-label {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: normal;
 }
 
-.btn-preset-test-copy {
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-card);
-  color: var(--text-main);
-  font-size: 11.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
+.preset-preview-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
 }
 
-.btn-preset-test-copy:hover {
-  background: var(--brand-color);
-  color: var(--brand-contrast-text);
-  border-color: var(--brand-color);
+@media (max-width: 600px) {
+  .preset-preview-row {
+    flex-direction: column;
+  }
 }
 
 .preset-preview-box {
+  flex: 1;
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.55;
@@ -3329,14 +3631,41 @@ body[data-theme="dark"] .status-pill {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  padding: 9px 12px;
+  padding: 10px 14px;
   word-break: break-word;
   white-space: pre-wrap;
   user-select: all;
-  min-height: 38px;
-  display: block;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-preset-test-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--brand-color);
+  background: var(--brand-color);
+  color: #FFFFFF;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(217, 37, 52, 0.2);
+}
+
+.btn-preset-test-copy:hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(217, 37, 52, 0.3);
 }
 
 .preset-preview-hint {
@@ -3486,57 +3815,27 @@ body[data-theme="dark"] .status-pill {
   text-overflow: ellipsis;
 }
 
-/* Швидкі пресети */
-.preset-quick-group {
-  margin-bottom: 12px;
-}
-
-.preset-quick-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.btn-preset-quick {
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-chip);
-  color: var(--text-main);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  outline: none;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.btn-preset-quick:hover {
-  background: var(--bg-chip-hover);
-  border-color: var(--border-subtle);
-}
-
-.btn-preset-quick.active {
-  background: var(--brand-color);
-  color: var(--brand-contrast-text);
-  border-color: var(--brand-color);
-  box-shadow: none;
-  outline: none;
-}
-
 /* Порядок елементів у рядку (Активні чіпи з Drag & Drop) */
+.preset-constructor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
 .preset-chips-section {
-  margin-bottom: 10px;
+  margin-bottom: 2px;
 }
 
 .preset-active-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  min-height: 38px;
-  padding: 6px 8px;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 10px;
   border-radius: var(--radius-md);
   background: var(--bg-card-subtle);
-  border: 1px dashed var(--border-subtle);
+  border: 1.5px dashed var(--border-subtle);
   align-items: center;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
@@ -3544,25 +3843,38 @@ body[data-theme="dark"] .status-pill {
 .preset-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 6px 3px 8px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
+  gap: 6px;
+  padding: 4px 8px 4px 11px;
+  background: rgba(225, 29, 72, 0.08);
+  border: 1px solid rgba(225, 29, 72, 0.32);
+  border-radius: 9999px;
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-main);
-  box-shadow: var(--shadow-sm);
+  color: #e11d48;
+  box-shadow: 0 1px 3px rgba(225, 29, 72, 0.08);
   user-select: none;
   cursor: grab;
   position: relative;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+}
+
+[data-theme="dark"] .preset-chip {
+  background: rgba(244, 63, 94, 0.14);
+  border-color: rgba(244, 63, 94, 0.4);
+  color: #fda4af;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .preset-chip:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--brand-border, var(--border-focus));
+  background: rgba(225, 29, 72, 0.14);
+  border-color: #e11d48;
   transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(225, 29, 72, 0.18);
+}
+
+[data-theme="dark"] .preset-chip:hover {
+  background: rgba(244, 63, 94, 0.22);
+  border-color: #fb7185;
 }
 
 .preset-chip:active {
@@ -3608,17 +3920,24 @@ body[data-theme="dark"] .status-pill {
 }
 
 .chip-grip {
-  color: var(--text-subtle);
+  color: rgba(225, 29, 72, 0.55);
   font-size: 11px;
   letter-spacing: -1px;
-  margin-right: 2px;
-  opacity: 0.5;
+  margin-right: 1px;
   cursor: grab;
+  line-height: 1;
+}
+
+[data-theme="dark"] .chip-grip {
+  color: rgba(253, 164, 175, 0.6);
 }
 
 .preset-chip:hover .chip-grip {
-  opacity: 1;
-  color: var(--brand-color);
+  color: #e11d48;
+}
+
+[data-theme="dark"] .preset-chip:hover .chip-grip {
+  color: #fb7185;
 }
 
 .preset-chip .chip-label {
@@ -3630,13 +3949,13 @@ body[data-theme="dark"] .status-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   border: none;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 11px;
+  border-radius: 50%;
+  background: rgba(225, 29, 72, 0.12);
+  color: #e11d48;
+  font-size: 10px;
   font-weight: 800;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -3644,41 +3963,78 @@ body[data-theme="dark"] .status-pill {
   margin-left: 2px;
 }
 
+[data-theme="dark"] .chip-del-btn {
+  background: rgba(244, 63, 94, 0.2);
+  color: #fda4af;
+}
+
 .chip-del-btn:hover {
   background: #ef4444;
   color: #ffffff;
+  transform: scale(1.15);
 }
 
 /* Палітра доступних елементів */
 .preset-palette-section {
-  margin-bottom: 6px;
+  margin-bottom: 2px;
 }
 
 .preset-chip-palette {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 6px;
+  align-items: center;
+  min-height: 36px;
 }
 
 .preset-palette-item {
-  padding: 3px 9px;
-  border-radius: 5px;
-  border: 1px solid var(--border-light);
-  background: var(--bg-chip);
-  color: var(--text-main);
+  padding: 5px 12px;
+  border-radius: 9999px;
+  border: 1px dashed var(--border-subtle, #cbd5e1);
+  background: var(--bg-card);
+  color: var(--text-muted, #64748b);
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 5px;
+}
+
+.preset-palette-item .palette-plus {
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--text-subtle);
+  line-height: 1;
 }
 
 .preset-palette-item:hover {
-  background: var(--bg-chip-hover);
-  border-color: var(--border-subtle);
+  background: rgba(225, 29, 72, 0.06);
+  border-color: #e11d48;
+  border-style: solid;
+  color: #e11d48;
   transform: translateY(-1px);
+}
+
+.preset-palette-item:hover .palette-plus {
+  color: #e11d48;
+}
+
+[data-theme="dark"] .preset-palette-item {
+  background: var(--bg-card-subtle);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-subtle);
+}
+
+[data-theme="dark"] .preset-palette-item:hover {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: #fb7185;
+  color: #fb7185;
+}
+
+[data-theme="dark"] .preset-palette-item:hover .palette-plus {
+  color: #fb7185;
 }
 
 .preset-palette-empty {

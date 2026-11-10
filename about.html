@@ -1,878 +1,2440 @@
 <!DOCTYPE html>
-<html lang="uk" data-theme="dark">
+<html lang="uk">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Пошуковий рушій — Живі скріншоти та фішки інтерфейсу</title>
+  <title>Пошуковий рушій — Оформлюйте доставку вдвічі швидше</title>
+  <meta name="description" content="Миттєвий пошук за містом, вулицею чи номером і автоматичний формат для вашої CRM-системи. Два поштових гіганти в одному чистому інтерфейсі.">
 
-  <!-- Google Fonts: DM Serif Display, Plus Jakarta Sans & JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <!-- Favicon з фірмовим логотипом -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.42">
 
+  <!-- Theme initialization (Default: Light; inherits app_theme from main search page via query param & localStorage) -->
   <script>
     (function() {
       try {
-        var savedTheme = localStorage.getItem('app_theme');
-        var theme = savedTheme === 'light' ? 'light' : 'dark';
+        var theme = null;
+        var params = new URLSearchParams(window.location.search);
+        var urlTheme = params.get('theme');
+        if (urlTheme === 'dark' || urlTheme === 'light') {
+          theme = urlTheme;
+          try { localStorage.setItem('app_theme', theme); } catch (e) {}
+        } else {
+          var savedTheme = localStorage.getItem('app_theme');
+          theme = savedTheme === 'dark' ? 'dark' : 'light';
+        }
+        theme = theme || 'light';
         document.documentElement.setAttribute('data-theme', theme);
-      } catch (e) {}
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
     })();
   </script>
 
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono з display=swap для миттєвого рендеру -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <style>
+    /* ==========================================================================
+       NP + UKR SEARCH ENGINE DESIGN SYSTEM (CALM WHITE / SLATE THEME)
+       Кришталева чистота, сучасна sans-serif типографіка, просторі вітрини
+       ========================================================================== */
     :root {
-      --font-display: 'DM Serif Display', Georgia, serif;
-      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
 
-      /* Темна преміальна палітра Dockspace */
-      --bg-canvas: #090c13;
-      --bg-card: rgba(22, 29, 44, 0.78);
-      --bg-card-hover: rgba(28, 38, 58, 0.92);
-      --bg-glass-dock: rgba(15, 20, 31, 0.88);
-      --bg-subtle: rgba(255, 255, 255, 0.05);
+      /* Calm White / Slate палітра в стилі пошукового рушія */
+      --bg-page: #f8fafc;
+      --bg-page-alt: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-card-subtle: #f8fafc;
+      --bg-nav: rgba(248, 250, 252, 0.92);
 
-      --text-hero: #ffffff;
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --text-subtle: #64748b;
-
-      --border-glass: rgba(255, 255, 255, 0.12);
-      --border-glow: rgba(255, 255, 255, 0.25);
-
-      --np-red: #ea384c;
-      --np-glow: rgba(234, 56, 76, 0.35);
-      --up-yellow: #f59e0b;
-      --up-glow: rgba(245, 158, 11, 0.35);
-      --accent-blue: #38bdf8;
-      --accent-glow: rgba(56, 189, 248, 0.3);
-      --emerald: #10b981;
-      --purple: #a855f7;
-
-      --radius-dock: 28px;
-      --radius-card: 22px;
-      --radius-sm: 10px;
-      --radius-pill: 9999px;
-
-      --shadow-dock: 0 24px 60px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.12);
-      --shadow-card: 0 20px 50px -15px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.15);
-      --shadow-img: 0 16px 40px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1);
-    }
-
-    [data-theme="light"] {
-      --bg-canvas: #fbf9f5;
-      --bg-card: rgba(255, 255, 255, 0.9);
-      --bg-card-hover: rgba(255, 255, 255, 0.98);
-      --bg-glass-dock: rgba(255, 255, 255, 0.92);
-      --bg-subtle: rgba(15, 23, 42, 0.04);
-
-      --text-hero: #0f172a;
-      --text-main: #1e293b;
+      --text-main: #0f172a;
       --text-muted: #475569;
       --text-subtle: #64748b;
 
-      --border-glass: rgba(15, 23, 42, 0.08);
-      --border-glow: rgba(15, 23, 42, 0.18);
+      --border-light: rgba(15, 23, 42, 0.08);
+      --border-focus: rgba(15, 23, 42, 0.18);
 
-      --np-red: #d92534;
-      --np-glow: rgba(217, 37, 52, 0.18);
-      --up-yellow: #d97706;
-      --up-glow: rgba(217, 119, 6, 0.2);
+      --btn-primary-bg: #d92534; /* Фірмовий червоний Нової пошти */
+      --btn-primary-text: #ffffff;
+      --btn-primary-hover: #b91c1c;
+
+      --btn-secondary-bg: #ffffff;
+      --btn-secondary-text: #0f172a;
+      --btn-secondary-border: rgba(15, 23, 42, 0.14);
+      --btn-secondary-hover: #f1f5f9;
+
+      /* Акцентні кольори поштових служб та статусів */
+      --brand-red: #d92534;
       --accent-blue: #0284c7;
-      --accent-glow: rgba(2, 132, 199, 0.15);
+      --accent-purple: #7c3aed;
+      --accent-orange: #ea580c;
+      --accent-green: #16a34a;
+      --accent-cyan: #0891b2;
 
-      --shadow-dock: 0 20px 45px -10px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.08);
-      --shadow-card: 0 16px 40px -12px rgba(15, 23, 42, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.9);
-      --shadow-img: 0 12px 30px -8px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.08);
+      /* Радіуси та тіні */
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+      --radius-pill: 9999px;
+
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.07);
+      --shadow-lg: 0 16px 40px -10px rgba(15, 23, 42, 0.08);
+      --shadow-float: 0 24px 60px -12px rgba(15, 23, 42, 0.12);
     }
 
-    * {
+    /* ==========================================================================
+       ТЕМНА ТЕМА (Neutral Obsidian Dark)
+       Синхронізується з головною пошуковою системою через localStorage
+       ========================================================================== */
+    [data-theme="dark"] {
+      --bg-page: #0a0d14;
+      --bg-page-alt: #111622;
+      --bg-card: #111622;
+      --bg-card-subtle: #151b29;
+      --bg-nav: rgba(10, 13, 20, 0.92);
+
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+
+      --border-light: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(255, 255, 255, 0.22);
+
+      --btn-secondary-bg: #151b29;
+      --btn-secondary-text: #f8fafc;
+      --btn-secondary-border: rgba(255, 255, 255, 0.14);
+      --btn-secondary-hover: #1b2234;
+
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+      --shadow-lg: 0 16px 40px -10px rgba(0, 0, 0, 0.6);
+      --shadow-float: 0 24px 60px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Темна тема: компоненти */
+    [data-theme="dark"] .ds-eyebrow {
+      background: var(--bg-card);
+      border-color: var(--border-light);
+    }
+
+    [data-theme="dark"] .ds-hero-frameless-wrap {
+      background: var(--bg-card);
+      box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    [data-theme="dark"] .ds-hero-frameless-wrap:hover {
+      box-shadow: 0 32px 75px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+
+    [data-theme="dark"] .ds-window-pill-bar {
+      background: #0f1420;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    [data-theme="dark"] .ds-window-url-bar {
+      background: #151b29;
+      color: var(--text-muted);
+      border-color: var(--border-light);
+    }
+
+    [data-theme="dark"] .ds-zigzag-media,
+    [data-theme="dark"] .ds-media-inner {
+      background: var(--bg-card);
+      border-color: var(--border-light);
+      box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="dark"] .ds-media-asset {
+      background-color: #111622;
+    }
+
+    [data-theme="dark"] .ds-interactive-wrap {
+      background: var(--bg-card);
+      border-color: var(--border-light);
+      box-shadow: var(--shadow-lg);
+    }
+
+    [data-theme="dark"] .crm-toggle-pill {
+      background: var(--bg-card-subtle);
+      border-color: var(--border-light);
+      color: var(--text-main);
+    }
+
+    [data-theme="dark"] .crm-toggle-pill:hover {
+      background: #1b2336;
+    }
+
+    [data-theme="dark"] .crm-preview-box {
+      background: #090c13;
+      border-color: var(--border-light);
+      color: var(--text-main);
+    }
+
+    [data-theme="dark"] .btn-copy-crm {
+      background: var(--brand-red);
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .btn-copy-crm:hover {
+      background: var(--btn-primary-hover);
+    }
+
+    [data-theme="dark"] .ds-scroll-top-btn {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border-color: var(--border-light);
+      box-shadow: var(--shadow-md);
+    }
+
+    [data-theme="dark"] .ds-media-modal {
+      background: var(--bg-card);
+      border-color: var(--border-light);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+    }
+
+    [data-theme="dark"] .ds-form-radio-card {
+      background: var(--bg-card-subtle);
+      border-color: var(--border-light);
+      color: var(--text-main);
+    }
+
+    [data-theme="dark"] .ds-form-radio-card:hover {
+      background: #1e263a;
+    }
+
+    [data-theme="dark"] .ds-form-radio-card.active {
+      background: #151b29;
+      border-color: var(--brand-red);
+    }
+
+    [data-theme="dark"] .ds-file-drop {
+      background: var(--bg-card-subtle);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    [data-theme="dark"] .ds-file-drop:hover {
+      background: #151b29;
+      border-color: var(--brand-red);
+    }
+
+    [data-theme="dark"] .ds-input-text {
+      background: var(--bg-card-subtle);
+      border-color: var(--border-light);
+      color: var(--text-main);
+    }
+
+    /* Кнопка перемикання теми на сторінці Про проєкт */
+    .ds-theme-toggle-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-light);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .ds-theme-toggle-btn:hover {
+      background: var(--bg-card-subtle);
+      border-color: var(--border-focus);
+      color: var(--text-main);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .ds-theme-toggle-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* За замовчуванням (світла тема): показуємо Місяць для перемикання на темну */
+    .ds-theme-toggle-btn .theme-icon-light {
+      display: none;
+    }
+    .ds-theme-toggle-btn .theme-icon-dark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* У темній темі: показуємо Сонце для перемикання на світлу */
+    [data-theme="dark"] .ds-theme-toggle-btn .theme-icon-light {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    [data-theme="dark"] .ds-theme-toggle-btn .theme-icon-dark {
+      display: none;
+    }
+
+    /* Reset & Base */
+    *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
 
-    body {
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg-page);
+      color: var(--text-main);
       font-family: var(--font-sans);
-      background-color: var(--bg-canvas);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      background-color: var(--bg-page);
       color: var(--text-main);
       line-height: 1.6;
       overflow-x: hidden;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
-    /* Фонове світіння */
-    .ambient-glow-wrap {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-      z-index: 0;
-      overflow: hidden;
+    a {
+      color: inherit;
+      text-decoration: none;
     }
 
-    .ambient-sphere {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(120px);
-      opacity: 0.38;
-      animation: float-glow 14s infinite alternate ease-in-out;
+    /* Просторовий контейнер для вільного дихання контенту */
+    .container {
+      width: 100%;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px;
     }
 
-    .sphere-red {
-      top: -10%;
-      left: 15%;
-      width: 550px;
-      height: 550px;
-      background: radial-gradient(circle, var(--np-red) 0%, transparent 70%);
-    }
-
-    .sphere-yellow {
-      top: 35%;
-      right: 5%;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, var(--up-yellow) 0%, transparent 70%);
-      animation-delay: -5s;
-    }
-
-    .sphere-blue {
-      bottom: -15%;
-      left: 25%;
-      width: 650px;
-      height: 650px;
-      background: radial-gradient(circle, var(--accent-blue) 0%, transparent 70%);
-      animation-delay: -9s;
-    }
-
-    @keyframes float-glow {
-      0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(40px, 30px) scale(1.1); }
-    }
-
-    /* Шапка у стилі Mac */
-    .mac-header {
+    /* ==========================================================================
+       1. TOP NAVIGATION
+       ========================================================================== */
+    .ds-nav-wrap {
       position: sticky;
       top: 0;
-      z-index: 90;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      background: var(--bg-glass-dock);
-      border-bottom: 1px solid var(--border-glass);
-      padding: 14px 28px;
+      z-index: 100;
+      background: var(--bg-nav);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border-light);
+      transition: all 0.25s ease;
+      transform: translateZ(0); /* Апаратне прискорення GPU для плавного скролу */
+    }
+
+    .ds-nav {
+      height: 72px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    .header-left-brand {
+    .ds-logo {
       display: flex;
       align-items: center;
       gap: 12px;
-      text-decoration: none;
-      color: inherit;
-    }
-
-    .brand-icon-mac {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, var(--np-red) 0%, var(--up-yellow) 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 0.9rem;
-      font-weight: 800;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .brand-title-mac {
-      font-weight: 800;
+      font-weight: 700;
       font-size: 1.05rem;
       letter-spacing: -0.02em;
+      color: var(--text-main);
     }
 
-    .header-actions {
+    .ds-logo-svg {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(217, 37, 52, 0.25);
+      flex-shrink: 0;
+    }
+
+    .ds-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 34px;
+      list-style: none;
+    }
+
+    .ds-nav-links a {
+      font-size: 0.92rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: color 0.15s ease;
+    }
+
+    .ds-nav-links a:hover {
+      color: var(--text-main);
+    }
+
+    .ds-nav-actions {
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
-    .btn-theme-glass {
-      background: var(--bg-card);
-      border: 1px solid var(--border-glass);
-      color: var(--text-main);
-      padding: 7px 14px;
+    .btn-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 22px;
       border-radius: var(--radius-pill);
-      font-size: 0.82rem;
+      font-size: 0.92rem;
       font-weight: 600;
       cursor: pointer;
-      backdrop-filter: blur(8px);
-      transition: all 0.2s;
-    }
-
-    .btn-theme-glass:hover {
-      border-color: var(--border-glow);
-      transform: translateY(-1px);
-    }
-
-    .btn-cta-launch {
-      background: var(--text-hero);
-      color: var(--bg-canvas);
-      padding: 8px 18px;
-      border-radius: var(--radius-pill);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid transparent;
       text-decoration: none;
-      font-weight: 700;
-      font-size: 0.85rem;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+      white-space: nowrap;
     }
 
-    .btn-cta-launch:hover {
+    .btn-pill-primary {
+      background: var(--btn-primary-bg);
+      color: var(--btn-primary-text);
+      box-shadow: 0 2px 10px rgba(217, 37, 52, 0.25);
+    }
+
+    .btn-pill-primary:hover {
+      background: var(--btn-primary-hover);
       transform: translateY(-1px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 14px rgba(217, 37, 52, 0.35);
     }
 
-    /* Головна обгортка сторінки */
-    .landing-wrapper {
-      position: relative;
-      z-index: 10;
-      max-width: 920px;
-      margin: 0 auto;
-      padding: 40px 20px 140px;
+    .btn-pill-secondary {
+      background: var(--btn-secondary-bg);
+      color: var(--btn-secondary-text);
+      border-color: var(--btn-secondary-border);
     }
 
-    /* HERO СЕКЦІЯ */
-    .hero-crafted {
+    .btn-pill-secondary:hover {
+      background: var(--btn-secondary-hover);
+      transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       2. HERO SECTION
+       ========================================================================== */
+    .ds-hero {
+      padding: 72px 0 60px;
       text-align: center;
-      padding: 24px 0 44px;
     }
 
-    .eyebrow-pill {
+    .ds-eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 18px;
+      padding: 7px 16px;
       border-radius: var(--radius-pill);
-      background: var(--bg-card);
-      border: 1px solid var(--border-glass);
-      backdrop-filter: blur(12px);
-      font-size: 0.78rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--accent-blue);
-      margin-bottom: 20px;
-    }
-
-    .hero-title-crafted {
-      font-family: var(--font-display);
-      font-size: clamp(2.3rem, 5.5vw, 3.8rem);
-      font-weight: 400;
-      line-height: 1.14;
-      letter-spacing: -0.02em;
-      color: var(--text-hero);
-      margin-bottom: 16px;
-    }
-
-    .hero-title-crafted em {
-      font-style: italic;
-      background: linear-gradient(135deg, var(--np-red) 0%, var(--up-yellow) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .hero-subtitle-crafted {
-      font-size: 1.12rem;
+      background: #FFFFFF;
+      border: 1px solid var(--border-light);
+      font-size: 0.82rem;
+      font-weight: 600;
       color: var(--text-muted);
-      max-width: 660px;
-      margin: 0 auto 30px;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .ds-eyebrow-highlight {
+      color: var(--brand-red);
+      font-weight: 700;
+    }
+
+    .ds-hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.3rem, 4.2vw, 3.7rem);
+      font-weight: 800;
+      line-height: 1.16;
+      letter-spacing: -0.035em;
+      color: var(--text-main);
+      max-width: 980px;
+      margin: 0 auto 16px;
+    }
+
+    .ds-hero-subtitle {
+      max-width: 680px;
+      margin: 0 auto 28px;
+      font-size: 1.05rem;
+      color: var(--text-muted);
       line-height: 1.6;
     }
 
-    /* ПЛАВАЮЧИЙ ДИВО-ДОК (THE SIGNATURE MACOS DOCK) */
-    .dock-showcase-container {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 50px;
-    }
-
-    .floating-mac-dock {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg-glass-dock);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-dock);
-      padding: 10px 16px;
-      box-shadow: var(--shadow-dock);
-      overflow-x: auto;
-      max-width: 100%;
-    }
-
-    .dock-icon-item {
-      position: relative;
-      width: 46px;
-      height: 46px;
-      border-radius: 12px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-glass);
+    .ds-hero-ctas {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.3rem;
-      cursor: pointer;
-      user-select: none;
-      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s;
-      flex-shrink: 0;
-    }
-
-    .dock-icon-item:hover {
-      transform: translateY(-8px) scale(1.15);
-      background: var(--bg-card-hover);
-      border-color: var(--border-glow);
-      z-index: 5;
-    }
-
-    .dock-icon-item.active {
-      border-color: var(--accent-blue);
-      box-shadow: 0 0 16px var(--accent-glow);
-    }
-
-    .dock-icon-item .dock-tooltip {
-      position: absolute;
-      bottom: calc(100% + 10px);
-      left: 50%;
-      transform: translateX(-50%) translateY(4px);
-      opacity: 0;
-      pointer-events: none;
-      background: var(--bg-card);
-      border: 1px solid var(--border-glass);
-      padding: 4px 10px;
-      border-radius: 8px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      white-space: nowrap;
-      color: var(--text-hero);
-      box-shadow: var(--shadow-card);
-      transition: all 0.15s ease;
-    }
-
-    .dock-icon-item:hover .dock-tooltip {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    .dock-divider {
-      width: 1px;
-      height: 28px;
-      background: var(--border-glass);
-      margin: 0 4px;
-      flex-shrink: 0;
-    }
-
-    /* РИТМ: ОПИС ➔ СКРІНШОТ (THE VISUAL FLOW) */
-    .visual-showcase-flow {
-      display: flex;
-      flex-direction: column;
-      gap: 50px;
-    }
-
-    .showcase-block {
-      background: var(--bg-card);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-card);
-      padding: 30px;
-      box-shadow: var(--shadow-card);
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-      transition: transform 0.25s ease, border-color 0.25s ease;
-    }
-
-    .showcase-block:hover {
-      border-color: var(--border-glow);
-    }
-
-    .block-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
       gap: 14px;
+      margin-bottom: 48px;
       flex-wrap: wrap;
     }
 
-    .block-pill {
-      font-size: 0.72rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 4px 10px;
-      border-radius: var(--radius-pill);
-      background: var(--bg-subtle);
-      color: var(--accent-blue);
-      border: 1px solid var(--border-glass);
-    }
-
-    .block-title {
-      font-size: 1.35rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: var(--text-hero);
-      line-height: 1.25;
-      margin-top: 4px;
-    }
-
-    .block-desc {
-      font-size: 0.96rem;
-      color: var(--text-muted);
-      line-height: 1.55;
-    }
-
-    /* Скляна рамка для реального скріншота */
-    .screenshot-frame {
-      border-radius: 16px;
-      overflow: hidden;
-      background: var(--bg-subtle);
-      border: 1px solid var(--border-glass);
-      box-shadow: var(--shadow-img);
+    /* Hero Showcase Frame - чистий фрейм у стилі карток без зайвих рамок */
+    .ds-hero-aura-wrap {
       position: relative;
+      max-width: 880px;
+      margin: 24px auto 0;
+      padding: 10px;
+    }
+    .ds-hero-aura-wrap::before {
+      content: '';
+      position: absolute;
+      inset: 0 20px 20px 20px;
+      background: radial-gradient(ellipse at 50% 40%, rgba(217, 37, 52, 0.07) 0%, rgba(245, 158, 11, 0.04) 50%, transparent 75%);
+      filter: blur(44px);
+      z-index: 0;
+      pointer-events: none;
+      border-radius: 32px;
+      transform: translateZ(0); /* GPU Layer Promotion — нульовий оверхед скролу */
+      will-change: transform;
     }
 
-    .screenshot-frame img {
+    .ds-hero-frameless-wrap {
+      position: relative;
+      z-index: 1;
       width: 100%;
-      height: auto;
-      display: block;
-      border-radius: 16px;
-      transition: transform 0.3s ease;
+      max-width: 860px;
+      margin: 0 auto;
+      border-radius: 20px;
+      overflow: hidden;
+      background: #FFFFFF;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 16px 40px -10px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.03);
+      line-height: 0;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      transform: translateZ(0);
+    }
+    .ds-hero-frameless-wrap:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 24px 55px -12px rgba(15, 23, 42, 0.12);
     }
 
-    .screenshot-frame:hover img {
-      transform: scale(1.015);
-    }
-
-    /* Калькулятор часу внизу */
-    .calc-slider-block {
+    /* macOS-style Window Header Bar */
+    .ds-window-pill-bar {
+      height: 38px;
+      background: #FAFAF9;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.07);
       display: flex;
-      flex-direction: column;
-      gap: 14px;
-      background: var(--bg-subtle);
-      border: 1px solid var(--border-glass);
-      border-radius: 16px;
-      padding: 20px;
-    }
-
-    .calc-slider-header-row {
-      display: flex;
+      align-items: center;
       justify-content: space-between;
-      font-size: 0.88rem;
-      font-weight: 700;
+      padding: 0 16px;
+      user-select: none;
+      line-height: normal;
     }
-
-    .calc-range-control {
-      width: 100%;
-      height: 6px;
-      border-radius: var(--radius-pill);
-      background: var(--border-glass);
-      outline: none;
-      cursor: pointer;
-      accent-color: var(--accent-blue);
+    .ds-window-dots {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-
-    .calc-triplet-cells {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      text-align: center;
+    .ds-window-dots .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
     }
+    .dot-red { background: #FF5F56; }
+    .dot-yellow { background: #FFBD2E; }
+    .dot-green { background: #27C93F; }
 
-    .calc-cell-box {
-      background: var(--bg-card);
-      border: 1px solid var(--border-glass);
-      border-radius: 10px;
-      padding: 12px 6px;
-    }
-
-    .calc-num-metric {
-      font-family: var(--font-mono);
-      font-size: 1.35rem;
-      font-weight: 800;
-      color: var(--text-hero);
-      line-height: 1;
-      margin-bottom: 4px;
-    }
-
-    .calc-lbl-metric {
-      font-size: 0.72rem;
-      color: var(--text-subtle);
-      font-weight: 600;
-    }
-
-    /* CTA СЕКЦІЯ */
-    .cta-crafted-section {
-      text-align: center;
-      margin-top: 70px;
-      padding: 50px 24px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-card);
-      backdrop-filter: blur(24px);
-      box-shadow: var(--shadow-dock);
-    }
-
-    .cta-crafted-title {
-      font-family: var(--font-display);
-      font-size: clamp(1.9rem, 4vw, 2.8rem);
-      color: var(--text-hero);
-      margin-bottom: 12px;
-      line-height: 1.15;
-    }
-
-    .cta-crafted-sub {
-      color: var(--text-muted);
-      font-size: 1rem;
-      max-width: 520px;
-      margin: 0 auto 28px;
-    }
-
-    .btn-launch-dockspace {
+    .ds-window-address {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      background: linear-gradient(135deg, var(--np-red) 0%, var(--up-yellow) 100%);
-      color: #fff;
-      text-decoration: none;
-      font-weight: 800;
-      font-size: 1rem;
-      padding: 15px 34px;
+      gap: 6px;
+      padding: 4px 14px;
       border-radius: var(--radius-pill);
-      box-shadow: 0 10px 30px rgba(234, 56, 76, 0.35);
-      transition: transform 0.2s, box-shadow 0.2s;
+      background: #FFFFFF;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      font-size: 0.74rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    }
+    .ds-window-service-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--accent-green);
+    }
+    .badge-live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      animation: pulseLive 2s infinite ease-in-out;
+    }
+    @keyframes pulseLive {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
     }
 
-    .btn-launch-dockspace:hover {
+    /* Брендові бейджі поштових служб у хедері */
+    .ds-service-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      letter-spacing: -0.01em;
+    }
+    .np-pill {
+      background: rgba(217, 37, 52, 0.08);
+      color: var(--brand-red);
+    }
+    .up-pill {
+      background: rgba(245, 158, 11, 0.12);
+      color: #b45309;
+    }
+    .ds-eyebrow-sep {
+      color: var(--border-focus);
+      font-weight: 300;
+    }
+    .ds-eyebrow-text {
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       3. ФУНКЦІОНАЛ, ЯКИЙ ВАРТО ЗНАТИ (ZIG-ZAG LIST)
+       ========================================================================== */
+    .ds-zigzag-section {
+      padding: 70px 0 90px;
+    }
+
+    .ds-section-header {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+
+    .ds-section-eyebrow {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brand-red);
+      margin-bottom: 12px;
+      display: inline-block;
+    }
+
+    .ds-section-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.0rem, 3.2vw, 2.7rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+      margin-bottom: 14px;
+    }
+
+    .ds-section-subtitle {
+      font-size: 1.02rem;
+      color: var(--text-muted);
+      max-width: 580px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .ds-zigzag-list {
+      display: flex;
+      flex-direction: column;
+      gap: 110px; /* Більше простору та легкості */
+    }
+
+    /* content-visibility: auto забезпечує нульовий оверхед рендерингу для карток поза екраном */
+    .ds-zigzag-row {
+      display: grid;
+      grid-template-columns: 1fr 1.45fr;
+      gap: 60px;
+      align-items: center;
+      content-visibility: auto;
+      contain-intrinsic-size: 1px 640px;
+    }
+
+    .ds-zigzag-row.reverse {
+      grid-template-columns: 1.45fr 1fr;
+    }
+
+    .ds-zigzag-row.reverse .ds-zigzag-content {
+      order: 2;
+    }
+
+    .ds-zigzag-row.reverse .ds-zigzag-media {
+      order: 1;
+    }
+
+    .ds-feature-badge {
+      display: inline-block;
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 5px 12px;
+      border-radius: var(--radius-pill);
+      margin-bottom: 14px;
+    }
+
+    .ds-zigzag-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.4rem, 1.9vw, 1.75rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: var(--text-main);
+      margin-bottom: 14px;
+      line-height: 1.25;
+    }
+
+    .ds-zigzag-desc {
+      font-size: 0.96rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+      margin-bottom: 18px;
+    }
+
+    .ds-zigzag-desc code {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-light);
+      padding: 2px 7px;
+      border-radius: 5px;
+      color: var(--text-main);
+    }
+
+    /* Безрамочні медіа-картки зигзагу: точний aspect-ratio та світлий фон */
+    .ds-zigzag-media {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1200 / 764;
+      border-radius: 20px;
+      background: #FFFFFF;
+      border: 1px solid var(--border-light);
+      padding: 0;
+      box-shadow: 0 16px 40px -10px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.03);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      overflow: hidden;
+      line-height: 0;
+      transform: translateZ(0);
+    }
+    .ds-zigzag-media:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 24px 55px -12px rgba(15, 23, 42, 0.12);
+    }
+    .ds-media-inner {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1200 / 764;
+      border-radius: 20px;
+      overflow: hidden;
+      background: #FFFFFF;
+      display: block;
+      line-height: 0;
+      position: relative;
+    }
+    .ds-hero-frameless-wrap .ds-media-inner {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1200 / 764;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    .ds-media-asset {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background-color: #f1f5f9;
+    }
+
+    /* Value metric pills on feature cards */
+    .ds-feature-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .ds-pill-metric {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: var(--radius-pill);
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-main);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ==========================================================================
+       4. INTERACTIVE CRM NORMALIZER & ROI SANDBOX
+       ========================================================================== */
+    #calculator {
+      content-visibility: auto;
+      contain-intrinsic-size: 1px 700px;
+    }
+
+    .ds-interactive-wrap {
+      background: #FFFFFF;
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+      padding: 36px 30px;
+      box-shadow: var(--shadow-md);
+      margin: 20px auto 80px;
+      max-width: 900px;
+    }
+
+    .ds-interactive-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .crm-builder-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.8rem, 2.6vw, 2.3rem);
+      color: var(--text-main);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      margin-bottom: 10px;
+    }
+
+    .crm-switches-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 22px;
+    }
+
+    .crm-toggle-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-pill);
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-light);
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-main);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+
+    .crm-toggle-pill:hover {
+      background: #e2e8f0;
+    }
+
+    .crm-toggle-pill input[type="checkbox"] {
+      accent-color: var(--brand-red);
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+    }
+
+    .crm-preview-box {
+      background: var(--bg-page);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-family: var(--font-mono);
+      font-size: 0.90rem;
+      color: var(--text-main);
+    }
+
+    .crm-preview-text {
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .btn-copy-crm {
+      background: var(--text-main);
+      color: #FFFFFF;
+      border: none;
+      padding: 10px 20px;
+      border-radius: var(--radius-pill);
+      font-family: var(--font-sans);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .btn-copy-crm:hover {
+      background: var(--brand-red);
+    }
+
+    .btn-copy-crm.copied {
+      background: var(--accent-green);
+    }
+
+    /* ROI Slider */
+    .ds-roi-box {
+      margin-top: 38px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border-light);
+      text-align: center;
+    }
+
+    .roi-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.4rem, 2vw, 1.75rem);
+      color: var(--text-main);
+      margin-bottom: 8px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .roi-slider-wrap {
+      max-width: 440px;
+      margin: 14px auto 26px;
+    }
+
+    .roi-slider {
+      width: 100%;
+      height: 5px;
+      border-radius: 3px;
+      background: #cbd5e1;
+      outline: none;
+      accent-color: var(--brand-red);
+      cursor: pointer;
+    }
+
+    .roi-results-row {
+      display: flex;
+      justify-content: center;
+      gap: 36px;
+      flex-wrap: wrap;
+    }
+
+    .roi-stat-col {
+      text-align: center;
+    }
+
+    .roi-stat-number {
+      font-family: var(--font-mono);
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .roi-stat-label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       5. FAQ SECTION
+       ========================================================================== */
+    .ds-faq-section {
+      padding: 85px 0 70px;
+      max-width: 800px;
+      margin: 0 auto;
+      content-visibility: auto;
+      contain-intrinsic-size: 1px 600px;
+    }
+
+    .ds-accordion {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ds-faq-item {
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .ds-faq-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 0;
+      background: none;
+      border: none;
+      font-family: var(--font-sans);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-main);
+      text-align: left;
+      cursor: pointer;
+      transition: color 0.15s ease;
+      gap: 14px;
+    }
+
+    .ds-faq-btn:hover {
+      color: var(--brand-red);
+    }
+
+    .ds-faq-icon {
+      font-size: 1.25rem;
+      font-weight: 400;
+      color: var(--text-subtle);
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+    }
+
+    .ds-faq-item.open .ds-faq-icon {
+      transform: rotate(45deg);
+      color: var(--brand-red);
+    }
+
+    .ds-faq-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      line-height: 1.65;
+    }
+
+    .ds-faq-item.open .ds-faq-body {
+      max-height: 380px;
+      padding-bottom: 22px;
+    }
+
+    /* ==========================================================================
+       6. FOOTER
+       ========================================================================== */
+    .ds-footer {
+      border-top: 1px solid var(--border-light);
+      padding: 40px 0;
+      font-size: 0.9rem;
+      color: var(--text-subtle);
+    }
+
+    .ds-footer-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .ds-footer-links {
+      display: flex;
+      gap: 28px;
+    }
+
+    .ds-footer-links a:hover {
+      color: var(--text-main);
+    }
+
+    /* ==========================================================================
+       MEDIA MANAGER (DEVELOPER / OWNER MODE)
+       ========================================================================== */
+    .ds-slot-edit-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    [data-media-slot]:hover .ds-slot-edit-btn,
+    .ds-slot-edit-btn:focus {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .ds-slot-edit-btn:hover {
+      background: var(--brand-red);
+      border-color: transparent;
+      transform: scale(1.04);
+    }
+
+    .ds-media-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.2s ease;
+    }
+    .ds-media-modal {
+      background: #FFFFFF;
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+      padding: 28px 24px;
+      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .ds-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .ds-modal-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .ds-modal-close {
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      color: var(--text-subtle);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .ds-modal-close:hover {
+      background: var(--bg-card-subtle);
+      color: var(--text-main);
+    }
+    .ds-form-group {
+      margin-bottom: 18px;
+    }
+    .ds-form-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+    .ds-form-radios {
+      display: flex;
+      gap: 12px;
+    }
+    .ds-form-radio-card {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-light);
+      background: var(--bg-card-subtle);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .ds-form-radio-card:hover {
+      background: #e2e8f0;
+    }
+    .ds-form-radio-card.active {
+      border-color: var(--brand-red);
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(217, 37, 52, 0.15);
+    }
+    .ds-file-drop {
+      border: 2px dashed rgba(15, 23, 42, 0.16);
+      border-radius: 12px;
+      padding: 24px 16px;
+      text-align: center;
+      background: var(--bg-card-subtle);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .ds-file-drop:hover {
+      border-color: var(--brand-red);
+      background: #fff;
+    }
+    .ds-input-text {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-light);
+      background: #FFFFFF;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-main);
+    }
+    .ds-input-text:focus {
+      outline: none;
+      border-color: var(--brand-red);
+      box-shadow: 0 0 0 3px rgba(217, 37, 52, 0.15);
+    }
+    .ds-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-light);
+    }
+
+    /* Admin Dock */
+    .ds-admin-dock {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9998;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: var(--radius-pill);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+      color: #ffffff;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .btn-admin-action {
+      background: rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-admin-action:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    .btn-preview-action {
+      background: #0284c7;
+    }
+    .btn-preview-action:hover {
+      background: #0369a1;
+    }
+    .btn-admin-action.btn-danger:hover {
+      background: #ef4444;
+    }
+    .btn-admin-close {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.6);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 2px 6px;
+      border-radius: 50%;
+    }
+    .btn-admin-close:hover {
+      color: #ffffff;
+    }
+    .ds-preview-dock {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9998;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: var(--radius-pill);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      color: #ffffff;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .preview-badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulseLive 2s infinite ease-in-out;
+    }
+    .btn-preview-exit {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-preview-exit:hover {
+      background: #0369a1;
+    }
+    body.ds-preview-active .ds-slot-edit-btn {
+      display: none !important;
+    }
+
+    /* Floating Scroll-to-Top Button */
+    .ds-scroll-top-btn {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 999;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      color: var(--text-main);
+      border: 1px solid var(--border-light);
+      box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(14px);
+      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .ds-scroll-top-btn.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .ds-scroll-top-btn:hover {
+      background: var(--brand-red);
+      color: #FFFFFF;
+      border-color: transparent;
       transform: translateY(-2px);
-      box-shadow: 0 16px 40px rgba(234, 56, 76, 0.45);
+      box-shadow: 0 14px 30px -4px rgba(217, 37, 52, 0.30);
+    }
+
+    .ds-scroll-top-btn:active {
+      transform: translateY(0);
+    }
+
+    body.ds-admin-active .ds-scroll-top-btn {
+      bottom: 84px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Responsive */
+    @media (max-width: 960px) {
+      .ds-nav-links { display: none; }
+      .ds-zigzag-row, .ds-zigzag-row.reverse {
+        grid-template-columns: 1fr;
+        gap: 36px;
+      }
+      .ds-zigzag-row.reverse .ds-zigzag-content { order: 1; }
+      .ds-zigzag-row.reverse .ds-zigzag-media { order: 2; }
+      .ds-interactive-wrap { padding: 30px 20px; }
+      .ds-zigzag-list { gap: 80px; }
+    }
+
+    @media (max-width: 600px) {
+      .crm-preview-box { flex-direction: column; align-items: stretch; }
+      .btn-copy-crm { width: 100%; text-align: center; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Фонове неонове сяйво -->
-  <div class="ambient-glow-wrap" aria-hidden="true">
-    <div class="ambient-sphere sphere-red"></div>
-    <div class="ambient-sphere sphere-yellow"></div>
-    <div class="ambient-sphere sphere-blue"></div>
-  </div>
+  <!-- ========================================================================
+       1. NAVIGATION З ФІРМОВИМ ЛОГОТИПОМ ПРОЄКТУ
+       ======================================================================== -->
+  <header class="ds-nav-wrap" id="top">
+    <div class="container ds-nav">
+      <a href="#top" class="ds-logo" title="Повернутися нагору" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
+        <svg class="ds-logo-svg" viewBox="0 0 32 32">
+          <rect width="32" height="32" rx="8" fill="#d92534"/>
+          <path d="M16 4L6 9.5l10 5.5 10-5.5L16 4zM6 19.5l10 5.5 10-5.5M6 14.5l10 5.5 10-5.5" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span>NP + УКР Пошук</span>
+      </a>
 
-  <!-- Верхній бар macOS -->
-  <header class="mac-header">
-    <a href="index.html" class="header-left-brand">
-      <div class="brand-icon-mac">✦</div>
-      <span class="brand-title-mac">Пошуковий рушій</span>
-    </a>
+      <nav>
+        <ul class="ds-nav-links">
+          <li><a href="#top" class="nav-link-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">Головна</a></li>
+          <li><a href="#features">Можливості</a></li>
+          <li><a href="#calculator">Конструктор CRM</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </nav>
 
-    <div class="header-actions">
-      <button id="btnThemeGlass" class="btn-theme-glass" type="button">🌓 Тема</button>
-      <a href="index.html" class="btn-cta-launch">Відкрити пошук →</a>
+      <div class="ds-nav-actions">
+        <!-- Кнопка перемикання теми (Світла / Темна) -->
+        <button id="btnAboutThemeToggle" class="ds-theme-toggle-btn" type="button" aria-label="Увімкнути темну тему" title="Увімкнути темну тему">
+          <span class="theme-icon-light" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </span>
+          <span class="theme-icon-dark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </span>
+        </button>
+
+        <a href="index.html" class="btn-pill btn-pill-primary">
+          <span>Відкрити пошук</span>
+          <span>→</span>
+        </a>
+      </div>
     </div>
   </header>
 
-  <main class="landing-wrapper">
+  <!-- ========================================================================
+       2. HERO SECTION
+       ======================================================================== -->
+  <section class="ds-hero">
+    <div class="container">
+      <div class="ds-eyebrow">
+        <span>🔥 Для операторів кол-центрів та e-commerce</span>
+        <span class="ds-eyebrow-sep">•</span>
+        <span class="ds-eyebrow-highlight">Готово до копіювання в CRM</span>
+      </div>
 
-    <!-- HERO SECTION -->
-    <section class="hero-crafted">
-      <div class="eyebrow-pill">Showcase • Живі знімки інтерфейсу • Zero-Waste</div>
-      <h1 class="hero-title-crafted">
-        Створено для швидкості.<br>
-        Спроєктовано для <em>спокою</em>.
+      <h1 class="ds-hero-title">
+        Оформлюйте доставку вдвічі швидше без перемикання між вкладками
       </h1>
-      <p class="hero-subtitle-crafted">
-        Жодної «води» та зайвих текстів. Подивіться на реальні скріншоти кожної фічі та відчуйте, як це працює на практиці.
+
+      <p class="ds-hero-subtitle">
+        Миттєвий пошук за містом, вулицею чи номером і автоматичний формат для вашої CRM-системи.
       </p>
 
-      <!-- ПЛАВАЮЧИЙ ДИВО-ДОК ДЛЯ ШВИДКОЇ НАВІГАЦІЇ ПО СКРІНШОТАХ -->
-      <div class="dock-showcase-container">
-        <div class="floating-mac-dock" id="mainDock">
-          <div class="dock-icon-item active" data-target="shotBridge" title="Крос-розвилка">
-            <span>🔀</span>
-            <span class="dock-tooltip">Крос-підказка Укрпошти</span>
-          </div>
-          <div class="dock-icon-item" data-target="shotLpcrm" title="Дані для LP-CRM">
-            <span>🏷️</span>
-            <span class="dock-tooltip">Старі назви для CRM</span>
-          </div>
-          <div class="dock-icon-item" data-target="shotPostomat" title="Орієнтири поштоматів">
-            <span>🚪</span>
-            <span class="dock-tooltip">Орієнтири до під'їзду</span>
-          </div>
-          <div class="dock-icon-item" data-target="shotHomonym" title="Дезамбігуація">
-            <span>🗺️</span>
-            <span class="dock-tooltip">Села-тезки (Миколаїв)</span>
-          </div>
-          <div class="dock-icon-item" data-target="shotWeight" title="Вагові категорії">
-            <span>⚖️</span>
-            <span class="dock-tooltip">Вага & Станції метро</span>
-          </div>
-          <div class="dock-icon-item" data-target="shotSelected" title="Картка відділення">
-            <span>📍</span>
-            <span class="dock-tooltip">Картка вантажного хабу</span>
-          </div>
-          <div class="dock-icon-item" data-target="shotPopular" title="Найчастіші міста">
-            <span>🔥</span>
-            <span class="dock-tooltip">Популярні міста з лічильником</span>
-          </div>
-          <div class="dock-icon-item" data-target="shotHistory" title="Історія 5 днів">
-            <span>🕒</span>
-            <span class="dock-tooltip">Історія за 5 днів</span>
-          </div>
-          <div class="dock-divider"></div>
-          <div class="dock-icon-item" data-target="shotRoi" title="Калькулятор часу">
-            <span>⏱️</span>
-            <span class="dock-tooltip">Калькулятор економії</span>
+      <div class="ds-hero-ctas">
+        <a href="index.html" class="btn-pill btn-pill-primary">
+          <span>Спробувати в роботі</span>
+          <span>→</span>
+        </a>
+        <a href="#features" class="btn-pill btn-pill-secondary">
+          <span>Оглянути можливості</span>
+        </a>
+      </div>
+
+      <!-- Чиста Hero-вітрина у стилі карток функціоналу (без зайвих рамок) -->
+      <div class="ds-hero-aura-wrap">
+        <div class="ds-hero-frameless-wrap" id="heroFramelessWrap">
+          <div class="ds-media-inner">
+            <video class="ds-media-asset" autoplay loop muted playsinline preload="auto" poster="assets/showcase/00_hero_retina.png">
+              <source src="assets/video/01_hero.mp4" type="video/mp4">
+            </video>
           </div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- РИТМ: ОПИС ➔ РЕАЛЬНИЙ СКРІНШОТ -->
-    <div class="visual-showcase-flow">
-
-      <!-- 1. КРОС-ПІДКАЗКА УКРПОШТИ НА ВІДСУТНІХ ТОЧКАХ НП -->
-      <article class="showcase-block" id="shotBridge">
-        <div class="block-header">
-          <div>
-            <span class="block-pill">Фіча 01 • Крос-сервісний міст</span>
-            <h2 class="block-title">Крос-підказка: «Немає точок НП, але є Укрпошта»</h2>
-          </div>
-        </div>
-        <p class="block-desc">
-          Ввели село Київ у Миколаївській області? Рушій не видає помилку «Нічого не знайдено», а одразу показує точний індекс Укрпошти <code>(56463)</code> та стрілку швидкого переходу в 1 клік.
+  <!-- ========================================================================
+       3. ФУНКЦІОНАЛ, ЯКИЙ ВАРТО ЗНАТИ (ZIG-ZAG LIST)
+       ======================================================================== -->
+  <section id="features" class="ds-zigzag-section">
+    <div class="container">
+      
+      <div class="ds-section-header">
+        <span class="ds-section-eyebrow">МОЖЛИВОСТІ РУШІЯ</span>
+        <h2 class="ds-section-title">Функціонал, який варто знати</h2>
+        <p class="ds-section-subtitle">
+          Ключові інструменти для швидкої та безпомилкової роботи з поштовими адресами.
         </p>
-        <div class="screenshot-frame">
-          <img src="assets/showcase/03_cross_service_bridge.png" alt="Крос-підказка Укрпошти для села Київ" loading="lazy">
-        </div>
-      </article>
+      </div>
 
-      <!-- 2. СТАРІ НАЗВИ ВУЛИЦЬ ТА РАЙОНИ ДЛЯ LP-CRM -->
-      <article class="showcase-block" id="shotLpcrm">
-        <div class="block-header">
-          <div>
-            <span class="block-pill">Фіча 02 • Порятунок для LP-CRM та 1С</span>
-            <h2 class="block-title">Історичні райони та декомунізовані вулиці</h2>
-          </div>
-        </div>
-        <p class="block-desc">
-          Клієнт назвав стару радянську назву вулиці чи у вашій CRM база районів до 2020 року? Рушій автоматично підказує: <code>До 2020 року: Бережанський р-н</code> та <code>Попередня назва (для LP-CRM): вул. Леніна</code>.
-        </p>
-        <div class="screenshot-frame">
-          <img src="assets/showcase/08_lpcrm_historical_index.png" alt="Історичні дані та стара назва для CRM" loading="lazy">
-        </div>
-      </article>
+      <div class="ds-zigzag-list">
 
-      <!-- 3. ОРІЄНТИРИ ПОШТОМАТІВ ДО ПІД'ЇЗДУ -->
-      <article class="showcase-block" id="shotPostomat">
-        <div class="block-header">
-          <div>
-            <span class="block-pill">Фіча 03 • Захист від повернень</span>
-            <h2 class="block-title">Орієнтири поштоматів до під'їзду</h2>
-          </div>
-        </div>
-        <p class="block-desc">
-          Більше жодних посилок у закритих під'їздах. Рушій виводить попередження: <code>підʼїзд №1 (ТІЛЬКИ ДЛЯ МЕШКАНЦІВ)</code> або орієнтир <code>«Біля паркану, ближче до садочка»</code>.
-        </p>
-        <div class="screenshot-frame">
-          <img src="assets/showcase/06_postomats_landmarks.png" alt="Орієнтири поштоматів та під'їздів" loading="lazy">
-        </div>
-      </article>
-
-      <!-- 4. ДЕЗАМБІГУАЦІЯ ТЕЗОК (МИКОЛАЇВ VS МИКОЛАЇВКА) -->
-      <article class="showcase-block" id="shotHomonym">
-        <div class="block-header">
-          <div>
-            <span class="block-pill">Фіча 04 • Гео-топоніміка</span>
-            <h2 class="block-title">Розрізнення міст та сіл-тезок</h2>
-          </div>
-        </div>
-        <p class="block-desc">
-          Набрали «микола»? Система чітко розкладає міста по областях: Миколаїв (Львівська) vs Миколаїв (обласний) vs Миколаївка із зазначенням кількості відділень і поштоматів у кожному.
-        </p>
-        <div class="screenshot-frame">
-          <img src="assets/showcase/07_homonym_disambiguation.png" alt="Дезамбігуація Миколаїв та Миколаївка" loading="lazy">
-        </div>
-      </article>
-
-      <!-- 5. ВАГОВІ КАТЕГОРІЇ ТА СТАНЦІЇ МЕТРО -->
-      <article class="showcase-block" id="shotWeight">
-        <div class="block-header">
-          <div>
-            <span class="block-pill">Фіча 05 • Фасетна фільтрація</span>
-            <h2 class="block-title">Фільтри ваги та орієнтири станцій метро</h2>
-          </div>
-        </div>
-        <p class="block-desc">
-          Миттєве відокремлення точок за лімітом ваги: <code>Поштове (до 30 кг)</code>, <code>до 200 кг</code>, <code>Вантажне (без обмежень)</code> + орієнтири біля станцій метро (<code>м. Олімпійська</code>).
-        </p>
-        <div class="screenshot-frame">
-          <img src="assets/showcase/05_branches_weight_limits.png" alt="Вагові категорії відділень" loading="lazy">
-        </div>
-      </article>
-
-      <!-- 6. КАРТКА ОБРАНОГО ВІДДІЛЕННЯ -->
-      <article class="showcase-block" id="shotSelected">
-        <div class="block-header">
-          <div>
-            <span class="block-pill">Фіча 06 • Картка відділення</span>
-            <h2 class="block-title">Вантажні хаби до 1100 кг та навігація</h2>
-          </div>
-        </div>
-        <p class="block-desc">
-          Чітка картка обраного відділення: адреса, графік, повна вагова категорія та кнопки швидкого копіювання і перегляду на карті.
-        </p>
-        <div class="screenshot-frame">
-          <img src="assets/showcase/04_selected_branch_cargo.png" alt="Картка вантажного відділення" loading="lazy">
-        </div>
-      </article>
-
-      <!-- 7. НАЙЧАСТІШІ ЗАПИТИ З ЛІЧИЛЬНИКАМИ -->
-      <article class="showcase-block" id="shotPopular">
-        <div class="block-header">
-          <div>
-            <span class="block-pill">Фіча 07 • Швидкий доступ</span>
-            <h2 class="block-title">Найчастіші запити з реальними лічильниками</h2>
-          </div>
-        </div>
-        <p class="block-desc">
-          Київ (48), Львів (41), Дніпро (35), Житомир (24), Запоріжжя (22), Вінниця (19) — найпопулярніші міста України відкриваються в 1 клік без друкування літер.
-        </p>
-        <div class="screenshot-frame">
-          <img src="assets/showcase/01_popular_queries.png" alt="Найчастіші запити з лічильниками" loading="lazy">
-        </div>
-      </article>
-
-      <!-- 8. ІСТОРІЯ ОСТАННІХ ПОШУКІВ ЗА 5 ДНІВ -->
-      <article class="showcase-block" id="shotHistory">
-        <div class="block-header">
-          <div>
-            <span class="block-pill">Фіча 08 • Комфорт роботи</span>
-            <h2 class="block-title">Історія останніх пошуків за 5 днів</h2>
-          </div>
-        </div>
-        <p class="block-desc">
-          Повернутися до вчорашнього міста можна в 1 дотик. Збереження історії відбувається локально, з можливістю очистити все однією кнопкою.
-        </p>
-        <div class="screenshot-frame">
-          <img src="assets/showcase/02_search_history.png" alt="Історія останніх пошуків" loading="lazy">
-        </div>
-      </article>
-
-      <!-- 9. КАЛЬКУЛЯТОР ЗАОЩАДЖЕНОГО ЧАСУ -->
-      <article class="showcase-block" id="shotRoi">
-        <div class="block-header">
-          <div>
-            <span class="block-pill">Фіча 09 • Окупність часу (ROI)</span>
-            <h2 class="block-title">Скільки годин життя це заощаджує вам щомісяця?</h2>
-          </div>
-        </div>
-        <p class="block-desc">
-          Рушій економить близько 35 секунд на кожному замовленні. Потягніть повзунок, щоб розрахувати свій виграш у часі:
-        </p>
-
-        <div class="calc-slider-block">
-          <div class="calc-slider-header-row">
-            <span>Кількість замовлень / відправок на день:</span>
-            <span id="dockOrdersVal" style="color: var(--accent-blue); font-family: var(--font-mono); font-size: 1.15rem;">40 замовлень</span>
-          </div>
-
-          <input type="range" id="dockOrdersSlider" class="calc-range-control" min="5" max="150" value="40" step="5" oninput="updateDockCalc(this.value)">
-
-          <div class="calc-triplet-cells">
-            <div class="calc-cell-box">
-              <div class="calc-num-metric" id="dockPerDay">~23 хв</div>
-              <div class="calc-lbl-metric">Економія на день</div>
+        <!-- РЯДОК 1 (НАЙНОВІША v8.28): РОЗУМНІ КЛАВІШІ ESC / SLASH -->
+        <div class="ds-zigzag-row" id="feature-hotkeys">
+          <div class="ds-zigzag-content">
+            <span class="ds-feature-badge" style="color: #0284c7; background: rgba(2, 132, 199, 0.08);">01 • Нове в v8.28 • Швидкість без мишки</span>
+            <h3 class="ds-zigzag-title">Швидкий пошук за клавішею Esc</h3>
+            <p class="ds-zigzag-desc">
+              Натисніть <code>Esc</code> або <code>/</code> — рядок пошуку миттєво підсвічується для нової адреси. Нуль зайвих рухів мишкою, чистий десктопний фокус.
+            </p>
+            <div class="ds-feature-pills">
+              <span class="ds-pill-metric">⚡ 0 зайвих рухів</span>
+              <span class="ds-pill-metric">⌨️ Руки на клавіатурі</span>
             </div>
-            <div class="calc-cell-box">
-              <div class="calc-num-metric" id="dockPerMonth" style="color: var(--emerald);">~9.3 год</div>
-              <div class="calc-lbl-metric">Збережено на місяць</div>
-            </div>
-            <div class="calc-cell-box">
-              <div class="calc-num-metric" id="dockBackspaces" style="color: var(--purple);">3 600</div>
-              <div class="calc-lbl-metric">Мінус ручних виправлень</div>
+          </div>
+          <div class="ds-zigzag-media" data-media-slot="escape_hotkey" data-slot-title="01 • Миттєве перевведення за Esc">
+            <div class="ds-media-inner">
+              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/09_esc_hotkey_demo.png" data-src="assets/video/00_esc_hotkey.mp4"></video>
             </div>
           </div>
         </div>
-      </article>
+
+        <!-- РЯДОК 2 (v8.27): ОРІЄНТИРИ ПОШТОМАТІВ -->
+        <div class="ds-zigzag-row reverse">
+          <div class="ds-zigzag-content">
+            <span class="ds-feature-badge" style="color: var(--brand-red); background: rgba(217, 37, 52, 0.08);">02 • v8.27 • Захист від повернень</span>
+            <h3 class="ds-zigzag-title">Орієнтири та доступ до під'їзду</h3>
+            <p class="ds-zigzag-desc">
+              Попередження <code>«підʼїзд №1 (тільки для мешканців)»</code> або код домофону видно ДО відправки — клієнт гарантовано забере посилку без повернень.
+            </p>
+            <div class="ds-feature-pills">
+              <span class="ds-pill-metric">🚪 Під'їзди та закриті ЖК</span>
+              <span class="ds-pill-metric">🛡️ 0% завислих посилок</span>
+            </div>
+          </div>
+          <div class="ds-zigzag-media" data-media-slot="postomats" data-slot-title="02 • Орієнтири поштоматів">
+            <div class="ds-media-inner">
+              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/06_postomats_landmarks.png" data-src="assets/video/05_postomats.mp4"></video>
+            </div>
+          </div>
+        </div>
+
+        <!-- РЯДОК 3 (v8.25): LP-CRM ТА ІСТОРИЧНІ ДАНІ -->
+        <div class="ds-zigzag-row">
+          <div class="ds-zigzag-content">
+            <span class="ds-feature-badge" style="color: var(--accent-orange); background: rgba(234, 88, 12, 0.08);">03 • v8.25 • Порятунок для LP-CRM</span>
+            <h3 class="ds-zigzag-title">Райони до адмінреформи 2020</h3>
+            <p class="ds-zigzag-desc">
+              Подвійна сумісність: новий район для перевізника та старий ліквідований район для баз LP-CRM, SalesDrive чи 1С, плюс старі декомунізовані вулиці.
+            </p>
+            <div class="ds-feature-pills">
+              <span class="ds-pill-metric">🏷️ Історичні райони</span>
+              <span class="ds-pill-metric">🏛️ Декомунізовані назви</span>
+            </div>
+          </div>
+          <div class="ds-zigzag-media" data-media-slot="crm_history" data-slot-title="03 • LP-CRM та декомунізація">
+            <div class="ds-media-inner">
+              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/08_lpcrm_historical_index.png" data-src="assets/video/04_crm_history.mp4"></video>
+            </div>
+          </div>
+        </div>
+
+        <!-- РЯДОК 4 (v8.20): FUZZY TOPO-ENGINE -->
+        <div class="ds-zigzag-row reverse">
+          <div class="ds-zigzag-content">
+            <span class="ds-feature-badge" style="color: var(--accent-purple); background: rgba(124, 58, 237, 0.08);">04 • v8.20 • Fuzzy Topo-Engine</span>
+            <h3 class="ds-zigzag-title">Розуміє одруки та села-тезки</h3>
+            <p class="ds-zigzag-desc">
+              Виправляє одруки (<code>«брвари 2»</code>) та розкладку (<code>retd 1</code> ➔ Київ), розрізняє однойменні села та ставить пріоритет діючої пошти.
+            </p>
+            <div class="ds-feature-pills">
+              <span class="ds-pill-metric">🎯 Пріоритет діючої пошти</span>
+              <span class="ds-pill-metric">🔍 Стійкість до помилок</span>
+            </div>
+          </div>
+          <div class="ds-zigzag-media" data-media-slot="fuzzy" data-slot-title="04 • Fuzzy Topo-Engine">
+            <div class="ds-media-inner">
+              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/07_homonym_disambiguation.png" data-src="assets/video/03_fuzzy.mp4"></video>
+            </div>
+          </div>
+        </div>
+
+        <!-- РЯДОК 5 (v8.0): КРОС-СЕРВІСНИЙ МІСТ -->
+        <div class="ds-zigzag-row">
+          <div class="ds-zigzag-content">
+            <span class="ds-feature-badge" style="color: var(--accent-cyan); background: rgba(8, 145, 178, 0.08);">05 • v8.0 • Крос-міст НП ➔ УКР</span>
+            <h3 class="ds-zigzag-title">Автопідказка Укрпошти в селах</h3>
+            <p class="ds-zigzag-desc">
+              Якщо в селі покупця немає Нової пошти, рушій автоматично пропонує найближче діюче відділення Укрпошти з точним 5-значним поштовим індексом.
+            </p>
+            <div class="ds-feature-pills">
+              <span class="ds-pill-metric">📮 26 500+ індексів Укрпошти</span>
+              <span class="ds-pill-metric">⚡ Перехід в 1 клік</span>
+            </div>
+          </div>
+          <div class="ds-zigzag-media" data-media-slot="bridge" data-slot-title="05 • Крос-міст Укрпошти">
+            <div class="ds-media-inner">
+              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/03_cross_service_bridge.png" data-src="assets/video/02_bridge.mp4"></video>
+            </div>
+          </div>
+        </div>
+
+        <!-- РЯДОК 6 (ФУНДАМЕНТ): ТОП-МІСТА ТА ІСТОРІЯ -->
+        <div class="ds-zigzag-row reverse">
+          <div class="ds-zigzag-content">
+            <span class="ds-feature-badge" style="color: var(--accent-green); background: rgba(22, 163, 74, 0.08);">06 • Фундамент • Швидкий старт</span>
+            <h3 class="ds-zigzag-title">Топ-міста та локальна пам'ять</h3>
+            <p class="ds-zigzag-desc">
+              Швидкий вибір міст із живим лічильником запитів. Історія за 5 днів зберігається виключно на вашому пристрої — 100% приватність без трекерів.
+            </p>
+            <div class="ds-feature-pills">
+              <span class="ds-pill-metric">⚡ &lt; 0.01s пошук в RAM</span>
+              <span class="ds-pill-metric">🔒 100% офлайн-приватність</span>
+            </div>
+          </div>
+          <div class="ds-zigzag-media" data-media-slot="popular" data-slot-title="06 • Топ-міста та історія">
+            <div class="ds-media-inner">
+              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/01_popular_queries.png" data-src="assets/video/06_popular.mp4"></video>
+            </div>
+          </div>
+        </div>
+
+      </div>
 
     </div>
+  </section>
 
-    <!-- CTA СЕКЦІЯ -->
-    <section class="cta-crafted-section">
-      <h3 class="cta-crafted-title">Відчуйте справжню швидкість у дії</h3>
-      <p class="cta-crafted-sub">Один дотик — і ви шукаєте відділення без зайвого клопоту, зависань та реклами.</p>
-      <a href="index.html" class="btn-launch-dockspace">
-        <span>Відкрити пошуковий інструмент</span>
-        <span>➔</span>
-      </a>
-    </section>
+  <!-- ========================================================================
+       4. INTERACTIVE CRM NORMALIZER & ROI CALCULATOR
+       ======================================================================== -->
+  <section id="calculator" class="container">
+    <div class="ds-interactive-wrap">
+      
+      <div class="ds-interactive-header">
+        <span class="ds-feature-badge">ІНТЕРАКТИВНИЙ SANDBOX</span>
+        <h3 class="crm-builder-title">
+          Спробуйте конструктор рядка для CRM
+        </h3>
+        <p style="font-size: 1rem; color: var(--text-muted); max-width: 580px; margin: 0 auto;">
+          Увімкніть правила під формат вашої CRM та скопіюйте чистий результат:
+        </p>
+      </div>
 
-  </main>
+      <div class="crm-switches-row">
+        <label class="crm-toggle-pill">
+          <input type="checkbox" id="chkNoWord" checked onchange="updateLandingCrmLine()">
+          <span>Без слова «відділення»</span>
+        </label>
+        <label class="crm-toggle-pill">
+          <input type="checkbox" id="chkSmt" checked onchange="updateLandingCrmLine()">
+          <span>«смт» замість селища</span>
+        </label>
+        <label class="crm-toggle-pill">
+          <input type="checkbox" id="chkRegion" checked onchange="updateLandingCrmLine()">
+          <span>Скорочувати «р-н / обл.»</span>
+        </label>
+      </div>
 
+      <div class="crm-preview-box">
+        <span class="crm-preview-text" id="landingCrmText">смт Макарів, Бучанський р-н, №1 (вул. Димитрія Ростовського, 63)</span>
+        <button type="button" class="btn-copy-crm" id="btnLandingCopyCrm" onclick="copyLandingCrmLine()">
+          Скопіювати рядок
+        </button>
+      </div>
+
+      <!-- ROI Calculator -->
+      <div class="ds-roi-box">
+        <h4 class="roi-title">
+          Скільки годин на місяць збереже ваша команда?
+        </h4>
+        <p style="font-size: 0.94rem; color: var(--text-muted);">
+          Кількість відправок на день: <strong id="lblRoiOrders" style="color: var(--text-main);">50 замовлень</strong>
+        </p>
+
+        <div class="roi-slider-wrap">
+          <input type="range" class="roi-slider" min="10" max="300" step="5" value="50" oninput="recalcLandingRoi(this.value)">
+        </div>
+
+        <div class="roi-results-row">
+          <div class="roi-stat-col">
+            <div class="roi-stat-number" id="lblRoiPerDay">~29 хв</div>
+            <div class="roi-stat-label">Заощаджено за робочий день</div>
+          </div>
+          <div class="roi-stat-col">
+            <div class="roi-stat-number" id="lblRoiPerMonth" style="color: var(--accent-blue);">~11.6 год</div>
+            <div class="roi-stat-label">Збережено робочого часу на місяць</div>
+          </div>
+          <div class="roi-stat-col">
+            <div class="roi-stat-number" id="lblRoiBackspaces" style="color: var(--accent-green);">4 500</div>
+            <div class="roi-stat-label">Зайвих натискань Backspace уникнуто</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       5. FAQ SECTION (5 ГЛИБОКИХ ПИТАНЬ ТА ПРОФЕСІЙНИХ ВІДПОВІДЕЙ)
+       ======================================================================== -->
+  <section id="faq" class="ds-faq-section container">
+    <div class="ds-section-header" style="margin-bottom: 28px;">
+      <h2 class="ds-section-title">Часті питання</h2>
+    </div>
+
+    <div class="ds-accordion">
+      
+      <!-- ПИТАННЯ 1 -->
+      <div class="ds-faq-item open">
+        <button type="button" class="ds-faq-btn">
+          <span>Звідки беруться адреси відділень і як часто оновлюється база?</span>
+          <span class="ds-faq-icon">+</span>
+        </button>
+        <div class="ds-faq-body">
+          Дані вивантажуються напряму з офіційних відкритих реєстрів та API Нової пошти та Укрпошти. База містить усі 55 185 діючих точок України — стаціонарні відділення, поштомати та пересувні поштові пункти у найвіддаленіших селах. Ми регулярно синхронізуємо зміни, тому щойно відкривається новий поштомат чи відділення — воно з'являється у базі пошуку.
+        </div>
+      </div>
+
+      <!-- ПИТАННЯ 2 -->
+      <div class="ds-faq-item">
+        <button type="button" class="ds-faq-btn">
+          <span>Чому пошук тут працює значно швидше, ніж на офіційних сайтах?</span>
+          <span class="ds-faq-icon">+</span>
+        </button>
+        <div class="ds-faq-body">
+          Офіційні сайти при кожному натисканні клавіші роблять запит в інтернет на свої віддалені сервери, попутно підвантажуючи рекламні банери, трекери аналітики та скрипти. Наш рушій використовує іншу архітектуру: оптимізована база завантажується в браузер один раз. Пошук здійснюється безпосередньо алгоритмом на процесорі вашого пристрою всього за 0.01 секунди — без підвисань навіть у часи пікових розпродажів.
+        </div>
+      </div>
+
+      <!-- ПИТАННЯ 3 -->
+      <div class="ds-faq-item">
+        <button type="button" class="ds-faq-btn">
+          <span>Як рушій допомагає, якщо в CRM стара база районів до реформи 2020 року?</span>
+          <span class="ds-faq-icon">+</span>
+        </button>
+        <div class="ds-faq-body">
+          Це відомий біль більшості українських інтернет-магазинів: після реформи 2020 року райони укрупнили, але в базах LP-CRM, SalesDrive чи 1C часто залишаються старі класифікатори. Наш рушій зберігає подвійну прив'язку: у картці кожного села або містечка відображається як новий район, так і історичний (наприклад: «До 2020: Бережанський р-н»), а також старі декомунізовані назви вулиць (наприклад: «Попередня назва: вул. Леніна»). Оператору не потрібно відкривати Google для звірки.
+        </div>
+      </div>
+
+      <!-- ПИТАННЯ 4 -->
+      <div class="ds-faq-item">
+        <button type="button" class="ds-faq-btn">
+          <span>Чи можна налаштувати формат рядка під нашу специфічну форму замовлення?</span>
+          <span class="ds-faq-icon">+</span>
+        </button>
+        <div class="ds-faq-body">
+          Так. У конструкторі копіювання ви можете налаштувати рядок точно під вимоги вашої CRM-системи: обрати порядок елементів (місто, район, номер відділення, вулиця), вимкнути зайві службові слова («вул.», «відділення») та автоматично скорочувати «селище» до «смт», а «область» до «обл.». Один клік на кнопку «Скопіювати» одразу поміщає в буфер чистий і стандартизований рядок.
+        </div>
+      </div>
+
+      <!-- ПИТАННЯ 5 -->
+      <div class="ds-faq-item">
+        <button type="button" class="ds-faq-btn">
+          <span>Чи безпечно цим користуватися? Куди зберігаються дані клієнтів?</span>
+          <span class="ds-faq-icon">+</span>
+        </button>
+        <div class="ds-faq-body">
+          Рушій працює за принципом повної клієнтської приватності (Zero Data Collection). Жоден пошуковий запит, адреса чи номер накладної ніколи не передаються на зовнішні сервери. Історія ваших пошуків за останні 5 днів зберігається виключно в локальній пам'яті вашого браузера. Інструмент повністю безкоштовний, без прихованих платежів, реклами чи обов'язкової реєстрації.
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       6. FOOTER
+       ======================================================================== -->
+  <footer class="ds-footer container">
+    <div class="ds-footer-content">
+      <div>© 2026 NP + УКР Пошук. Створено з фокусом на продуктивність.</div>
+      <div class="ds-footer-links">
+        <a href="#top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">Головна</a>
+        <a href="index.html">Пошуковий рушій</a>
+        <a href="#features">Можливості</a>
+        <a href="#calculator">Конструктор CRM</a>
+        <a href="#faq">FAQ</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================================
+       MODAL: ШВИДКЕ РЕДАГУВАННЯ МЕДІА (РЕЖИМ ВЛАСНИКА)
+       ======================================================================== -->
+  <div id="dsMediaModalBackdrop" class="ds-media-modal-backdrop" style="display: none;">
+    <div class="ds-media-modal">
+      <div class="ds-modal-header">
+        <div>
+          <div class="ds-modal-title" id="dsModalSlotTitle">Редагування медіа</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px;" id="dsModalSlotId">slot: -</div>
+        </div>
+        <button type="button" class="ds-modal-close" onclick="closeMediaEditor()">✕</button>
+      </div>
+
+      <div class="ds-form-group">
+        <label class="ds-form-label">Тип медіа:</label>
+        <div class="ds-form-radios">
+          <label class="ds-form-radio-card active" id="radioCardImg">
+            <input type="radio" name="mediaType" value="img" checked style="accent-color: var(--brand-red);">
+            <span>📷 Зображення / GIF</span>
+          </label>
+          <label class="ds-form-radio-card" id="radioCardVideo">
+            <input type="radio" name="mediaType" value="video" style="accent-color: var(--brand-red);">
+            <span>🎬 Відео (MP4 / WebM)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="ds-form-group">
+        <label class="ds-form-label">Швидке завантаження файлу:</label>
+        <div class="ds-file-drop" onclick="document.getElementById('dsFileInput').click()">
+          <span style="font-size: 1.4rem; display: block; margin-bottom: 4px;">📁</span>
+          <span>Натисніть для вибору файлу з вашого диска</span>
+          <div id="dsFileNameHint" style="font-size: 0.8rem; color: var(--brand-red); margin-top: 4px; font-weight: 600;"></div>
+        </div>
+        <input type="file" id="dsFileInput" accept="image/*,video/*" style="display: none;">
+      </div>
+
+      <div class="ds-form-group">
+        <label class="ds-form-label">Або вкажіть шлях / URL файлу вручну:</label>
+        <input type="text" id="dsInputPath" class="ds-input-text" placeholder="assets/showcase/my_video.mp4">
+      </div>
+
+      <div class="ds-modal-actions">
+        <button type="button" class="btn-pill btn-pill-secondary" onclick="closeMediaEditor()">Скасувати</button>
+        <button type="button" class="btn-pill btn-pill-primary" onclick="saveMediaSlotOverride()">Застосувати на сторінці</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Плаваючий Dock панелі розробника -->
+  <div id="dsAdminDock" class="ds-admin-dock" style="display: none;">
+    <span>🛠️ Режим власника</span>
+    <button type="button" id="btnAdminPreview" class="btn-admin-action btn-preview-action" onclick="togglePreviewMode(true)" title="Переглянути сайт точно так, як його бачить звичайний відвідувач">👁️ Передперегляд</button>
+    <button type="button" id="btnAdminExportHtml" class="btn-admin-action" onclick="exportUpdatedHtml()" title="Завантажити готовий оновлений about.html">💾 Завантажити about.html</button>
+    <button type="button" class="btn-admin-action btn-danger" onclick="resetAllMediaOverrides()">Скинути</button>
+    <button type="button" class="btn-admin-close" onclick="toggleAdminMode(false)">✕</button>
+  </div>
+
+  <!-- Панель повернення з режиму передперегляду -->
+  <div id="dsPreviewBar" class="ds-preview-dock" style="display: none;">
+    <span class="preview-badge-dot"></span>
+    <span>👁️ Режим передперегляду: сторінка відображається як у звичайного користувача</span>
+    <button type="button" class="btn-preview-exit" onclick="togglePreviewMode(false)">✏️ Повернутися до редагування</button>
+  </div>
+
+  <!-- Кнопка швидкого повернення догори (Floating Scroll-to-Top) -->
+  <button type="button" id="btnScrollTop" class="ds-scroll-top-btn" aria-label="Повернутися догори" title="Вгору">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 15l-6-6-6 6"/>
+    </svg>
+  </button>
+
+  <!-- ========================================================================
+       SCRIPTS: CRM NORMALIZER, ROI CALCULATOR, ACCORDION & LAZY MEDIA OBSERVER
+       ======================================================================== -->
   <script>
-    // 1. Тема
-    const btnThemeGlass = document.getElementById('btnThemeGlass');
-    btnThemeGlass.addEventListener('click', () => {
-      const cur = document.documentElement.getAttribute('data-theme') || 'dark';
-      const next = cur === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('app_theme', next);
-    });
+    // 1. Інтерактивний CRM Нормалізатор
+    const chkNoWord = document.getElementById('chkNoWord');
+    const chkSmt = document.getElementById('chkSmt');
+    const chkRegion = document.getElementById('chkRegion');
+    const landingCrmText = document.getElementById('landingCrmText');
+    const btnLandingCopyCrm = document.getElementById('btnLandingCopyCrm');
 
-    // 2. Інтерактивний macOS Dock (скрол до відповідного скріншота)
-    const dockItems = document.querySelectorAll('.dock-icon-item');
-    dockItems.forEach(item => {
-      item.addEventListener('click', () => {
-        dockItems.forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
+    function updateLandingCrmLine() {
+      let t = chkSmt.checked ? 'смт' : 'селище';
+      let b = chkNoWord.checked ? '№1' : 'відділення №1';
+      let r = chkRegion.checked ? 'Бучанський р-н' : 'Бучанський район';
+      landingCrmText.textContent = `${t} Макарів, ${r}, ${b} (вул. Димитрія Ростовського, 63)`;
+    }
 
-        const targetId = item.dataset.target;
-        const targetEl = document.getElementById(targetId);
-        if (targetEl) {
-          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          targetEl.style.boxShadow = '0 0 45px var(--accent-glow)';
-          setTimeout(() => {
-            targetEl.style.boxShadow = '';
-          }, 1400);
+    function copyLandingCrmLine() {
+      navigator.clipboard.writeText(landingCrmText.textContent).then(() => {
+        btnLandingCopyCrm.textContent = '✓ Скопійовано!';
+        btnLandingCopyCrm.classList.add('copied');
+        setTimeout(() => {
+          btnLandingCopyCrm.textContent = 'Скопіювати рядок';
+          btnLandingCopyCrm.classList.remove('copied');
+        }, 1500);
+      });
+    }
+
+    // 2. ROI Калькулятор
+    const lblRoiOrders = document.getElementById('lblRoiOrders');
+    const lblRoiPerDay = document.getElementById('lblRoiPerDay');
+    const lblRoiPerMonth = document.getElementById('lblRoiPerMonth');
+    const lblRoiBackspaces = document.getElementById('lblRoiBackspaces');
+
+    function recalcLandingRoi(orders) {
+      lblRoiOrders.textContent = `${orders} замовлень`;
+      const savedSecDay = orders * 35;
+      const savedMinDay = Math.round(savedSecDay / 60);
+      const savedHrMonth = ((savedMinDay * 24) / 60).toFixed(1);
+      const savedBs = orders * 90;
+
+      lblRoiPerDay.textContent = `~${savedMinDay} хв`;
+      lblRoiPerMonth.textContent = `~${savedHrMonth} год`;
+      lblRoiBackspaces.textContent = savedBs.toLocaleString('uk-UA');
+    }
+
+    // 3. FAQ Accordion
+    document.querySelectorAll('.ds-faq-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.closest('.ds-faq-item');
+        const isOpen = item.classList.contains('open');
+        
+        // Закрити інші
+        document.querySelectorAll('.ds-faq-item').forEach(i => i.classList.remove('open'));
+
+        if (!isOpen) {
+          item.classList.add('open');
         }
       });
     });
 
-    // 3. Калькулятор часу
-    const dockOrdersVal = document.getElementById('dockOrdersVal');
-    const dockPerDay = document.getElementById('dockPerDay');
-    const dockPerMonth = document.getElementById('dockPerMonth');
-    const dockBackspaces = document.getElementById('dockBackspaces');
+    // ========================================================================
+    // 4. HIGH-PERFORMANCE VIDEO LAZY-LOADER (INTERSECTION OBSERVER)
+    // Жодних підвисань: 0 відео вантажиться на старті; лише видиме відео грає.
+    // ========================================================================
+    let videoIntersectionObserver = null;
 
-    function updateDockCalc(orders) {
-      dockOrdersVal.textContent = `${orders} замовлень`;
-      const savedSecondsDay = orders * 35;
-      const savedMinutesDay = Math.round(savedSecondsDay / 60);
-      const savedHoursMonth = ((savedMinutesDay * 24) / 60).toFixed(1);
-      const savedBackspacesCount = orders * 90;
+    function initPerformanceVideoObserver() {
+      // Якщо увімкнено prefers-reduced-motion — не граємо відео, показуємо постер
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return;
+      }
 
-      dockPerDay.textContent = `~${savedMinutesDay} хв`;
-      dockPerMonth.textContent = `~${savedHoursMonth} год`;
-      dockBackspaces.textContent = savedBackspacesCount.toLocaleString('uk-UA');
+      if (!('IntersectionObserver' in window)) {
+        // Fallback для застарілих рушіїв
+        document.querySelectorAll('video.ds-lazy-video').forEach(v => {
+          if (!v.src && v.dataset.src) v.src = v.dataset.src;
+          v.play().catch(() => {});
+        });
+        return;
+      }
+
+      videoIntersectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const video = entry.target;
+          if (entry.isIntersecting) {
+            // Відео наближається до екрана — підключаємо src та граємо
+            if (!video.src && video.dataset.src) {
+              video.src = video.dataset.src;
+            }
+            const p = video.play();
+            if (p !== undefined) {
+              p.catch(() => {});
+            }
+          } else {
+            // Відео вийшло за межі екрана — миттєва пауза! Звільняє GPU декодер
+            if (!video.paused) {
+              video.pause();
+            }
+          }
+        });
+      }, {
+        rootMargin: '140px 0px 140px 0px',
+        threshold: 0.15
+      });
+
+      document.querySelectorAll('video.ds-lazy-video').forEach(video => {
+        videoIntersectionObserver.observe(video);
+      });
+
+      // Гарантований запуск hero-відео на першому екрані
+      const heroVid = document.querySelector('#heroFramelessWrap video');
+      if (heroVid) {
+        heroVid.muted = true;
+        heroVid.play().catch(() => {});
+      }
+
+      // Автопауза всіх відео при згортанні браузера або зміні вкладки, та поновлення при поверненні
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          document.querySelectorAll('video').forEach(v => {
+            if (!v.paused) v.pause();
+          });
+        } else {
+          const hv = document.querySelector('#heroFramelessWrap video');
+          if (hv && window.scrollY < 800) {
+            hv.play().catch(() => {});
+          }
+        }
+      });
+    }
+
+    // ========================================================================
+    // 5. LIVE MEDIA MANAGER (РЕЖИМ ВЛАСНИКА ДЛЯ ШВИДКОЇ ЗАМІНИ ФОТО/ВІДЕО)
+    // ========================================================================
+    let currentEditingSlotId = null;
+    let selectedFileBlobUrl = null;
+    let selectedFileDataUrl = null;
+    let selectedFileName = null;
+
+    function deleteStoredOverride(slotId) {
+      try {
+        const raw = localStorage.getItem('np_media_overrides');
+        if (!raw) return;
+        const overrides = JSON.parse(raw);
+        delete overrides[slotId];
+        localStorage.setItem('np_media_overrides', JSON.stringify(overrides));
+      } catch (e) {}
+    }
+
+    function checkAdminAccess() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('admin') === '1' || urlParams.get('owner') === '1') {
+        localStorage.setItem('np_owner_mode', 'true');
+        return true;
+      }
+      return localStorage.getItem('np_owner_mode') === 'true';
+    }
+
+    function toggleAdminMode(enable) {
+      const dock = document.getElementById('dsAdminDock');
+      if (enable) {
+        localStorage.setItem('np_owner_mode', 'true');
+        if (dock) dock.style.display = 'flex';
+        injectSlotEditButtons();
+      } else {
+        localStorage.removeItem('np_owner_mode');
+        if (dock) dock.style.display = 'none';
+        document.querySelectorAll('.ds-slot-edit-btn').forEach(b => b.remove());
+      }
+    }
+
+    function injectSlotEditButtons() {
+      document.querySelectorAll('[data-media-slot]').forEach(container => {
+        if (container.querySelector('.ds-slot-edit-btn')) return;
+        const slotId = container.dataset.mediaSlot;
+        const slotTitle = container.dataset.slotTitle || slotId;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ds-slot-edit-btn';
+        btn.innerHTML = '<span>⚙️ Замінити медіа</span>';
+        btn.title = `Змінити медіа для: ${slotTitle}`;
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          openMediaEditor(slotId, slotTitle, container);
+        });
+
+        container.style.position = 'relative';
+        container.appendChild(btn);
+      });
+    }
+
+    function openMediaEditor(slotId, slotTitle, container) {
+      currentEditingSlotId = slotId;
+      selectedFileBlobUrl = null;
+      selectedFileDataUrl = null;
+      selectedFileName = null;
+
+      document.getElementById('dsModalSlotTitle').textContent = `Редагування: ${slotTitle}`;
+      document.getElementById('dsModalSlotId').textContent = `slot: "${slotId}"`;
+      document.getElementById('dsFileNameHint').textContent = '';
+      document.getElementById('dsFileInput').value = '';
+
+      const currentAsset = container.querySelector('.ds-media-asset');
+      if (currentAsset) {
+        const isVid = currentAsset.tagName.toLowerCase() === 'video';
+        setModalMediaType(isVid ? 'video' : 'img');
+        const permSrc = currentAsset.getAttribute('data-permanent-src') || currentAsset.dataset.src || currentAsset.src || '';
+        document.getElementById('dsInputPath').value = permSrc.startsWith('blob:') ? '' : permSrc;
+      }
+
+      document.getElementById('dsMediaModalBackdrop').style.display = 'flex';
+    }
+
+    function closeMediaEditor() {
+      document.getElementById('dsMediaModalBackdrop').style.display = 'none';
+      currentEditingSlotId = null;
+    }
+
+    function setModalMediaType(type) {
+      const rImg = document.getElementById('radioCardImg');
+      const rVid = document.getElementById('radioCardVideo');
+      const radioInput = document.querySelector(`input[name="mediaType"][value="${type}"]`);
+      if (radioInput) radioInput.checked = true;
+
+      if (type === 'video') {
+        rVid.classList.add('active');
+        rImg.classList.remove('active');
+      } else {
+        rImg.classList.add('active');
+        rVid.classList.remove('active');
+      }
+    }
+
+    document.querySelectorAll('input[name="mediaType"]').forEach(r => {
+      r.addEventListener('change', (e) => setModalMediaType(e.target.value));
+    });
+
+    const fileInput = document.getElementById('dsFileInput');
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        selectedFileName = file.name;
+        selectedFileBlobUrl = URL.createObjectURL(file);
+
+        const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mov)$/i);
+        setModalMediaType(isVideo ? 'video' : 'img');
+
+        document.getElementById('dsFileNameHint').textContent = `✓ Вибрано: ${file.name} (${Math.round(file.size / 1024)} KB)`;
+        
+        const guessedPath = `assets/${isVideo ? 'video' : 'showcase'}/${file.name}`;
+        document.getElementById('dsInputPath').value = guessedPath;
+
+        if (file.size < 5 * 1024 * 1024) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            selectedFileDataUrl = ev.target.result;
+          };
+          reader.readAsDataURL(file);
+        } else {
+          selectedFileDataUrl = null;
+        }
+      });
+    }
+
+    function saveMediaSlotOverride() {
+      if (!currentEditingSlotId) return;
+
+      const type = document.querySelector('input[name="mediaType"]:checked').value;
+      const manualPath = document.getElementById('dsInputPath').value.trim();
+
+      const displaySrc = selectedFileBlobUrl || selectedFileDataUrl || manualPath;
+      const permanentPath = manualPath || (selectedFileName ? `assets/${type === 'video' ? 'video' : 'showcase'}/${selectedFileName}` : displaySrc);
+
+      if (!displaySrc) {
+        alert('Будь ласка, оберіть файл або вкажіть шлях / URL!');
+        return;
+      }
+
+      applyMediaToSlot(currentEditingSlotId, type, displaySrc, permanentPath);
+
+      try {
+        const raw = localStorage.getItem('np_media_overrides') || '{}';
+        const overrides = JSON.parse(raw);
+        overrides[currentEditingSlotId] = {
+          type,
+          path: (selectedFileDataUrl && selectedFileDataUrl.length < 2000000) ? selectedFileDataUrl : permanentPath,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('np_media_overrides', JSON.stringify(overrides));
+      } catch (e) {}
+
+      closeMediaEditor();
+    }
+
+    function applyMediaToSlot(slotId, type, displaySrc, permanentPath) {
+      const container = document.querySelector(`[data-media-slot="${slotId}"]`);
+      if (!container) return;
+
+      const targetBox = container.querySelector('.ds-media-inner') || container.querySelector('.ds-showcase-inner') || container;
+      if (!targetBox) return;
+
+      if (!targetBox.dataset.defaultHtml) {
+        targetBox.dataset.defaultHtml = targetBox.innerHTML;
+      }
+
+      if (type === 'video') {
+        const vid = document.createElement('video');
+        vid.className = 'ds-media-asset ds-lazy-video';
+        vid.loop = true;
+        vid.muted = true;
+        vid.playsInline = true;
+        vid.preload = 'none';
+        vid.src = displaySrc;
+        vid.dataset.src = displaySrc;
+        vid.setAttribute('data-permanent-src', permanentPath || displaySrc);
+
+        vid.onerror = () => {
+          console.warn(`[MediaManager] Помилка завантаження відео "${displaySrc}". Відновлюємо дефолтний контент.`);
+          deleteStoredOverride(slotId);
+          if (targetBox.dataset.defaultHtml) {
+            targetBox.innerHTML = targetBox.dataset.defaultHtml;
+            if (videoIntersectionObserver) videoIntersectionObserver.observe(targetBox.querySelector('video'));
+          }
+        };
+
+        targetBox.innerHTML = '';
+        targetBox.appendChild(vid);
+        if (videoIntersectionObserver) {
+          videoIntersectionObserver.observe(vid);
+        } else {
+          vid.play().catch(() => {});
+        }
+      } else {
+        const testImg = new Image();
+        testImg.onload = () => {
+          targetBox.innerHTML = '';
+          const img = document.createElement('img');
+          img.className = 'ds-media-asset';
+          img.src = displaySrc;
+          img.alt = 'Ілюстрація можливості';
+          img.loading = 'lazy';
+          img.setAttribute('data-permanent-src', permanentPath || displaySrc);
+          targetBox.appendChild(img);
+        };
+        testImg.onerror = () => {
+          console.warn(`[MediaManager] Помилка завантаження зображення "${displaySrc}". Скидаємо пошкоджений оверрайд.`);
+          deleteStoredOverride(slotId);
+          if (targetBox.dataset.defaultHtml) {
+            targetBox.innerHTML = targetBox.dataset.defaultHtml;
+          }
+        };
+        testImg.src = displaySrc;
+      }
+    }
+
+    function restoreMediaOverrides() {
+      // Спочатку кешуємо дефолтний HTML для кожного слота
+      document.querySelectorAll('[data-media-slot]').forEach(container => {
+        const targetBox = container.querySelector('.ds-media-inner') || container.querySelector('.ds-showcase-inner') || container;
+        if (targetBox && !targetBox.dataset.defaultHtml) {
+          targetBox.dataset.defaultHtml = targetBox.innerHTML;
+        }
+      });
+
+      try {
+        const raw = localStorage.getItem('np_media_overrides');
+        if (!raw) return;
+        const overrides = JSON.parse(raw);
+        let hasChanges = false;
+
+        // Захист: видаляємо hero override, якщо він колись був збережений
+        if (overrides['hero']) {
+          delete overrides['hero'];
+          hasChanges = true;
+        }
+
+        for (const [slotId, config] of Object.entries(overrides)) {
+          if (!config) continue;
+          const p = config.path ? config.path.trim() : '';
+          const isValidPath = p && !p.startsWith('blob:') && (
+            p.startsWith('assets/') || p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:') || p.startsWith('/')
+          );
+
+          if (isValidPath) {
+            applyMediaToSlot(slotId, config.type, p, p);
+          } else {
+            delete overrides[slotId];
+            hasChanges = true;
+          }
+        }
+        if (hasChanges) {
+          localStorage.setItem('np_media_overrides', JSON.stringify(overrides));
+        }
+      } catch (e) {
+        localStorage.removeItem('np_media_overrides');
+      }
+    }
+
+    function resetAllMediaOverrides() {
+      if (confirm('Скинути всі замінені зображення та відео до стандартних?')) {
+        localStorage.removeItem('np_media_overrides');
+        location.reload();
+      }
+    }
+
+    function exportUpdatedHtml() {
+      const clone = document.documentElement.cloneNode(true);
+      clone.querySelectorAll('.ds-slot-edit-btn').forEach(b => b.remove());
+      const dock = clone.querySelector('#dsAdminDock');
+      if (dock) dock.style.display = 'none';
+      const modal = clone.querySelector('#dsMediaModalBackdrop');
+      if (modal) modal.style.display = 'none';
+
+      clone.querySelectorAll('[data-permanent-src]').forEach(el => {
+        const p = el.getAttribute('data-permanent-src');
+        if (el.tagName.toLowerCase() === 'img') {
+          el.src = p;
+        } else if (el.tagName.toLowerCase() === 'video') {
+          el.src = p;
+          el.removeAttribute('data-src');
+        }
+        el.removeAttribute('data-permanent-src');
+      });
+
+      const fullHtml = '<!DOCTYPE html>\n' + clone.outerHTML;
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'about.html';
+      a.click();
+    }
+
+    // Потрійний клік на копірайт для входу в режим розробника
+    let copyrightClicks = 0;
+    const footerElem = document.querySelector('.ds-footer');
+    if (footerElem) {
+      footerElem.addEventListener('click', () => {
+        copyrightClicks++;
+        if (copyrightClicks >= 3) {
+          copyrightClicks = 0;
+          const isNow = localStorage.getItem('np_owner_mode') === 'true';
+          toggleAdminMode(!isNow);
+          alert(!isNow ? '🛠️ Режим власника УВІМКНЕНО!' : 'Режим власника вимкнено.');
+        }
+      });
+    }
+
+    // Гарячі клавіші: Ctrl + Shift + E
+    window.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'e') {
+        const isNow = localStorage.getItem('np_owner_mode') === 'true';
+        toggleAdminMode(!isNow);
+        alert(!isNow ? '🛠️ Режим власника УВІМКНЕНО!' : 'Режим власника вимкнено.');
+      }
+    });
+
+    // Режим передперегляду
+    function togglePreviewMode(enable) {
+      if (enable) {
+        document.body.classList.add('ds-preview-active');
+        const dock = document.getElementById('dsAdminDock');
+        if (dock) dock.style.display = 'none';
+        const pbar = document.getElementById('dsPreviewBar');
+        if (pbar) pbar.style.display = 'flex';
+      } else {
+        document.body.classList.remove('ds-preview-active');
+        const pbar = document.getElementById('dsPreviewBar');
+        if (pbar) pbar.style.display = 'none';
+        const dock = document.getElementById('dsAdminDock');
+        if (dock) dock.style.display = 'flex';
+      }
+    }
+
+    // Клавіша Escape виходить з передперегляду або закриває модалку
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (document.body.classList.contains('ds-preview-active')) {
+          togglePreviewMode(false);
+        } else if (document.getElementById('dsMediaModalBackdrop') && document.getElementById('dsMediaModalBackdrop').style.display !== 'none') {
+          closeMediaEditor();
+        }
+      }
+    });
+
+    // 6. Кнопка швидкого повернення догори (Scroll-to-top)
+    const btnScrollTop = document.getElementById('btnScrollTop');
+    if (btnScrollTop) {
+      let scrollTicking = false;
+      window.addEventListener('scroll', () => {
+        if (!scrollTicking) {
+          window.requestAnimationFrame(() => {
+            if (window.scrollY > 380) {
+              btnScrollTop.classList.add('visible');
+            } else {
+              btnScrollTop.classList.remove('visible');
+            }
+            scrollTicking = false;
+          });
+          scrollTicking = true;
+        }
+      }, { passive: true });
+
+      btnScrollTop.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    // 7. Тема оформлення (Синхронізація з головним пошуком через URL-параметр та localStorage)
+    const THEME_STORAGE_KEY = 'app_theme';
+
+    function getStoredTheme() {
+      try {
+        const urlTheme = new URLSearchParams(window.location.search).get('theme');
+        if (urlTheme === 'dark' || urlTheme === 'light') {
+          try { localStorage.setItem(THEME_STORAGE_KEY, urlTheme); } catch (e) {}
+          return urlTheme;
+        }
+        const currentAttr = document.documentElement.getAttribute('data-theme');
+        if (currentAttr === 'dark' || currentAttr === 'light') {
+          return currentAttr;
+        }
+        const stored = localStorage.getItem(THEME_STORAGE_KEY);
+        return stored === 'dark' ? 'dark' : 'light';
+      } catch (e) {
+        return document.documentElement.getAttribute('data-theme') || 'light';
+      }
+    }
+
+    function syncIndexLinks(theme) {
+      const links = document.querySelectorAll('a[href*="index.html"]');
+      links.forEach(a => {
+        try {
+          const u = new URL(a.getAttribute('href'), window.location.href);
+          u.searchParams.set('theme', theme);
+          a.setAttribute('href', 'index.html' + u.search);
+        } catch (e) {
+          a.setAttribute('href', 'index.html?theme=' + theme);
+        }
+      });
+    }
+
+    function applyTheme(newTheme, saveToStorage = true) {
+      const theme = newTheme === 'dark' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+
+      const btn = document.getElementById('btnAboutThemeToggle');
+      if (btn) {
+        const isDark = theme === 'dark';
+        const label = isDark ? 'Увімкнути світлу тему' : 'Увімкнути темну тему';
+        btn.setAttribute('aria-label', label);
+        btn.setAttribute('title', label);
+      }
+
+      syncIndexLinks(theme);
+
+      if (saveToStorage) {
+        try {
+          localStorage.setItem(THEME_STORAGE_KEY, theme);
+        } catch (e) {
+          console.error('Помилка збереження теми', e);
+        }
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set('theme', theme);
+          window.history.replaceState({}, '', url.toString());
+        } catch (e) {}
+      }
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || getStoredTheme();
+      const nextTheme = current === 'dark' ? 'light' : 'dark';
+      applyTheme(nextTheme, true);
+    }
+
+    const btnThemeToggle = document.getElementById('btnAboutThemeToggle');
+    if (btnThemeToggle) {
+      btnThemeToggle.addEventListener('click', toggleTheme);
+    }
+
+    applyTheme(getStoredTheme(), false);
+
+    // Синхронізація в реальному часі між відкритими вкладками
+    window.addEventListener('storage', (e) => {
+      if (e.key === THEME_STORAGE_KEY && e.newValue) {
+        applyTheme(e.newValue, false);
+      }
+    });
+
+    // Перехоплення кліків на будь-які посилання до index.html для гарантії актуальної теми
+    document.addEventListener('click', (e) => {
+      const link = e.target && e.target.closest ? e.target.closest('a[href*="index.html"]') : null;
+      if (link) {
+        const curTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        link.setAttribute('href', 'index.html?theme=' + curTheme);
+      }
+    });
+
+    // Ініціалізація
+    restoreMediaOverrides();
+    initPerformanceVideoObserver();
+    if (checkAdminAccess()) {
+      toggleAdminMode(true);
     }
   </script>
 </body>

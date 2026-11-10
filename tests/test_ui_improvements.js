@@ -87,6 +87,17 @@ assert.ok(fuzzySearchJs.includes('тлумацький\': \'івано-фран�
 assert.ok(fuzzySearchJs.includes('\'івано-франківський\': [\'івано-франківський\', \'тлумацький\''), 'fuzzySearch.js повинен містити Івано-Франківський район у KATOTTG_RAION_MAP');
 console.log('  ✓ Успіх: Відділення впорядковані за зростанням (№1..N) перед поштоматами, а КАТОТТГ-маппінг району підтримується.\n');
 
+console.log('▶ ТЕСТ 10: Синхронізація теми між index.html та about.html (localStorage app_theme, URL-параметр ?theme=, кнопка btnAboutThemeToggle)');
+const aboutHtml = fs.readFileSync(path.join(__dirname, '..', 'about.html'), 'utf8');
+assert.ok(aboutHtml.includes("localStorage.getItem('app_theme')"), 'about.html повинен зчитувати app_theme з localStorage');
+assert.ok(aboutHtml.includes('[data-theme="dark"]'), 'about.html повинен містити правила для темної теми [data-theme="dark"]');
+assert.ok(aboutHtml.includes('id="btnAboutThemeToggle"'), 'about.html повинен мати кнопку перемикання теми #btnAboutThemeToggle');
+assert.ok(aboutHtml.includes("window.addEventListener('storage'"), 'about.html повинен синхронізувати тему через storage event listener');
+assert.ok(appJs.includes("window.addEventListener('storage'"), 'app.js повинен синхронізувати тему при зміні на about.html через storage event listener');
+assert.ok(appJs.includes("about.html?theme="), 'app.js повинен передавати активну тему в посилання на about.html');
+assert.ok(aboutHtml.includes("index.html?theme=") || aboutHtml.includes("'index.html?theme='"), 'about.html повинен передавати тему назад в index.html');
+console.log('  ✓ Успіх: Автоматичне спадкування теми через URL + localStorage та ручне перемикання на about.html налаштовано.\n');
+
 console.log('===============================================================');
 console.log('🎉 ВСІ UX-ТЕСТИ ПРОЙДЕНО УСПІШНО!');
 console.log('===============================================================');
