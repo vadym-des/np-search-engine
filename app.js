@@ -2495,7 +2495,7 @@
 
     let histGeo = null;
     if (window.SmartSearchEngine && window.SmartSearchEngine.getHistoricalGeoInfo) {
-      histGeo = window.SmartSearchEngine.getHistoricalGeoInfo(cleanCity, raionClean, oblClean);
+      histGeo = window.SmartSearchEngine.getHistoricalGeoInfo(cleanCity, raionClean, oblClean, branch);
       if (histGeo && histGeo.actualRaion) {
         raionClean = histGeo.actualRaion;
       }

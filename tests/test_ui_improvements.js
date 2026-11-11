@@ -98,6 +98,17 @@ assert.ok(appJs.includes("about.html?theme="), 'app.js повинен перед
 assert.ok(aboutHtml.includes("index.html?theme=") || aboutHtml.includes("'index.html?theme='"), 'about.html повинен передавати тему назад в index.html');
 console.log('  ✓ Успіх: Автоматичне спадкування теми через URL + localStorage та ручне перемикання на about.html налаштовано.\n');
 
+console.log('▶ ТЕСТ 11: Чистий інтерфейс index.html без банера та презентація фічі LP-CRM & ТГ в about.html');
+assert.ok(!indexHtml.includes('id="promoUpdateBanner"'), 'index.html не повинен містити плашку #promoUpdateBanner (чистий мінімалістичний пошук)');
+assert.ok(!indexHtml.includes('id="promoVideoModal"'), 'index.html не повинен містити зайве модальне вікно #promoVideoModal');
+assert.ok(aboutHtml.includes('id="feature-lpcrm-tg"'), 'about.html повинен містити флагманський блок можливостей #feature-lpcrm-tg');
+assert.ok(aboutHtml.includes('assets/promo/lpcrm-demo.mp4'), 'about.html повинен посилатися на відеодемо assets/promo/lpcrm-demo.mp4');
+const promoMp4 = path.join(__dirname, '..', 'assets', 'promo', 'lpcrm-demo.mp4');
+const promoWebp = path.join(__dirname, '..', 'assets', 'promo', 'lpcrm-demo.webp');
+assert.ok(fs.existsSync(promoMp4) && fs.statSync(promoMp4).size > 10000, 'assets/promo/lpcrm-demo.mp4 повинен існувати');
+assert.ok(fs.existsSync(promoWebp) && fs.statSync(promoWebp).size > 1000, 'assets/promo/lpcrm-demo.webp повинен існувати');
+console.log('  ✓ Успіх: index.html залишається чистим і швидким, а фіча LP-CRM & ТГ повноцінно презентована в about.html.\n');
+
 console.log('===============================================================');
 console.log('🎉 ВСІ UX-ТЕСТИ ПРОЙДЕНО УСПІШНО!');
 console.log('===============================================================');

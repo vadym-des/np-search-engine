@@ -99,7 +99,9 @@ const testCases = [
   { q: '17 кри ірг', expectedCity: 'Кривий Ріг', expectedNum: '17', desc: 'Зворотний порядок номер + груба транспозиція міста: "17 кри ірг" -> Кривий Ріг #17' },
   { q: 'кри ірг 17', expectedCity: 'Кривий Ріг', expectedNum: '17', desc: 'Транспозиція скорочення міста: "кри ірг 17" -> Кривий Ріг #17' },
   { q: 'нова пошта - - 17 кри ірг', expectedCity: 'Кривий Ріг', expectedNum: '17', desc: 'Google-запит з одруківкою: "нова пошта - - 17 кри ірг" -> Кривий Ріг #17' },
-  { q: 'кри ірг', expectedCity: 'Кривий Ріг', desc: 'Пошук міста за скороченням з транспозицією: "кри ірг" -> Кривий Ріг' }
+  { q: 'кри ірг', expectedCity: 'Кривий Ріг', desc: 'Пошук міста за скороченням з транспозицією: "кри ірг" -> Кривий Ріг' },
+  // НОВІ КЕЙСИ: Точна CRM-дезамбігуація відділень при колізіях сіл-тезок в межах одного району
+  { q: 'Олександрівка Попсуйко', expectedCity: 'Олександрівка', expectedStreet: 'Попсуйко', expectedCrm: 'Олександрівка (Новомиколаївська сільська рада)', desc: 'Точна CRM-назва відділення при колізії сіл-тезок одного району (Олександрівка Попсуйко -> Новомиколаївська с/р)' }
 ];
 
 console.log('===============================================================');
@@ -115,7 +117,9 @@ for (let i = 0; i < testCases.length; i++) {
   const okNum = !tc.expectedNum || (top && String(top.number) === String(tc.expectedNum));
   const okStreet = !tc.expectedStreet || (top && top.street && top.street.toLowerCase().includes(tc.expectedStreet.toLowerCase()));
   const okType = !tc.expectedType || (top && top.settlementType && (top.settlementType.toLowerCase().includes(tc.expectedType.toLowerCase()) || (tc.expectedType === 'смт' && top.settlementType.includes('селище'))));
-  const ok = okCity && okNum && okStreet && okType;
+  const hInfo = top ? window.SmartSearchEngine.getHistoricalGeoInfo(top.city, top.raion, top.oblast, top) : null;
+  const okCrm = !tc.expectedCrm || (hInfo && hInfo.crmName === tc.expectedCrm);
+  const ok = okCity && okNum && okStreet && okType && okCrm;
 
   if (ok) {
     passed++;

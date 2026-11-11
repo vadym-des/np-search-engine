@@ -21,6 +21,7 @@ const PRECACHE_ASSETS = [
   './data/raion_aliases.json',
   './data/settlement_aliases.json',
   './data/crm_settlements.json',
+  './data/crm_branch_overrides.json',
   './app.js?v=1.6.43'
 ];
 

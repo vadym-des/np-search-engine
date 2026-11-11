@@ -1532,7 +1532,31 @@
     return _crmSettlementsMap;
   }
 
-  function getSettlementCrmName(cityName, rawRaion, rawOblast) {
+  let _crmBranchOverridesMap = null;
+  function getCrmBranchOverridesMap() {
+    if (_crmBranchOverridesMap) return _crmBranchOverridesMap;
+    if (typeof window !== 'undefined' && window.CRM_BRANCH_OVERRIDES) {
+      _crmBranchOverridesMap = window.CRM_BRANCH_OVERRIDES;
+    } else if (typeof require !== 'undefined') {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const p = path.join(__dirname, 'crm_branch_overrides.json');
+        if (fs.existsSync(p)) {
+          _crmBranchOverridesMap = JSON.parse(fs.readFileSync(p, 'utf8'));
+        }
+      } catch (e) {}
+    }
+    return _crmBranchOverridesMap;
+  }
+
+  function getSettlementCrmName(cityName, rawRaion, rawOblast, branch = null) {
+    if (branch && branch.id) {
+      const bMap = getCrmBranchOverridesMap();
+      if (bMap && bMap[branch.id]) {
+        return bMap[branch.id];
+      }
+    }
     const cMap = getCrmSettlementsMap();
     if (!cMap || !cityName) return null;
     const c = cleanSettlementName(cityName).toLowerCase();
@@ -1550,7 +1574,7 @@
     return null;
   }
 
-  function getHistoricalGeoInfo(cityName, rawRaion, rawOblast) {
+  function getHistoricalGeoInfo(cityName, rawRaion, rawOblast, branch = null) {
     if (!cityName && !rawRaion) return null;
     const cleanCity = cleanSettlementName(cityName || '');
     const cleanR = cleanRaionName(rawRaion || '');
@@ -1620,7 +1644,13 @@
       }
     }
 
-    let crmName = getSettlementCrmName(cleanCity, rLower, oLower);
+    let crmName = null;
+    if (branch && branch.id) {
+      crmName = getSettlementCrmName(cleanCity, rLower, oLower, branch);
+    }
+    if (!crmName) {
+      crmName = getSettlementCrmName(cleanCity, rLower, oLower);
+    }
     if (!crmName && actualRaion) {
       crmName = getSettlementCrmName(cleanCity, actualRaion, oLower);
     }
@@ -4174,7 +4204,7 @@
     }
 
     // 2.1. Історичні назви та ліквідовані райони (Адмінреформа 2020)
-    const hist = getHistoricalGeoInfo(item.city, item.raion, item.oblast);
+    const hist = getHistoricalGeoInfo(item.city, item.raion, item.oblast, item);
     if (hist && hist.hasHistory) {
       if (hist.oldName) {
         parts.push(hist.oldName, 'кол ' + hist.oldName, 'раніше ' + hist.oldName);
