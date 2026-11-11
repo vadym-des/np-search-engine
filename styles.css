@@ -2308,6 +2308,45 @@ html[data-theme="dark"] .btn-header-up-switch {
   margin: 0 1px;
 }
 
+.crm-hint-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-copy-crm-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-card-subtle, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11.5px;
+  color: var(--text-main, #374151);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+  vertical-align: middle;
+  font-family: inherit;
+}
+
+.btn-copy-crm-hint:hover {
+  background: var(--bg-hover, #f3f4f6);
+  border-color: var(--primary, #e24a4a);
+  color: var(--primary, #e24a4a);
+}
+
+.btn-copy-crm-hint strong {
+  color: inherit;
+  font-weight: 600;
+}
+
+.btn-copy-crm-hint .crm-copy-icon {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
 /* Перейменування (тільки якщо було) - Варіант 2: Фірмовий CRM-блок */
 .branch-renamed-note {
   font-size: 12px;

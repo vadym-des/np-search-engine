@@ -31,7 +31,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.42">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1.6.43">
   
   <!-- Theme initialization (Default: Light; inherits from query param & persists in localStorage) -->
   <script>
@@ -56,7 +56,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.42">
+  <link rel="stylesheet" href="styles.css?v=1.6.43">
 </head>
 <body data-service="novaposhta">
 
@@ -283,7 +283,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.42</span>
+          <span class="version-tag">v1.6.43</span>
         </button>
       </div>
 
@@ -309,8 +309,23 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.42 -->
+        <!-- Версія 1.6.43 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.43</span>
+            <span class="version-state">Інтеграція територіальних громад (ОТГ) та LP-CRM, розпізнавання адрес і одруківок Кривого Рогу</span>
+            <span class="version-date">11 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Підказки точних назв міст для LP-CRM:</strong> Впроваджено офіційний довідник дезамбігуації населених пунктів (5 500+ записів). У картці відділення відображається точна назва для випадаючого списку CRM з кнопкою копіювання в 1 клік (наприклад, <code>Калинівка (Калинівська територіальна громада)</code>).</li>
+            <li><strong>Пошук за територіальними громадами:</strong> Додано розпізнавання назв ОТГ/ТГ у пошуковому рядку (наприклад, <code>Калинівка Калинівська громада 1</code>, <code>Перемога Баришівська громада 1</code>).</li>
+            <li><strong>Крос-перевірка адрес при збігу з назвами областей:</strong> Запити на кшталт <code>Чернівці миколаївська 39 поштомат</code> тепер розпізнають вул. Миколаївську як адресу з будинком 39 і знаходять цільовий Поштомат №45757.</li>
+            <li><strong>Стійкість до одруківок та скорочень Кривого Рогу:</strong> Запити зі швидким набором та перестановками літер (<code>17 кри ірг</code>, <code>кри ірг 17</code>, <code>крив ірг</code>) безпомилково знаходять Кривий Ріг.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.42 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.42</span>
             <span class="version-state">Синхронізація теми з «Про проєкт», оновлення шапки та покращення шаблонів копіювання</span>
@@ -1442,18 +1457,21 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.42"></script>
+  <script src="data/branches.js?v=1.6.43"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.42"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.43"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.42"></script>
+  <script src="data/all_settlements.js?v=1.6.43"></script>
+
+  <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
+  <script src="data/crm_settlements.js?v=1.6.43"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.42"></script>
+  <script src="data/fuzzySearch.js?v=1.6.43"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.42"></script>
+  <script src="app.js?v=1.6.43"></script>
 </body>
 </html>

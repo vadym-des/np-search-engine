@@ -33,14 +33,14 @@
                .replace(/(?<!\p{L})(?:м|місто|с|село|смт|сел)\.(?=\p{L})/giu, '$& ');
 
     // Біграмні склеювання назв міст та опечаток
-    text = text.replace(/\bкри(?:\s+|\.)ріг\b/giu, 'кривий ріг')
-               .replace(/\bкрив(?:\s+|\.)ріг\b/giu, 'кривий ріг')
-               .replace(/\bстепан\s+город\b/giu, 'степангород')
-               .replace(/\bвелика\s+доб\b/giu, 'велика добронь')
-               .replace(/\bбіла\s+цер\b/giu, 'біла церква')
-               .replace(/\bстароконстантинів\b/giu, 'старокостянтинів')
-               .replace(/\bстароконстатинів\b/giu, 'старокостянтинів')
-               .replace(/\bбойовик\b/giu, 'буялик')
+    text = text.replace(/(?<!\p{L})(?:крив[а-яіїєґ]*|кри|кр|кры)(?:\s+|\.?)(?:р[іиоы][гхк]|ір[гхк]|іро[гхк]|роі[гхк]|р[гхк]і|ор[гхк])(?!\p{L})/giu, 'кривий ріг')
+               .replace(/(?<!\p{L})кри[вб]*ас[а-я]*(?!\p{L})/giu, 'кривий ріг')
+               .replace(/(?<!\p{L})степан\s+город(?!\p{L})/giu, 'степангород')
+               .replace(/(?<!\p{L})велика\s+доб[а-я]*(?!\p{L})/giu, 'велика добронь')
+               .replace(/(?<!\p{L})(?:біла|била|бела)\s+(?:цер[а-яіїєґ]*|црк[а-яіїєґ]*)(?!\p{L})/giu, 'біла церква')
+               .replace(/(?<!\p{L})староконстантинів(?!\p{L})/giu, 'старокостянтинів')
+               .replace(/(?<!\p{L})староконстатинів(?!\p{L})/giu, 'старокостянтинів')
+               .replace(/(?<!\p{L})бойовик(?!\p{L})/giu, 'буялик')
                .replace(/(?<!\p{L})могил[іе]в\s+(?:под[іе]л[а-яіїєґ]*|под)(?!\p{L})/giu, 'могилів-подільський')
                .replace(/(?<!\p{L})(?:ведликий|велликий|велик|вел)\s+березний(?!\p{L})/giu, 'великий березний')
                .replace(/(?<!\p{L})курмильч[а-я]*(?!\p{L})/giu, 'кормильча')
@@ -131,7 +131,19 @@
   // 1.05. Перевірка маркерів поштомату (поштомат, почтомат, пошт, п/м, пм)
   function isPostomatKeyword(text) {
     if (!text) return false;
-    return /(?<!\p{L})(?:поштомат|поштомата|поштомати|почтомат|пошт|п\/м|пм)(?!\p{L})/iu.test(text);
+    if (/(?<!\p{L})(?:поштомат|поштомата|поштомати|поштомату|поштоматі|поштоматом|почтомат|поштмоат|паштомат|поштомт|поштоамт|пошт|п\/м|пм)(?!\p{L})/iu.test(text)) {
+      return true;
+    }
+    const words = String(text).toLowerCase().split(/[^\p{L}]+/u);
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i];
+      if (w.length >= 7 && w.length <= 10) {
+        if (damerauLevenshtein(w, 'поштомат') <= 1 || damerauLevenshtein(w, 'почтомат') <= 1) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   // 1.06. Перевірка маркерів вантажного відділення (вантажне, вантажний, вантаж, карго, cargo)
@@ -298,8 +310,13 @@
     ['кривбас', 'кривий ріг'],
     ['кривой рог', 'кривий ріг'],
     ['кри ріг', 'кривий ріг'],
+    ['кри ірг', 'кривий ріг'],
     ['криріг', 'кривий ріг'],
+    ['криірг', 'кривий ріг'],
     ['крив ріг', 'кривий ріг'],
+    ['крив ірг', 'кривий ріг'],
+    ['криврог', 'кривий ріг'],
+    ['кривріг', 'кривий ріг'],
     ['камянець поділ', "кам'янець-подільський"],
     ['кам янець поділ', "кам'янець-подільський"],
     ['кам\'янець поділ', "кам'янець-подільський"],
@@ -974,6 +991,36 @@
     const m = text.match(oblRegex);
     if (m) {
       const oblRaw = m[0].trim().toLowerCase();
+      const hasExplicitOblastKeyword = /(?:область|обл(?:\.|\b))/i.test(m[0]);
+      if (!hasExplicitOblastKeyword) {
+        // Перевіряємо, чи є в тексті місто з іншої області, для якого це слово є діючою вулицею
+        const words = text.toLowerCase().split(/[^\p{L}0-9]+/u).filter(w => w.length >= 3 && !/^\d+$/.test(w));
+        const oblToken = isOblastToken(oblRaw);
+        if (oblToken) {
+          const oblTokenClean = oblToken.toLowerCase().slice(0, 4);
+          for (let i = 0; i < words.length; i++) {
+            const w = words[i];
+            const wCanon = canonCity(w);
+            if (wCanon === canonText(oblRaw)) continue;
+            const variants = _allSettlementsByName.get(wCanon) ||
+                             _allSettlementsByName.get(w) ||
+                             (_settlementsByName.get(wCanon) ? [_settlementsByName.get(wCanon)] : []);
+            if (variants && variants.length > 0) {
+              const hasVariantInThisOblast = variants.some(v => {
+                const vObl = (v.oblast || '').toLowerCase().slice(0, 4);
+                return vObl.includes(oblTokenClean) || oblTokenClean.includes(vObl);
+              });
+              if (hasVariantInThisOblast) {
+                continue;
+              }
+              const mainSettlement = variants[0];
+              if (isStreetOfCity(mainSettlement.cleanName || mainSettlement.name, oblRaw)) {
+                return null;
+              }
+            }
+          }
+        }
+      }
       for (let obl of OBLASTS) {
         if (obl.aliases.some(a => oblRaw.includes(a))) {
           return { ...obl, rawMatched: m[0] };
@@ -1467,6 +1514,42 @@
     { name: 'Доброслав', old_name: 'Комінтернівське', new_raion: 'Одеський', old_raion: 'Комінтернівський', oblast: 'Одеська' }
   ];
 
+  let _crmSettlementsMap = null;
+  function getCrmSettlementsMap() {
+    if (_crmSettlementsMap) return _crmSettlementsMap;
+    if (typeof window !== 'undefined' && window.CRM_SETTLEMENTS_DATA) {
+      _crmSettlementsMap = window.CRM_SETTLEMENTS_DATA;
+    } else if (typeof require !== 'undefined') {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const p = path.join(__dirname, 'crm_settlements.json');
+        if (fs.existsSync(p)) {
+          _crmSettlementsMap = JSON.parse(fs.readFileSync(p, 'utf8'));
+        }
+      } catch (e) {}
+    }
+    return _crmSettlementsMap;
+  }
+
+  function getSettlementCrmName(cityName, rawRaion, rawOblast) {
+    const cMap = getCrmSettlementsMap();
+    if (!cMap || !cityName) return null;
+    const c = cleanSettlementName(cityName).toLowerCase();
+    const o = cleanOblastName(rawOblast || '').toLowerCase();
+    const r = cleanRaionName(rawRaion || '').toLowerCase();
+
+    if (c && o && r) {
+      const k1 = `${c}|${o}|${r}`;
+      if (cMap[k1]) return cMap[k1];
+    }
+    if (c && o) {
+      const k2 = `${c}|${o}`;
+      if (cMap[k2]) return cMap[k2];
+    }
+    return null;
+  }
+
   function getHistoricalGeoInfo(cityName, rawRaion, rawOblast) {
     if (!cityName && !rawRaion) return null;
     const cleanCity = cleanSettlementName(cityName || '');
@@ -1537,12 +1620,24 @@
       }
     }
 
-    const hasHistory = Boolean(oldRaion || oldName);
+    let crmName = getSettlementCrmName(cleanCity, rLower, oLower);
+    if (!crmName && actualRaion) {
+      crmName = getSettlementCrmName(cleanCity, actualRaion, oLower);
+    }
+    if (!crmName && oldRaion) {
+      crmName = getSettlementCrmName(cleanCity, oldRaion, oLower);
+    }
+    if (!crmName) {
+      crmName = getSettlementCrmName(cleanCity, null, oLower);
+    }
+
+    const hasHistory = Boolean(oldRaion || oldName || crmName);
     return {
       cleanCity,
       actualRaion,
       oldRaion,
       oldName,
+      crmName,
       oblast: cleanO,
       hasHistory
     };
@@ -2107,7 +2202,15 @@
 
     const stLow = canonText(streetCandidate).replace(/^(?:вул|просп|проспект|пров|провулок|площа|пл|бульв|бульвар|шосе)\.?\s*/i, '').trim();
     if (stLow.length < 3) return false;
-    if (isOblastToken(stLow)) return false;
+    const oblToken = isOblastToken(stLow);
+    if (oblToken) {
+      // Якщо це токен області, перевіряємо: якщо місто належить до іншої області (напр. Чернівці -> Чернівецька),
+      // і в цьому місті є вулиця з назвою цієї іншої області (вул. Миколаївська, вул. Київська тощо), то це вулиця!
+      const cityObl = targetOblast || (branches[0] && branches[0].oblast);
+      if (cityObl && cityObl.toLowerCase().includes(oblToken.toLowerCase().slice(0, 4))) {
+        return false;
+      }
+    }
     const stStem = getUkrainianStem(stLow);
     const oblClean = targetOblast ? targetOblast.toLowerCase().slice(0, 4) : null;
     const rClean = targetRaion ? targetRaion.toLowerCase().slice(0, 4) : null;
@@ -2746,7 +2849,9 @@
         targetBranchNumber = null;
       }
       if (facets.streetTokens && facets.streetTokens.length > 0 && !detectedStreet) {
-        detectedStreet = 'вул. ' + facets.streetTokens.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        const nonNumTokens = facets.streetTokens.filter(t => !/^\d+[-/]?[a-zа-яіїєґ]?$/iu.test(t));
+        const stWords = nonNumTokens.length > 0 ? nonNumTokens : facets.streetTokens;
+        detectedStreet = 'вул. ' + stWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
       }
     }
 
@@ -4080,6 +4185,22 @@
       if (hist.actualRaion && hist.actualRaion.toLowerCase() !== (item.raion || '').toLowerCase()) {
         parts.push(hist.actualRaion, hist.actualRaion + ' район', hist.actualRaion + ' р-н');
       }
+      if (hist.crmName) {
+        parts.push(hist.crmName);
+        const parenMatch = hist.crmName.match(/\((.*?)\)/);
+        if (parenMatch) {
+          const parenText = parenMatch[1].toLowerCase();
+          parts.push(parenText);
+          if (parenText.includes('територіальна громада')) {
+            parts.push(parenText.replace('територіальна громада', 'громада').trim());
+            parts.push(parenText.replace('територіальна громада', 'тг').trim());
+            parts.push(parenText.replace('територіальна громада', 'отг').trim());
+          } else if (parenText.includes('громада')) {
+            parts.push(parenText.replace('громада', 'тг').trim());
+            parts.push(parenText.replace('громада', 'отг').trim());
+          }
+        }
+      }
     }
     if (item.settlementType) {
       parts.push(item.settlementType);
@@ -4286,6 +4407,10 @@
         if (!isPostomatQuery || val >= 1000) {
           number = cand;
           text = text.replace(allNumMatches[0][0], ' ');
+        } else if (isPostomatQuery && val < 1000) {
+          // Число менше 1000 у запиті на поштомат є номером будинку після вулиці
+          building = cand;
+          text = text.replace(allNumMatches[0][0], ' ');
         }
       }
     }
@@ -4316,6 +4441,19 @@
         }
       }
     }
+
+    // 3.5. Територіальна громада (ОТГ / ТГ / територіальна громада)
+    let hromadaFacet = null;
+    let hromadaStem = null;
+    const hromadaMatch = text.match(/(?:([\p{L}'-]+)\s+)?(?:територіальна\s+|селищна\s+|сільська\s+|міська\s+)?(?:громада|громади|громадою|громаді|тг|отг)(?!\p{L})/iu);
+    if (hromadaMatch) {
+      if (hromadaMatch[1]) {
+        hromadaStem = hromadaMatch[1].trim().toLowerCase().slice(0, 5);
+        hromadaFacet = hromadaMatch[1].trim();
+      }
+      text = text.replace(hromadaMatch[0], ' ');
+    }
+    text = text.replace(/(?<!\p{L})(?:територіальна\s+громада|селищна\s+громада|сільська\s+громада|міська\s+громада|громада|громади|громадою|громаді|отг|тг)(?!\p{L})/giu, ' ');
 
     // 4. Очищення службових слів
     let settlementType = null;
@@ -4454,6 +4592,27 @@
       const match = effectiveSettlements[0];
       city = cleanSettlementName(match.s.cleanName || match.s.name);
       settlementOblast = match.s.oblast;
+      if (hromadaStem && match.s.allVariants && match.s.allVariants.length > 1) {
+        for (const v of match.s.allVariants) {
+          const crmName = getSettlementCrmName(city, v.raion, v.oblast);
+          if (crmName && crmName.includes('(')) {
+            const paren = crmName.toLowerCase();
+            if (paren.includes(hromadaStem) && (paren.includes('громад') || paren.includes('тг') || paren.includes('отг'))) {
+              match.s = {
+                name: cleanSettlementName(v.cleanName || match.s.name),
+                oblast: v.oblast,
+                raion: v.raion,
+                type: v.type || match.s.type,
+                allVariants: match.s.allVariants
+              };
+              settlementOblast = v.oblast;
+              oblast = v.oblast;
+              if (v.raion) raion = v.raion;
+              break;
+            }
+          }
+        }
+      }
       if (!oblast && !raion && match.s.allVariants && match.s.allVariants.length > 1) {
         const queryWords = (query || '').split(/\s+/).filter(w => {
           const wLow = w.toLowerCase();
@@ -4735,7 +4894,7 @@
     // Якщо номер було виділено як number, але він стоїть після назви вулиці і в цьому місті є відділення на цій вулиці з таким номером будинку:
     // переносимо цей номер у building, щоб не відсікати відділення з іншим номером на цій самій вулиці
     if (number && !building && city) {
-      const wordsInText = (text + ' ' + (query || '')).split(/\s+/).filter(w => w.length >= 3 && canonCity(w) !== canonCity(city) && !isOblastToken(w));
+      const wordsInText = (text + ' ' + (query || '')).split(/\s+/).filter(w => w.length >= 3 && canonCity(w) !== canonCity(city) && (!isOblastToken(w) || isStreetOfCity(city, w)));
       for (const w of wordsInText) {
         if (isStreetOfCity(city, w)) {
           const cityBranches = getCityBranchesFromPool(city);
@@ -4774,10 +4933,36 @@
       }
     }
 
+    // ДЕЗАМБІГУАЦІЯ ВАРІАНТІВ МІСТА ЗА ТЕРИТОРІАЛЬНОЮ ГРОМАДОЮ (ОТГ / ТГ)
+    if (hromadaStem && city && chosenSettlementItem && chosenSettlementItem.s && Array.isArray(chosenSettlementItem.s.allVariants) && chosenSettlementItem.s.allVariants.length > 1) {
+      for (const v of chosenSettlementItem.s.allVariants) {
+        const crmName = getSettlementCrmName(city, v.raion, v.oblast);
+        if (crmName && crmName.includes('(')) {
+          const paren = crmName.toLowerCase();
+          if (paren.includes(hromadaStem) && (paren.includes('громад') || paren.includes('тг') || paren.includes('отг'))) {
+            oblast = v.oblast;
+            settlementOblast = v.oblast;
+            if (v.raion) raion = v.raion;
+            chosenSettlementItem.s = {
+              ...chosenSettlementItem.s,
+              cleanName: v.cleanName || v.name,
+              oblast: v.oblast,
+              raion: v.raion,
+              type: v.type || chosenSettlementItem.s.type
+            };
+            break;
+          }
+        }
+      }
+      if (canonCity(hromadaStem) === canonCity(city)) {
+        text = text.replace(new RegExp('(?<!\\p{L})' + hromadaStem + '[\\p{L}\'-]*(?!\\p{L})', 'giu'), ' ').trim();
+      }
+    }
+
     // 6. Залишок — токени вулиці / адреси
     const streetTokens = text.split(/\s+/)
       .map(w => w.trim().toLowerCase())
-      .filter(w => w.length >= 2 && !STOP_WORDS.has(w) && (!isOblastToken(w) || isDisambiguatedStreet));
+      .filter(w => w.length >= 2 && !STOP_WORDS.has(w) && (!isOblastToken(w) || isDisambiguatedStreet || (city && isStreetOfCity(city, w))));
 
     if (building && !streetTokens.includes(building)) {
       streetTokens.push(building);
@@ -5142,7 +5327,7 @@
       if (lastWordMatch) {
         const lw = lastWordMatch[1].toLowerCase();
         // Якщо слово має прикметникове закінчення вулиці або перед ним є позначення вулиці
-        const isNotOblastOrCity = !isOblastToken(lw) && !_settlementsByName.has(lw) && !_allSettlementsByName.has(lw) && !REGIONAL_CENTERS.has(lw);
+        const isNotOblastOrCity = (!isOblastToken(lw) || (detectedCityName && isStreetOfCity(detectedCityName, lw))) && !_settlementsByName.has(lw) && !_allSettlementsByName.has(lw) && !REGIONAL_CENTERS.has(lw);
         const isStreetEnding = /(?:ова|єва|івка|івська|евська|ська|ського|ської|ськой|на|ного|ної|ний|ний|яка|ого|му|ра)$/u.test(lw);
         const hasStreetPrefix = /(?:вул|вулиця|просп|проспект|бульв|бульвар|пл|площа|пров|провулок)/iu.test(textBeforeNum);
         if (isNotOblastOrCity && (isStreetEnding || hasStreetPrefix)) {
@@ -5170,11 +5355,12 @@
     const oblStem = (queryOblastClean || '').toLowerCase();
     const isOblastOrCenter = (t) => {
       if (facets.streetTokens && facets.streetTokens.includes(t)) return false;
-      if (isOblastToken(t)) return true;
-      if (oblStem && t.startsWith(oblStem)) return true;
-      if (facets.oblast && t.toLowerCase() === facets.oblast.toLowerCase()) return true;
-      if (REGIONAL_CENTERS.has(t) && facets.oblast && facets.oblast.toLowerCase().includes(t.slice(0, 4))) return true;
       if (facets.raion && (t === canonText(facets.raion) || areRaionsCompatible(t, facets.raion))) return true;
+      if (facets.oblast && t.toLowerCase() === facets.oblast.toLowerCase()) return true;
+      if (oblStem && t.startsWith(oblStem)) return true;
+      if (REGIONAL_CENTERS.has(t) && facets.oblast && facets.oblast.toLowerCase().includes(t.slice(0, 4))) return true;
+      if (detectedCityName && isStreetOfCity(detectedCityName, t)) return false;
+      if (isOblastToken(t)) return true;
       return false;
     };
 
@@ -5874,6 +6060,7 @@
     resolveConsolidatedRaion,
     HISTORICAL_SETTLEMENTS,
     getHistoricalGeoInfo,
+    getSettlementCrmName,
     getCityBranchesFromPool,
     setAllSettlementsData,
     getAllSettlementsCount: () => _allSettlementsByName.size,

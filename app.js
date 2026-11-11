@@ -2520,7 +2520,7 @@
     const hlSettlement = `${escapeHtml(sType)} ${hlCity}${hlGeoSub ? ' ' + hlGeoSub : ''}`;
 
     let historyHtml = '';
-    if (histGeo && (histGeo.oldRaion || histGeo.oldName)) {
+    if (histGeo && (histGeo.oldRaion || histGeo.oldName || histGeo.crmName)) {
       const hParts = [];
       if (histGeo.oldRaion) {
         hParts.push(`<span>До 2020 року: <strong>${escapeHtml(histGeo.oldRaion)} р-н</strong></span>`);
@@ -2528,8 +2528,11 @@
       if (histGeo.oldName) {
         hParts.push(`<span>кол. назва: <strong>${escapeHtml(histGeo.oldName)}</strong></span>`);
       }
+      if (histGeo.crmName) {
+        hParts.push(`<span class="crm-hint-wrapper" title="Точна назва у випадаючому списку LP-CRM (натисніть, щоб скопіювати)">В LP-CRM: <button type="button" class="btn-copy-crm-hint" data-crm-name="${escapeHtml(histGeo.crmName)}"><strong>${escapeHtml(histGeo.crmName)}</strong><span class="crm-copy-icon" aria-hidden="true">📋</span></button></span>`);
+      }
       historyHtml = `
-      <div class="settlement-history-hint" title="Адміністративна реформа 2020 року (КАТОТТГ)">
+      <div class="settlement-history-hint" title="Адміністративні довідкові дані та формат LP-CRM">
         <span class="history-icon">ℹ️</span> 
         ${hParts.join('\n        <span class="history-separator">•</span> ')}
       </div>
@@ -2629,6 +2632,18 @@
         trackEvent('copy_branch_address', {
           branch_type: getBranchAnalyticsType(branch)
         });
+      });
+    }
+
+    const btnCrm = card.querySelector('.btn-copy-crm-hint');
+    if (btnCrm) {
+      btnCrm.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const textToCopy = btnCrm.getAttribute('data-crm-name');
+        if (textToCopy) {
+          copyTextToClipboard(textToCopy, btnCrm, 'Скопійовано для LP-CRM!');
+          trackEvent('copy_crm_hint', { crm_name: textToCopy });
+        }
       });
     }
 
