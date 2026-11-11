@@ -101,7 +101,22 @@ const testCases = [
   { q: 'нова пошта - - 17 кри ірг', expectedCity: 'Кривий Ріг', expectedNum: '17', desc: 'Google-запит з одруківкою: "нова пошта - - 17 кри ірг" -> Кривий Ріг #17' },
   { q: 'кри ірг', expectedCity: 'Кривий Ріг', desc: 'Пошук міста за скороченням з транспозицією: "кри ірг" -> Кривий Ріг' },
   // НОВІ КЕЙСИ: Точна CRM-дезамбігуація відділень при колізіях сіл-тезок в межах одного району
-  { q: 'Олександрівка Попсуйко', expectedCity: 'Олександрівка', expectedStreet: 'Попсуйко', expectedCrm: 'Олександрівка (Новомиколаївська сільська рада)', desc: 'Точна CRM-назва відділення при колізії сіл-тезок одного району (Олександрівка Попсуйко -> Новомиколаївська с/р)' }
+  { q: 'Олександрівка Попсуйко', expectedCity: 'Олександрівка', expectedStreet: 'Попсуйко', expectedCrm: 'Олександрівка (Новомиколаївська сільська рада)', desc: 'Точна CRM-назва відділення при колізії сіл-тезок одного району (Олександрівка Попсуйко -> Новомиколаївська с/р)' },
+  // НОВІ КЕЙСИ: Форми множинних топонімів у родовому відмінку (Кобаки -> "кобаків", Бровари -> "броварів")
+  { q: 'кобаків Галицький Івано-Франківська 1', expectedCity: 'Кобаки', expectedNum: '1', expectedStreet: 'Головна', desc: 'Родовий відмінок села з помилковим районом: "кобаків Галицький Івано-Франківська 1" -> с. Кобаки №1' },
+  { q: 'нова пошта -- кобаків Галицький Івано-Франківська 1', expectedCity: 'Кобаки', expectedNum: '1', expectedStreet: 'Головна', desc: 'Google-style запит зі скріншота користувача: "нова пошта -- кобаків Галицький Івано-Франківська 1" -> с. Кобаки №1' },
+  { q: 'кобаків 1', expectedCity: 'Кобаки', expectedNum: '1', expectedStreet: 'Головна', desc: 'Прямий пошук села у родовому відмінку: "кобаків 1" -> с. Кобаки №1' },
+  { q: 'броварів 2', expectedCity: 'Бровари', expectedNum: '2', expectedStreet: 'Київська', desc: 'Множинний топонім у родовому відмінку: "броварів 2" -> м. Бровари №2' },
+  // НОВІ КЕЙСИ: Вулиця + номер будинку + одруківка міста ("косарева 6 хакрів" -> Харків №126 вул. Косарєва, 14)
+  { q: 'косарева 6 хакрів', expectedCity: 'Харків', expectedNum: '126', expectedStreet: 'Косарєва', desc: 'Вулиця + номер будинку + одруківка міста зі скріншота: "косарева 6 хакрів" -> Харків #126 (вул. Косарєва, 14)' },
+  { q: 'нова пошта -- косарева 6 хакрів', expectedCity: 'Харків', expectedNum: '126', expectedStreet: 'Косарєва', desc: 'Google-style запит зі скріншота: "нова пошта -- косарева 6 хакрів" -> Харків #126 (вул. Косарєва, 14)' },
+  { q: 'нвоа пошат -- косарева 6 хакрів', expectedCity: 'Харків', expectedNum: '126', expectedStreet: 'Косарєва', desc: 'Google AI Overview запит зі скріншота: "нвоа пошат -- косарева 6 хакрів" -> Харків #126 (вул. Косарєва, 14)' },
+  // НОВІ КЕЙСИ: Обласний центр + одруківка міста області + номер ("київ вижгорож 3" -> м. Вишгород №3)
+  { q: 'київ вижгорож 3', expectedCity: 'Вишгород', expectedNum: '3', expectedStreet: 'Шевченко', desc: 'Обласний центр + одруківка міста Вишгород: "київ вижгорож 3" -> Вишгород #3 (просп. Тараса Шевченка, 11)' },
+  { q: 'мкиїв вижгорож 3', expectedCity: 'Вишгород', expectedNum: '3', expectedStreet: 'Шевченко', desc: 'Префікс міста "м" + обласний центр + одруківка: "мкиїв вижгорож 3" -> Вишгород #3' },
+  { q: 'нвоа пошат -- мкиїв вижгорож 3', expectedCity: 'Вишгород', expectedNum: '3', expectedStreet: 'Шевченко', desc: 'Google-style запит зі скріншота користувача: "нвоа пошат -- мкиїв вижгорож 3" -> Вишгород #3' },
+  // НОВИЙ КЕЙС: Автокомпліт для вулиці з номером будинку та одруківкою ("косарева 6 хакрів" -> підказка Відділення №126)
+  { q: 'косарева 6 хакрів', checkAutocomplete: true, expectedCity: 'Харків', expectedNum: '126', expectedStreet: 'Косарєва', desc: 'Автокомпліт при введенні зі скріншота: "косарева 6 хакрів" -> Відділення #126 (вул. Косарєва, 14)' }
 ];
 
 console.log('===============================================================');
@@ -111,8 +126,14 @@ console.log('===============================================================\n')
 let passed = 0;
 for (let i = 0; i < testCases.length; i++) {
   const tc = testCases[i];
-  const res = window.SmartSearchEngine.searchBranches(tc.q, pool, 3);
-  const top = res[0];
+  let top = null;
+  if (tc.checkAutocomplete) {
+    const sugg = window.SmartSearchEngine.getAutocompleteSuggestions(tc.q, 'novaposhta', null, pool);
+    top = sugg && sugg[0] && sugg[0].branchObj ? sugg[0].branchObj : (sugg && sugg[0] ? { city: sugg[0].value, number: sugg[0].title, street: sugg[0].subtitle } : null);
+  } else {
+    const res = window.SmartSearchEngine.searchBranches(tc.q, pool, 3);
+    top = res[0];
+  }
   const okCity = top && top.city && (!tc.expectedCity || top.city.toLowerCase().includes(tc.expectedCity.toLowerCase()));
   const okNum = !tc.expectedNum || (top && String(top.number) === String(tc.expectedNum));
   const okStreet = !tc.expectedStreet || (top && top.street && top.street.toLowerCase().includes(tc.expectedStreet.toLowerCase()));

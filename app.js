@@ -1088,7 +1088,7 @@
       const selRaionClean = cleanRaionName(explicitRaion || '').toLowerCase();
       const selRaion = selRaionClean.slice(0, 4);
       const targetNum = (parsed.targetBranchNumber || parsed.postalCode || '').toString();
-      staticMatches = staticMatches.filter(b => {
+      const checkBranch = (b, applyRaionFilter = true) => {
         const bNum = String(b.index || b.number || b.postalCode || '');
         // Якщо в статичній базі є точний збіг за 5-значним індексом (або 4-6 значним поштоматом/відділенням),
         // колізія омонімів населеного пункту в іншій області (наприклад, село Київ у Миколаївській обл. vs столиця Київ)
@@ -1104,10 +1104,24 @@
         if (!matchesCity) return false;
         const bObl = (b.oblast || b.region || '').toLowerCase();
         if (selObl && bObl && !bObl.includes(selObl)) return false;
-        const bRai = (b.raion || b.district || '').toLowerCase();
-        if (selRaionClean && bRai && !bRai.includes(selRaion) && !areRaionsCompatible(selRaionClean, b.raion || b.district)) return false;
+        if (applyRaionFilter && selRaionClean) {
+          const bRai = (b.raion || b.district || '').toLowerCase();
+          if (bRai && !bRai.includes(selRaion) && !areRaionsCompatible(selRaionClean, b.raion || b.district)) return false;
+        }
         return true;
-      });
+      };
+
+      let filteredMatches = staticMatches.filter(b => checkBranch(b, true));
+      // Якщо користувач вказав помилковий район у пошуковому рядку (наприклад: "кобаків Галицький Івано-Франківська 1",
+      // де с. Кобаки насправді знаходиться у Косівському р-ні), і жорсткий фільтр дав 0 результатів:
+      // робимо Google-like фолбек без конфліктного району, якщо у цьому населеному пункті є діючі відділення
+      if (filteredMatches.length === 0 && selRaionClean && !state.selectedSettlement) {
+        const relaxedMatches = staticMatches.filter(b => checkBranch(b, false));
+        if (relaxedMatches.length > 0) {
+          filteredMatches = relaxedMatches;
+        }
+      }
+      staticMatches = filteredMatches;
     } else if (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast)) {
       const targetObl = (parsed.detectedOblast || parsed.facets.oblast).toLowerCase().slice(0, 4);
       staticMatches = staticMatches.filter(b => !b.oblast || b.oblast.toLowerCase().includes(targetObl));
