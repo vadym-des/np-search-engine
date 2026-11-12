@@ -116,7 +116,9 @@ const testCases = [
   { q: 'мкиїв вижгорож 3', expectedCity: 'Вишгород', expectedNum: '3', expectedStreet: 'Шевченко', desc: 'Префікс міста "м" + обласний центр + одруківка: "мкиїв вижгорож 3" -> Вишгород #3' },
   { q: 'нвоа пошат -- мкиїв вижгорож 3', expectedCity: 'Вишгород', expectedNum: '3', expectedStreet: 'Шевченко', desc: 'Google-style запит зі скріншота користувача: "нвоа пошат -- мкиїв вижгорож 3" -> Вишгород #3' },
   // НОВИЙ КЕЙС: Автокомпліт для вулиці з номером будинку та одруківкою ("косарева 6 хакрів" -> підказка Відділення №126)
-  { q: 'косарева 6 хакрів', checkAutocomplete: true, expectedCity: 'Харків', expectedNum: '126', expectedStreet: 'Косарєва', desc: 'Автокомпліт при введенні зі скріншота: "косарева 6 хакрів" -> Відділення #126 (вул. Косарєва, 14)' }
+  { q: 'косарева 6 хакрів', checkAutocomplete: true, expectedCity: 'Харків', expectedNum: '126', expectedStreet: 'Косарєва', desc: 'Автокомпліт при введенні зі скріншота: "косарева 6 хакрів" -> Відділення #126 (вул. Косарєва, 14)' },
+  // НОВИЙ КЕЙС: Омонімічні ліквідовані райони в різних областях ("Красне Березанський Миколаївська" -> Миколаївський р-н, а не Броварський р-н Київщини)
+  { q: 'Красне Березанський Миколаївська', expectedCity: 'Красне', expectedNum: '1', expectedOblast: 'Миколаївська', expectedActualRaion: 'Миколаївський', expectedOldRaion: 'Березанський', desc: 'Красне (Миколаївська обл.) з Березанським р-н показує Миколаївський р-н замість Броварського' }
 ];
 
 console.log('===============================================================');
@@ -140,7 +142,10 @@ for (let i = 0; i < testCases.length; i++) {
   const okType = !tc.expectedType || (top && top.settlementType && (top.settlementType.toLowerCase().includes(tc.expectedType.toLowerCase()) || (tc.expectedType === 'смт' && top.settlementType.includes('селище'))));
   const hInfo = top ? window.SmartSearchEngine.getHistoricalGeoInfo(top.city, top.raion, top.oblast, top) : null;
   const okCrm = !tc.expectedCrm || (hInfo && hInfo.crmName === tc.expectedCrm);
-  const ok = okCity && okNum && okStreet && okType && okCrm;
+  const okOblast = !tc.expectedOblast || (top && top.oblast === tc.expectedOblast);
+  const okActualRaion = !tc.expectedActualRaion || (hInfo && hInfo.actualRaion === tc.expectedActualRaion);
+  const okOldRaion = !tc.expectedOldRaion || (hInfo && hInfo.oldRaion === tc.expectedOldRaion);
+  const ok = okCity && okNum && okStreet && okType && okCrm && okOblast && okActualRaion && okOldRaion;
 
   if (ok) {
     passed++;

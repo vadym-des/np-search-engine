@@ -59,9 +59,19 @@ assert.strictEqual(cvOblast.oldRaion, null);
 
 const cvVin = engine.getHistoricalGeoInfo('Чернівці', 'Чернівецький', 'Вінницька');
 console.log('9. Чернівці (Чернівецький, Вінницька):', cvVin);
-assert.strictEqual(cvVin.actualRaion, 'Могилів-подільський');
+assert.strictEqual(cvVin.actualRaion, 'Могилів-Подільський');
 assert.strictEqual(cvVin.oldRaion, 'Чернівецький');
 
+// 7. Тест с. Красне (Березанський р-н, Миколаївська обл.) vs м. Березань (Березанська, Київська обл.)
+const krasneMyk = engine.getHistoricalGeoInfo('Красне', 'Березанський', 'Миколаївська');
+console.log('10. Красне (Березанський, Миколаївська):', krasneMyk);
+assert.strictEqual(krasneMyk.actualRaion, 'Миколаївський', 'Березанський р-н на Миколаївщині має стати Миколаївським, не Броварським!');
+assert.strictEqual(krasneMyk.oldRaion, 'Березанський');
+
+const berezanKyiv = engine.getHistoricalGeoInfo('Березань', 'Березанська', 'Київська');
+console.log('11. Березань (Березанська, Київська):', berezanKyiv);
+assert.strictEqual(berezanKyiv.actualRaion, 'Броварський', 'Березань на Київщині має належати до Броварського району!');
+
 console.log('\n===============================================================');
-console.log('✅ ВСІ 9 ТЕСТІВ ОБЛАСНОЇ ІЗОЛЯЦІЇ РАЙОНІВ ПРОЙДЕНО УСПІШНО!');
+console.log('✅ ВСІ 11 ТЕСТІВ ОБЛАСНОЇ ІЗОЛЯЦІЇ РАЙОНІВ ПРОЙДЕНО УСПІШНО!');
 console.log('===============================================================\n');

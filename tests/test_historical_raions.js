@@ -186,6 +186,28 @@ runTest('Славутич: автокомпліт підраховує 32 точ
   assert.strictEqual(foundFull[0].number, '1');
 });
 
+// 8. Омонімічні ліквідовані райони між областями: Березанський (Миколаївська -> Миколаївський, Київська/Березань -> Броварський)
+runTest('Красне Березанський (Миколаївська обл.) -> Миколаївський р-н, а Березань (Київська обл.) -> Броварський р-н', () => {
+  const res = eng.searchBranches('Красне Березанський Миколаївська', branches);
+  assert(res.length > 0, 'Пошук "Красне Березанський Миколаївська" повинен знайти відділення');
+  assert.strictEqual(res[0].city, 'Красне');
+  assert.strictEqual(res[0].oblast, 'Миколаївська');
+
+  const krasneInfo = eng.getHistoricalGeoInfo(res[0].city, res[0].raion, res[0].oblast, res[0]);
+  assert.strictEqual(krasneInfo.actualRaion, 'Миколаївський', `Очікувався Миколаївський р-н, отримано: ${krasneInfo.actualRaion}`);
+  assert.strictEqual(krasneInfo.oldRaion, 'Березанський', `Очікувався старий Березанський р-н, отримано: ${krasneInfo.oldRaion}`);
+  assert.strictEqual(krasneInfo.oblast, 'Миколаївська');
+
+  const card = window.renderResultCard(res[0]);
+  const cardHtml = card.innerHTML;
+  assert(cardHtml.includes('Миколаївський р-н'), 'Картка Красного має показувати Миколаївський р-н');
+  assert(!cardHtml.includes('Броварський'), 'Картка Красного (Миколаївська обл.) НЕ повинна показувати Броварський р-н');
+  assert(cardHtml.includes('До 2020 року: <strong>Березанський р-н</strong>'), 'Картка повинна показувати До 2020 року: Березанський р-н');
+
+  const berezanInfo = eng.getHistoricalGeoInfo('Березань', 'Березанська', 'Київська');
+  assert.strictEqual(berezanInfo.actualRaion, 'Броварський', `Для Березані (Київська обл.) очікувався Броварський р-н, отримано: ${berezanInfo.actualRaion}`);
+});
+
 console.log('===============================================================');
 console.log(`📊 РЕЗУЛЬТАТ: ${passedTests} / ${totalTests} ТЕСТІВ ПРОЙДЕНО УСПІШНО!`);
 console.log('===============================================================');

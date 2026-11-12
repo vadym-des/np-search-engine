@@ -1263,7 +1263,6 @@
     'славутицький': 'вишгородський', 'славутицька': 'вишгородський',
     'смілянський': 'черкаський', 'смілянська': 'черкаський',
     'нововолинський': 'володимирський', 'нововолинська': 'володимирський',
-    'березанський': 'броварський', 'березанська': 'броварський',
     'бориспільський': 'бориспільський', 'бориспільська': 'бориспільський',
     'броварський': 'броварський', 'броварська': 'броварський',
     'бучанський': 'бучанський', 'бучанська': 'бучанський',
@@ -1396,7 +1395,8 @@
     const rClean = cleanRaionName(raion).toLowerCase().trim();
     const rStem = rClean.slice(0, 5);
     for (const [obl, raions] of Object.entries(ACTIVE_UKRAINE_RAIONS_BY_OBLAST)) {
-      if (obl.startsWith(oClean) || oClean.startsWith(obl.slice(0, 4))) {
+      const oblStem = obl.replace(/(?:ська|цька|зька)$/gi, '');
+      if (obl === oClean || oblStem === oClean || (oClean.length >= 6 && (oblStem.startsWith(oClean) || oClean.startsWith(oblStem)))) {
         return raions.some(r => r === rClean || r.startsWith(rStem) || rClean.startsWith(r.slice(0, 5)));
       }
     }
@@ -1406,6 +1406,7 @@
   // Обласно-залежний маппінг районів-тезок, що мали різну долю в різних областях
   const OBLAST_CONSOLIDATED_RAION_MAP = {
     'миколаївський': { 'львів': 'стрийський', 'одес': 'березівський', 'миколаїв': 'миколаївський' },
+    'березанський': { 'київ': 'броварський', 'миколаїв': 'миколаївський' },
     'городоцький': { 'хмельниц': 'хмельницький', 'львів': 'львівський' },
     'покровський': { 'дніпро': 'синельниківський', 'донец': 'покровський' },
     'васильківський': { 'київ': 'обухівський', 'дніпро': 'синельниківський' },
@@ -1447,9 +1448,12 @@
       }
     }
 
-    // 3. Загальний словник однозначних ліквідованих районів
+    // 3. Загальний словник однозначних ліквідованих районів (із жорстким захистом від підстановки району чужої області)
     if (CONSOLIDATED_RAION_MAP[rLow]) {
       const target = CONSOLIDATED_RAION_MAP[rLow];
+      if (oLow && !isRaionActiveInOblast(target, oLow)) {
+        return null;
+      }
       return { actualRaion: target, isConsolidated: (target !== rLow) };
     }
 
@@ -1622,6 +1626,11 @@
       if (cleanO && item.oblast && !item.oblast.toLowerCase().includes(oLower) && !oLower.includes(item.oblast.toLowerCase())) {
         return false;
       }
+      if (cleanR && (item.old_raion || item.new_raion)) {
+        const compatOld = item.old_raion ? (rLower.includes(item.old_raion.toLowerCase().slice(0, 5)) || areRaionsCompatible(cleanR, item.old_raion)) : false;
+        const compatNew = item.new_raion ? (rLower.includes(item.new_raion.toLowerCase().slice(0, 5)) || areRaionsCompatible(cleanR, item.new_raion)) : false;
+        if (!compatOld && !compatNew) return false;
+      }
       return true;
     });
 
@@ -1643,7 +1652,7 @@
       } else {
         const res = resolveConsolidatedRaion(cleanR, cleanO);
         if (res && res.isConsolidated && res.actualRaion) {
-          const capNew = res.actualRaion.charAt(0).toUpperCase() + res.actualRaion.slice(1);
+          const capNew = res.actualRaion.replace(/(^|-)(\p{L})/gu, (m, sep, ch) => sep + ch.toUpperCase());
           if (cleanR.toLowerCase() !== res.actualRaion.toLowerCase()) {
             oldRaion = cleanR;
             actualRaion = capNew;
@@ -1660,7 +1669,7 @@
         const cStem = cLower.slice(0, 5);
         const foundOld = oldList.find(oR => oR.startsWith(cStem) || cLower.startsWith(oR.slice(0, 5)));
         if (foundOld) {
-          const capOld = foundOld.charAt(0).toUpperCase() + foundOld.slice(1);
+          const capOld = foundOld.replace(/(^|-)(\p{L})/gu, (m, sep, ch) => sep + ch.toUpperCase());
           if (capOld.toLowerCase() !== actualRaion.toLowerCase() && !isRaionActiveInOblast(capOld, cleanO)) {
             oldRaion = capOld;
           }
