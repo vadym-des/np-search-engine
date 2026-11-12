@@ -56,7 +56,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.46">
+  <link rel="stylesheet" href="styles.css?v=1.6.47">
 </head>
 <body data-service="novaposhta">
 
@@ -283,7 +283,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.46</span>
+          <span class="version-tag">v1.6.47</span>
         </button>
       </div>
 
@@ -309,8 +309,22 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.46 -->
+        <!-- Версія 1.6.47 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.47</span>
+            <span class="version-state">Контекстні підказки області при одруківках та клікабельні варіанти при порожній видачі</span>
+            <span class="version-date">12 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Обласно-контекстний нечіткий пошук («ясне закарпатська 2» -> Ясіня №2):</strong> При вказаній області пошуковий рушій більше не зупиняється на тезці з іншого регіону, а знаходить найближчий населений пункт у заданій області за кістяком приголосних і пропонує його у блоці «Можливо, ви мали на увазі» та в автокомпліті.</li>
+            <li><strong>Корисний Empty State:</strong> Збережено підказку «Можливо, ви мали на увазі» при відсутньому номері відділення та додано клікабельні кнопки швидкого переходу до всіх відділень міста або збігів за номером у межах області.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.47.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.46 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.46</span>
             <span class="version-state">Ізоляція омонімічних районів між областями («Красне Березанський Миколаївська» -> Миколаївський р-н)</span>
@@ -1501,21 +1515,21 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.46"></script>
+  <script src="data/branches.js?v=1.6.47"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.46"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.47"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.46"></script>
+  <script src="data/all_settlements.js?v=1.6.47"></script>
 
   <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
-  <script src="data/crm_settlements.js?v=1.6.46"></script>
+  <script src="data/crm_settlements.js?v=1.6.47"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.46"></script>
+  <script src="data/fuzzySearch.js?v=1.6.47"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.46"></script>
+  <script src="app.js?v=1.6.47"></script>
 </body>
 </html>

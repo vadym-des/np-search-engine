@@ -1790,12 +1790,14 @@
     }
 
     // 2. Точний збіг у повному реєстрі ALL_SETTLEMENTS (26 000+ сіл, смт, селищ, міст) - O(1)
+    let wrongOblastFallback = null;
     const candidates = _allSettlementsByName.get(w) || _allSettlementsByName.get(wNorm) ||
                        (wHyphen ? (_allSettlementsByName.get(wHyphen) || _allSettlementsByName.get(wHyphenNorm)) : null) ||
                        _allSettlementsByNameNA.get(wA) || _allSettlementsByNameNA.get(wANorm) ||
                        inflectedCandidates;
     if (candidates && candidates.length > 0) {
       let chosen = candidates[0];
+      let hasContextMatch = true;
       if (contextOblast || contextRaion) {
         const cObl = (contextOblast || '').toLowerCase();
         const cRaion = (contextRaion || '').toLowerCase();
@@ -1854,6 +1856,8 @@
           chosen = matchedCand;
         } else if (exactBase) {
           return exactBase;
+        } else {
+          hasContextMatch = false;
         }
       } else if (candidates.length > 1) {
         // Коли область та район не вказані явно, а є кілька населених пунктів-тезок:
@@ -1898,13 +1902,17 @@
         }
         chosen = bestCand;
       }
-      return {
+      const resultObj = {
         name: chosen.cleanName || chosen.name,
         oblast: chosen.oblast,
         raion: chosen.raion,
         type: chosen.type || 'село',
         allVariants: candidates
       };
+      if (hasContextMatch) {
+        return resultObj;
+      }
+      wrongOblastFallback = resultObj;
     } else if (exactBase) {
       return exactBase;
     }
@@ -2028,7 +2036,9 @@
     // Миттєвий O(1) пошук для запитів з орфографічними помилками у голосних (напр. "горанечі" -> "Гореничі", "вешневе" -> "Вишневе")
     if (w.length >= 4) {
       const skW = consonantSkeleton(w);
-      if (skW && skW.length >= 3 && _allSettlementsBySkeleton.has(skW)) {
+      const hasGeoCtx = Boolean(contextOblast || contextRaion);
+      const minSkelLen = hasGeoCtx ? 2 : 3;
+      if (skW && skW.length >= minSkelLen && _allSettlementsBySkeleton.has(skW)) {
         const skCandidates = _allSettlementsBySkeleton.get(skW);
         if (skCandidates && skCandidates.length > 0) {
           const cObl = (contextOblast || '').toLowerCase();
@@ -2060,6 +2070,11 @@
             const sRaion = (cand.raion || '').toLowerCase();
             const oblMatches = cObl && (sObl.includes(cObl) || cObl.includes(sObl));
             const raionMatches = cRaion && (sRaion.includes(cRaion) || cRaion.includes(sRaion) || areRaionsCompatible(cRaion, sRaion));
+
+            if (skW.length === 2) {
+              if (!oblMatches && !raionMatches) continue;
+              if (w[0] !== candName[0] && d > 1) continue;
+            }
 
             if (cObl) {
               if (oblMatches) score += 500;
@@ -2266,7 +2281,7 @@
       }
     }
 
-    return null;
+    return wrongOblastFallback;
   }
 
   // 5.1.5 Перевірка наявності вулиці у відділеннях населеного пункту (Cross-Street Disambiguation)
@@ -3911,7 +3926,21 @@
       if (!facets.city) {
         return [];
       }
-      return collectCityBranchSuggestions(facets);
+      const branchResults = collectCityBranchSuggestions(facets);
+      if (branchResults.length > 0) {
+        return branchResults;
+      }
+      const pqFallback = parseQuery(normalizedQuery);
+      if (pqFallback && pqFallback.matchedSettlement && canonCity(pqFallback.matchedSettlement.name) !== canonCity(facets.city)) {
+        const fallbackFacets = Object.assign({}, facets, {
+          city: pqFallback.matchedSettlement.name,
+          oblast: pqFallback.detectedOblast || pqFallback.matchedSettlement.oblast || facets.oblast,
+          raion: pqFallback.detectedRaion || pqFallback.matchedSettlement.raion || facets.raion,
+          number: pqFallback.targetBranchNumber || facets.number
+        });
+        return collectCityBranchSuggestions(fallbackFacets);
+      }
+      return branchResults;
     }
 
     const activeSet = getActiveBranchSettlementSet(pool);
@@ -5400,6 +5429,8 @@
 
     if (facets.city && REGIONAL_CENTERS.has(canonText(facets.city)) && targetSettlement) {
       detectedCityName = canonText(targetSettlement.name);
+    } else if (parsed.matchedSettlement && parsed.didYouMean && parsed.didYouMean.rawToken && facets.city && canonText(facets.city) === canonText(parsed.didYouMean.rawToken)) {
+      detectedCityName = canonText(parsed.matchedSettlement.name);
     } else {
       detectedCityName = facets.city ? canonText(facets.city) :
         (norm.detectedCity ? canonText(norm.detectedCity.name) :
@@ -5495,8 +5526,9 @@
       return false;
     };
 
+    const correctedRawCityToken = (parsed.didYouMean && parsed.didYouMean.rawToken) ? canonText(parsed.didYouMean.rawToken) : null;
     const streetCandidates = (facets.streetTokens || []).concat(
-      tokens.filter(t => !/^\d+$/.test(t) && t !== detectedCityName && !isOblastOrCenter(t) && !STOP_WORDS.has(t))
+      tokens.filter(t => !/^\d+$/.test(t) && t !== detectedCityName && t !== correctedRawCityToken && !isOblastOrCenter(t) && !STOP_WORDS.has(t))
     );
     const uniqueStreetTokens = Array.from(new Set(streetCandidates)).filter(t => t.length >= 2 && !/^\d+$/.test(t));
     const cityStem = detectedCityName ? detectedCityName.slice(0, 4) : null;

@@ -138,6 +138,15 @@ assert(
   `didYouMeanText=${p9.didYouMeanText}, replacedQuery="${rep9}", found=${r9.length}`
 );
 
+// ТЕСТ 10: Запит ясне закарпатська 2 повинен запропонувати "Ясіня" та точково замінити токен на "Ясіня закарпатська 2"
+const p10 = window.SmartSearchEngine.parseQuery('ясне закарпатська 2');
+const rep10 = simulateTokenReplacement('ясне закарпатська 2', p10.didYouMean, p10.didYouMeanText);
+assert(
+  'ясне закарпатська 2 повинен запропонувати "Ясіня" та точково замінити токен на "Ясіня закарпатська 2"',
+  p10.didYouMeanText === 'Ясіня' && rep10 === 'Ясіня закарпатська 2',
+  `didYouMeanText=${p10.didYouMeanText}, replacedQuery="${rep10}"`
+);
+
 console.log('===============================================================');
 console.log(`📊 РЕЗУЛЬТАТ: ${passed} / ${total} ТЕСТІВ ПРОЙДЕНО УСПІШНО!`);
 console.log('===============================================================');

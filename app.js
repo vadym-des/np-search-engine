@@ -1380,8 +1380,10 @@
         oblast: parsed.detectedOblast || (parsed.facets ? parsed.facets.oblast : (parsed.matchedSettlement ? parsed.matchedSettlement.oblast : '')),
         raion: parsed.detectedRaion || (parsed.facets ? parsed.facets.raion : (parsed.matchedSettlement ? parsed.matchedSettlement.raion : ''))
       };
-      didYouMeanText = null;
-      didYouMeanData = null;
+      if (!parsed.didYouMeanText) {
+        didYouMeanText = null;
+        didYouMeanData = null;
+      }
     }
 
     let missingSettlement = null;
@@ -1443,8 +1445,10 @@
 
     // Якщо в запиті немає реальної помилки або це прямий точний збіг / обране відділення
     if (!parsed.didYouMeanText) {
-      didYouMeanText = null;
-      didYouMeanData = null;
+      if (!parsed.didYouMeanText) {
+        didYouMeanText = null;
+        didYouMeanData = null;
+      }
     }
 
     renderSearchResults(results, rawQuery, didYouMeanText, missingTargetBranch, missingSettlement, didYouMeanData);
@@ -3079,6 +3083,51 @@
           typePrefix = t === 'місто' ? 'м.' : (t === 'смт' ? 'смт' : (t === 'селище' ? 'сел.' : 'с.'));
         }
         const cityPart = missingTargetBranch.city ? ` у ${typePrefix} ${escapeHtml(missingTargetBranch.city)}` : '';
+
+        // Додаткові клікабельні підказки, щоб користувач міг одразу виправити запит
+        const fallbackActions = [];
+        const allPool = getAllCurrentServiceBranches();
+        if (missingTargetBranch.city && allPool.length > 0) {
+          const mCityCanon = canonCity(missingTargetBranch.city);
+          const mObl = (missingTargetBranch.oblast || '').toLowerCase().slice(0, 4);
+          const cityBranches = allPool.filter(b => {
+            const bc = b._canonCity || canonCity(b.city);
+            if (bc !== mCityCanon) return false;
+            if (mObl && b.oblast && !b.oblast.toLowerCase().includes(mObl)) return false;
+            return true;
+          });
+          if (cityBranches.length > 0) {
+            const qCityOnly = [missingTargetBranch.city, missingTargetBranch.oblast].filter(Boolean).join(' ');
+            fallbackActions.push({
+              label: `Показати всі у ${typePrefix} ${missingTargetBranch.city} (${cityBranches.length})`,
+              query: qCityOnly
+            });
+          } else if (missingTargetBranch.number) {
+            const numStr = String(missingTargetBranch.number);
+            const sameNumInOblast = mObl
+              ? allPool.filter(b => b.oblast && b.oblast.toLowerCase().includes(mObl) && String(b.number) === numStr)
+              : [];
+            const seenCities = new Set();
+            for (let i = 0; i < sameNumInOblast.length && fallbackActions.length < 3; i++) {
+              const b = sameNumInOblast[i];
+              const cKey = (b.city || '').toLowerCase();
+              if (!seenCities.has(cKey)) {
+                seenCities.add(cKey);
+                fallbackActions.push({
+                  label: `${b.city} №${b.number} (${b.oblast || ''})`,
+                  query: `${b.city} ${b.oblast || ''} ${b.number}`.trim()
+                });
+              }
+            }
+          }
+        }
+
+        const suggestionsHtml = fallbackActions.length > 0
+          ? `<div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
+              ${fallbackActions.map((act, idx) => `<button type="button" class="btn-switch-service-bridge empty-fallback-btn" data-fallback-idx="${idx}">${escapeHtml(act.label)} →</button>`).join('')}
+            </div>`
+          : '';
+
         dom.resultsList.innerHTML = `
           <div class="empty-results-box" style="padding: 40px 16px; text-align: center; color: var(--text-muted); width: 100%;">
             <div style="font-size: 38px; margin-bottom: 12px;">⚠️</div>
@@ -3088,8 +3137,20 @@
             <p style="font-size: 13px; max-width: 500px; margin: 0 auto; line-height: 1.5; color: var(--text-muted);">
               Перевірте правильність введеного номера.
             </p>
+            ${suggestionsHtml}
           </div>
         `;
+        dom.resultsList.querySelectorAll('.empty-fallback-btn').forEach(btn => {
+          btn.onclick = () => {
+            const idx = parseInt(btn.getAttribute('data-fallback-idx'), 10);
+            const act = fallbackActions[idx];
+            if (act && act.query) {
+              if (dom.searchInput) dom.searchInput.value = act.query;
+              state.selectedSettlement = null;
+              executeSearch(act.query, true, true);
+            }
+          };
+        });
         return;
       }
 
