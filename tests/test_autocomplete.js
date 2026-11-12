@@ -3827,9 +3827,9 @@ async function runTests() {
     chipBtns[0].click ? chipBtns[0].click() : chipBtns[0].dispatchEvent({ type: 'click', preventDefault() {} });
     await sleep(50);
 
-    // 1. Поле пошуку отримало "Львів"
-    if (searchInput.value !== 'Львів') {
-      throw new Error(`Очікувалось значення інпуту 'Львів', отримано: '${searchInput.value}'`);
+    // 1. Поле пошуку отримало "Львів " (із кінцевим пробілом для швидкого введення номера)
+    if (searchInput.value !== 'Львів ') {
+      throw new Error(`Очікувалось значення інпуту 'Львів ', отримано: '${searchInput.value}'`);
     }
 
     // 2. Нижня секція результатів (картки відділень) прихована, щоб не вивалювати 3000 відділень одразу

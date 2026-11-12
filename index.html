@@ -56,7 +56,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.47">
+  <link rel="stylesheet" href="styles.css?v=1.6.48">
 </head>
 <body data-service="novaposhta">
 
@@ -283,7 +283,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.47</span>
+          <span class="version-tag">v1.6.48</span>
         </button>
       </div>
 
@@ -309,8 +309,23 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.47 -->
+        <!-- Версія 1.6.48 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.48</span>
+            <span class="version-state">Покращення пошуку та автокомпліту Укрпошти</span>
+            <span class="version-date">12 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Службові скорочення («нвоа пошат -- 15160 укр»):</strong> Токени <code>укр</code>, <code>уп</code>, <code>нп</code>, <code>укрпошт</code> очищуються як службові слова та не перехоплюються як назви міст.</li>
+            <li><strong>Багатослівний автокомпліт та злиті запити («великийлиствин 1», «великий листвин»):</strong> Нечіткий фолбек автокомпліту спершу перевіряє повну фразу, а у рядок пошуку та історію підставляється коректний 5-значний індекс Укрпошти.</li>
+            <li><strong>Місток між службами:</strong> При введенні 5-значного індексу Укрпошти на вкладці Нової пошти додано пряму кнопку переходу до знайденого відділення Укрпошти без race condition.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.48.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.47 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.47</span>
             <span class="version-state">Контекстні підказки області при одруківках та клікабельні варіанти при порожній видачі</span>
@@ -1515,21 +1530,21 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.47"></script>
+  <script src="data/branches.js?v=1.6.48"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.47"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.48"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.47"></script>
+  <script src="data/all_settlements.js?v=1.6.48"></script>
 
   <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
-  <script src="data/crm_settlements.js?v=1.6.47"></script>
+  <script src="data/crm_settlements.js?v=1.6.48"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.47"></script>
+  <script src="data/fuzzySearch.js?v=1.6.48"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.47"></script>
+  <script src="app.js?v=1.6.48"></script>
 </body>
 </html>

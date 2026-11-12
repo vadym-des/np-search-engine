@@ -135,6 +135,25 @@ assert(testLpCrmString.includes('Укрпошта'), 'Рядок копіюва�
 assert(testLpCrmString.includes('47501'), 'Рядок копіювання повинен містити 47501');
 console.log(`  ✓ Успіх: Згенеровано CRM-рядок: "${testLpCrmString}"`);
 
+// ТЕСТ 8: Пошук та автокомпліт зі сміттєвим словом "укр" та злитим/помилковим запитом ("великийлиствин 1", "великий листвин", "нвоа пошат -- 15160 укр")
+console.log('\n▶ ТЕСТ 8: Пошук та автокомпліт Укрпошти для "нвоа пошат -- 15160 укр", "великийлиствин 1" та "великий листвин"');
+const sugs15160Ukr = window.SmartSearchEngine.getAutocompleteSuggestions('нвоа пошат -- 15160 укр', 'ukrposhta', null, ukrPool);
+assert(sugs15160Ukr && sugs15160Ukr.length > 0, 'Автокомпліт повинен знаходити 15160 попри "нвоа пошат --" та "укр"');
+assert(sugs15160Ukr[0].title.includes('15160') && sugs15160Ukr[0].title.includes('Великий Листвен'), `Очікувалось 15160 — Великий Листвен, отримано: "${sugs15160Ukr[0].title}"`);
+
+const res15160Ukr = window.SmartSearchEngine.searchBranches('нвоа пошат -- 15160 укр', ukrPool, 5);
+assert(res15160Ukr && res15160Ukr.length > 0 && res15160Ukr[0].city === 'Великий Листвен' && String(res15160Ukr[0].postalCode) === '15160', 'searchBranches("нвоа пошат -- 15160 укр") повинен повертати Великий Листвен 15160');
+
+const sugsLystvyn = window.SmartSearchEngine.getAutocompleteSuggestions('великий листвин', 'ukrposhta', null, ukrPool);
+assert(sugsLystvyn && sugsLystvyn.length > 0 && sugsLystvyn[0].title === 'Великий Листвен', `Автокомпліт для "великий листвин" повинен повертати "Великий Листвен", отримано: "${sugsLystvyn && sugsLystvyn[0] ? sugsLystvyn[0].title : 'null'}"`);
+
+const sugsLystvynMerged = window.SmartSearchEngine.getAutocompleteSuggestions('великийлиствин 1', 'ukrposhta', null, ukrPool);
+assert(sugsLystvynMerged && sugsLystvynMerged.length > 0 && sugsLystvynMerged[0].title.includes('15160') && sugsLystvynMerged[0].title.includes('Великий Листвен'), 'Автокомпліт для "великийлиствин 1" повинен повертати 15160 — Великий Листвен');
+
+const resLystvynMerged = window.SmartSearchEngine.searchBranches('великийлиствин 1', ukrPool, 5);
+assert(resLystvynMerged && resLystvynMerged.length > 0 && resLystvynMerged[0].city === 'Великий Листвен' && String(resLystvynMerged[0].postalCode) === '15160', 'searchBranches("великийлиствин 1") повинен повертати Великий Листвен 15160');
+console.log('  ✓ Успіх: Усі запити з "укр", злитим написанням та одруківками ("великийлиствин 1", "великий листвин", "нвоа пошат -- 15160 укр") знаходять Великий Листвен #15160!');
+
 console.log('\n===============================================================');
-console.log('📊 РЕЗУЛЬТАТ: ВСІ 7 ТЕСТІВ ІНТЕГРАЦІЇ УКРПОШТИ ПРОЙДЕНО УСПІШНО!');
+console.log('📊 РЕЗУЛЬТАТ: ВСІ 8 ТЕСТІВ ІНТЕГРАЦІЇ УКРПОШТИ ПРОЙДЕНО УСПІШНО!');
 console.log('===============================================================');

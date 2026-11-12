@@ -2728,7 +2728,11 @@
       parts.push(cOblast);
     }
 
-    const num = (targetNum || branch.number || branch.postalCode || branch.index || '').toString().trim();
+    const isUp = branch.service === 'ukrposhta' || (branch.id && String(branch.id).startsWith('up-'));
+    const num = (isUp
+      ? (branch.postalCode || branch.index || branch.number || targetNum || '')
+      : (targetNum || branch.number || branch.postalCode || branch.index || '')
+    ).toString().trim();
     if (num) {
       parts.push(num);
     }
@@ -3255,25 +3259,14 @@
 
         const bridgeBtn = dom.resultsList.querySelector('#btnSwitchServiceBridge');
         if (bridgeBtn) {
-          bridgeBtn.onclick = () => {
-            switchService(altService);
+          bridgeBtn.onclick = async () => {
             if (altBranchFound) {
               const targetIdx = altBranchFound.index || altBranchFound.postalCode || altBranchFound.number;
               const targetQuery = targetIdx ? `${sName} ${targetIdx}` : [sName, sRaion, sOblast].filter(Boolean).join(' ');
-              if (dom.searchInput) dom.searchInput.value = targetQuery;
-              state.searchQuery = targetQuery;
-              state.selectedBranch = altBranchFound;
-              state.selectedSettlement = null;
-              state.currentResults = [altBranchFound];
-              renderSearchResults([altBranchFound], targetQuery, null, null);
-              if (state.isMapVisible && state.leafletMap && altBranchFound.lat && altBranchFound.lng) {
-                updateMapMarkers([altBranchFound], altBranchFound);
-                state.leafletMap.flyTo([altBranchFound.lat, altBranchFound.lng], 14, { duration: 1.2 });
-              }
+              await switchService(altService, targetQuery, altBranchFound);
             } else {
               const targetQuery = [sName, sRaion, sOblast].filter(Boolean).join(' ');
-              if (dom.searchInput) dom.searchInput.value = targetQuery;
-              executeSearch(targetQuery, true, true);
+              await switchService(altService, targetQuery);
             }
           };
         }
@@ -3282,6 +3275,20 @@
         });
         return;
       }
+      const rawQ = query || state.searchQuery || '';
+      const pcMatch = rawQ.match(/\b(\d{5})\b/);
+      let directUpBranch = null;
+      if (state.currentService === 'novaposhta' && pcMatch && window.SmartSearchEngine && typeof window.SmartSearchEngine.getUkrposhtaBranchByIndex === 'function') {
+        directUpBranch = window.SmartSearchEngine.getUkrposhtaBranchByIndex(pcMatch[1]);
+      }
+      const directUpHtml = directUpBranch ? `
+        <div style="margin-top: 18px;">
+          <button type="button" class="btn-switch-service-bridge" id="btnSwitchServiceBridgeDirect">
+            ${escapeHtml(`📮 Знайти в Укрпошті (індекс ${directUpBranch.index || pcMatch[1]} — ${cleanSettlementName(directUpBranch.city || '')}) →`)}
+          </button>
+        </div>
+      ` : '';
+
       dom.resultsList.innerHTML = `
         <div style="padding: 36px 16px; text-align: center; color: var(--text-muted); width: 100%;">
           <div style="font-size: 36px; margin-bottom: 10px;">🔍</div>
@@ -3289,10 +3296,22 @@
             Населений пункт або відділення не знайдено
           </h4>
           <p style="font-size: 13px; max-width: 500px; margin: 0 auto; line-height: 1.5;">
-            За запитом «${escapeHtml(query || state.searchQuery)}» нічого не знайдено. Перевірте правильність написання міста або номера відділення.
+            За запитом «${escapeHtml(rawQ)}» нічого не знайдено. Перевірте правильність написання міста або номера відділення.
           </p>
+          ${directUpHtml}
         </div>
       `;
+      if (directUpBranch) {
+        const directBtn = dom.resultsList.querySelector('#btnSwitchServiceBridgeDirect');
+        if (directBtn) {
+          directBtn.onclick = async () => {
+            const upIdx = String(directUpBranch.index || directUpBranch.postalCode || pcMatch[1]);
+            const upCity = cleanSettlementName(directUpBranch.city || '');
+            const targetQuery = upCity ? `${upCity} ${upIdx}` : upIdx;
+            await switchService('ukrposhta', targetQuery, directUpBranch);
+          };
+        }
+      }
       safeRAF(() => {
         if (dom.resultsList) dom.resultsList.style.minHeight = '';
       });
@@ -3658,12 +3677,7 @@
         }
         closeAutocomplete();
         triggerAutocomplete(q);
-
-        suppressNextFocusActivation = true;
-        dom.searchInput.focus();
-        suppressNextFocusActivation = false;
-        const len = dom.searchInput.value.length;
-        dom.searchInput.setSelectionRange(len, len);
+        focusSearchInputAtEnd(true);
       });
 
       dom.frequentChipsGrid.appendChild(chip);
