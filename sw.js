@@ -1,28 +1,28 @@
 /**
  * Service Worker для "Пошук відділень Нова Пошта & Укрпошта"
- * Версія: v1.6.49
+ * Версія: v1.6.50
  * Забезпечує миттєве оновлення (skipWaiting + clients.claim) та офлайн-доступ.
  */
 
-const CACHE_VERSION = 'v1.6.49';
-const CACHE_NAME = 'np-search-cache-v1.6.49';
+const CACHE_VERSION = 'v1.6.50';
+const CACHE_NAME = 'np-search-cache-v1.6.50';
 
 // Ресурси для попереднього кешування з версіонуванням
 const PRECACHE_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.6.49',
-  './favicon.svg?v=1.6.49',
-  './data/branches.fast.js?v=1.6.49',
-  './data/ukrposhta_branches.js?v=1.6.49',
-  './data/all_settlements.js?v=1.6.49',
-  './data/crm_settlements.js?v=1.6.49',
-  './data/fuzzySearch.js?v=1.6.49',
+  './styles.css?v=1.6.50',
+  './favicon.svg?v=1.6.50',
+  './data/branches.fast.js?v=1.6.50',
+  './data/ukrposhta_branches.js?v=1.6.50',
+  './data/all_settlements.js?v=1.6.50',
+  './data/crm_settlements.js?v=1.6.50',
+  './data/fuzzySearch.js?v=1.6.50',
   './data/raion_aliases.json',
   './data/settlement_aliases.json',
   './data/crm_settlements.json',
   './data/crm_branch_overrides.json',
-  './app.js?v=1.6.49'
+  './app.js?v=1.6.50'
 ];
 
 // Встановлення: попереднє кешування ресурсів
