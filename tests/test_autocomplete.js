@@ -3861,6 +3861,57 @@ async function runTests() {
     console.error('  ✗ Провал Тесту 62:', err.message, '\n');
   }
 
+  // --------------------------------------------------------------------------
+  // ТЕСТ 63: Адаптивна підказка в #didYouMeanBox при неіснуючому номері відділення
+  // (малі міста <= 6 відділень -> кнопки [№1..№5]; великі міста > 6 -> текстовий діапазон)
+  // --------------------------------------------------------------------------
+  totalTests++;
+  try {
+    console.log('▶ ТЕСТ 63: Адаптивна підказка #didYouMeanBox для неіснуючого номера відділення (малі vs великі міста)');
+
+    await window.switchService('novaposhta');
+    const didYouMeanBox = elementsById['didYouMeanBox'];
+
+    // 1. Мале місто (Білгород-Дністровський — 5 звичайних відділень №1..5):
+    // Мають відобразитися інтерактивні кнопки .did-you-mean-chip
+    await window.__executeSearchForTest('Білгород-Дністровський Білгород-Дністровський Одеська 12', true);
+    await sleep(100);
+
+    if (!didYouMeanBox || didYouMeanBox.classList.contains('hidden')) {
+      throw new Error('didYouMeanBox має бути видимим для неіснуючого відділення №12 у м. Білгород-Дністровський');
+    }
+    const boxHtmlSmall = didYouMeanBox.innerHTML || '';
+    if (!boxHtmlSmall.includes('12') || !boxHtmlSmall.includes('немає')) {
+      throw new Error(`Очікувалось повідомлення про відсутність №12 у didYouMeanBox, отримано: ${boxHtmlSmall}`);
+    }
+    const quickChips = didYouMeanBox.querySelectorAll('.did-you-mean-chip');
+    if (quickChips.length !== 5) {
+      throw new Error(`Для Білгород-Дністровського очікувалось 5 кнопок відділень (№1..№5), отримано: ${quickChips.length}`);
+    }
+
+    // 2. Велике місто (Київ — понад 6 відділень):
+    // Має відобразитися компактний текстовий діапазон без кнопок .did-you-mean-chip
+    await window.__executeSearchForTest('Київ 99999', true);
+    await sleep(100);
+
+    if (didYouMeanBox.classList.contains('hidden')) {
+      throw new Error('didYouMeanBox має бути видимим для неіснуючого відділення №99999 у м. Київ');
+    }
+    const boxHtmlLarge = didYouMeanBox.innerHTML || '';
+    if (!boxHtmlLarge.includes('99999') || !boxHtmlLarge.includes('відділення №1–')) {
+      throw new Error(`Для великого міста очікувався текстовий діапазон "відділення №1–...", отримано: ${boxHtmlLarge}`);
+    }
+    const largeChips = didYouMeanBox.querySelectorAll('.did-you-mean-chip');
+    if (largeChips.length !== 0) {
+      throw new Error(`Для великого міста кнопки .did-you-mean-chip не повинні рендеритися, знайдено: ${largeChips.length}`);
+    }
+
+    console.log('  ✓ Успіх: #didYouMeanBox адаптивно показує кнопки [№1..№5] для малих міст та текстовий діапазон для мегаполісів!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 63:', err.message, '\n');
+  }
+
   console.log('===============================================================');
   console.log(`📊 РЕЗУЛЬТАТ: ${passedTests} / ${totalTests} ТЕСТІВ ПРОЙДЕНО УСПІШНО!`);
   console.timeEnd('⏱️ Час виконання тестів');

@@ -1545,10 +1545,48 @@ mark.hl-match,
   color: #1e293b;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition: all 0.18s ease;
   user-select: none;
+}
+
+.did-you-mean-box .did-you-mean-chips {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.did-you-mean-box .did-you-mean-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 9px;
+  font-family: var(--font-main);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0369a1;
+  background: #ffffff;
+  border: 1px solid #7dd3fc;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+}
+
+.did-you-mean-box .did-you-mean-chip:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  transform: translateY(-1px);
+}
+
+.did-you-mean-box .did-you-mean-meta {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .did-you-mean-box:hover {
@@ -1604,6 +1642,22 @@ mark.hl-match,
 
 [data-theme="dark"] .did-you-mean-box .did-you-mean-link:hover {
   color: #7dd3fc;
+}
+
+[data-theme="dark"] .did-you-mean-box .did-you-mean-chip {
+  color: #38bdf8;
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+[data-theme="dark"] .did-you-mean-box .did-you-mean-chip:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+[data-theme="dark"] .did-you-mean-box .did-you-mean-meta {
+  color: #94a3b8;
 }
 
 /* Крос-сервісна розвилка (Сценарій 2: індекс Укрпошти або номер у іншій службі) */

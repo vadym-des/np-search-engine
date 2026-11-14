@@ -50,18 +50,19 @@
 
   const safeRAF = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (cb) => { cb(); };
 
-  // Початкові міста для сітки з 10 популярних запитів (вайрфрейм 2 рядки по 5)
+  // Швидкий вибір: стартові міста БЕЗ штучних лічильників. Показуються лише як
+  // заповнювач вільних слотів, поки реальні запити користувача не витіснять їх.
   const DEFAULT_CITIES = [
-    { query: 'Київ', count: 48 },
-    { query: 'Львів', count: 41 },
-    { query: 'Дніпро', count: 35 },
-    { query: 'Одеса', count: 31 },
-    { query: 'Харків', count: 29 },
-    { query: 'Житомир', count: 24 },
-    { query: 'Запоріжжя', count: 22 },
-    { query: 'Вінниця', count: 19 },
-    { query: 'Полтава', count: 18 },
-    { query: 'Миколаїв', count: 15 }
+    { query: 'Київ', count: 0 },
+    { query: 'Львів', count: 0 },
+    { query: 'Дніпро', count: 0 },
+    { query: 'Одеса', count: 0 },
+    { query: 'Харків', count: 0 },
+    { query: 'Житомир', count: 0 },
+    { query: 'Запоріжжя', count: 0 },
+    { query: 'Вінниця', count: 0 },
+    { query: 'Полтава', count: 0 },
+    { query: 'Миколаїв', count: 0 }
   ];
 
   // ==========================================================================
@@ -484,6 +485,41 @@
   // Динамічне ледаче завантаження повної бази Укрпошти (data/ukrposhta_branches.json)
   let _ukrposhtaLoadingPromise = null;
   let _ukrposhtaLoaded = false;
+  // Підготовлені у фоні (idle) дані Укрпошти: НЕ записуються у BRANCHES_DATA до першого перемикання,
+  // тому поведінка пошуку не змінюється — лише прибирається затримка при першому кліку на таб.
+  let _ukrposhtaPrepared = null;
+  let _ukrposhtaPreparedSrc = null;
+
+  // Мапінг сирих записів Укрпошти у формат відділень застосунку
+  function mapUkrposhtaRaw(rawList) {
+    return rawList.map(item => {
+            const idx = String(item.index || item.number || item.postalCode || '');
+            const obl = item.oblast || (item.region ? item.region.replace(/\s*обл\.?.*$/i, '').trim() : '');
+            const rai = item.raion || (item.district ? item.district.replace(/\s*район.*$/i, '').trim() : '');
+            const addr = item.address || item.street || `ВПЗ ${idx}`;
+            const isCentr = item.type === 'central' || idx.endsWith('000') || idx.endsWith('001') || idx.endsWith('00');
+            return {
+              id: item.id || `up-${idx}`,
+              index: idx,
+              number: idx,
+              postalCode: idx,
+              city: item.city,
+              type: item.type || (isCentr ? 'central' : 'standard'),
+              typeText: item.typeText || (isCentr ? 'Центральне відділення' : (item.name && item.name.includes('Міське') ? 'Міське відділення' : "Відділення зв'язку")),
+              name: item.name || `Відділення зв'язку (${idx})`,
+              street: addr,
+              address: addr,
+              oblast: obl,
+              raion: rai,
+              district: rai,
+              region: item.region || (obl ? `${obl} обл.` : ''),
+              lat: item.lat || 0,
+              lng: item.lng || 0,
+              isAccessible: item.isAccessible ?? true,
+              hasGenerator: item.hasGenerator ?? true
+            };
+    });
+  }
 
   async function loadUkrposhtaBranchesIfNeeded() {
     if (!window.BRANCHES_DATA) window.BRANCHES_DATA = {};
@@ -531,33 +567,7 @@
         }
 
         if (Array.isArray(rawList) && rawList.length > 0) {
-          const mapped = rawList.map(item => {
-            const idx = String(item.index || item.number || item.postalCode || '');
-            const obl = item.oblast || (item.region ? item.region.replace(/\s*обл\.?.*$/i, '').trim() : '');
-            const rai = item.raion || (item.district ? item.district.replace(/\s*район.*$/i, '').trim() : '');
-            const addr = item.address || item.street || `ВПЗ ${idx}`;
-            const isCentr = item.type === 'central' || idx.endsWith('000') || idx.endsWith('001') || idx.endsWith('00');
-            return {
-              id: item.id || `up-${idx}`,
-              index: idx,
-              number: idx,
-              postalCode: idx,
-              city: item.city,
-              type: item.type || (isCentr ? 'central' : 'standard'),
-              typeText: item.typeText || (isCentr ? 'Центральне відділення' : (item.name && item.name.includes('Міське') ? 'Міське відділення' : "Відділення зв'язку")),
-              name: item.name || `Відділення зв'язку (${idx})`,
-              street: addr,
-              address: addr,
-              oblast: obl,
-              raion: rai,
-              district: rai,
-              region: item.region || (obl ? `${obl} обл.` : ''),
-              lat: item.lat || 0,
-              lng: item.lng || 0,
-              isAccessible: item.isAccessible ?? true,
-              hasGenerator: item.hasGenerator ?? true
-            };
-          });
+          const mapped = (_ukrposhtaPrepared && _ukrposhtaPreparedSrc === rawList) ? _ukrposhtaPrepared : mapUkrposhtaRaw(rawList);
 
           window.BRANCHES_DATA.ukrposhta = mapped;
           if (window.SmartSearchEngine && typeof window.SmartSearchEngine.buildBranchIndex === 'function') {
@@ -632,10 +642,29 @@
         getTabFilteredPool(window.BRANCHES_DATA.novaposhta, 'cargo');
         getTabFilteredPool(window.BRANCHES_DATA.novaposhta, 'branch');
       }
-      if (Array.isArray(window.BRANCHES_DATA.ukrposhta)) {
-        window.SmartSearchEngine.buildBranchIndex(window.BRANCHES_DATA.ukrposhta);
-      }
     }
+    // Фонове прогрівання бази Укрпошти (мапінг 26 500 записів + індекс), щоб перше перемикання
+    // на таб «Укрпошта» було миттєвим. Той самий шлях, що й при кліку на таб, лише раніше.
+    const preloadUkrposhtaIdle = () => {
+      try {
+        if (_ukrposhtaLoaded || _ukrposhtaPrepared) return;
+        const raw = window.UKRPOSHTA_BRANCHES_DATA;
+        if (!Array.isArray(raw) || raw.length === 0) return;
+        const mapped = mapUkrposhtaRaw(raw);
+        if (window.SmartSearchEngine && typeof window.SmartSearchEngine.buildBranchIndex === 'function') {
+          window.SmartSearchEngine.buildBranchIndex(mapped);
+        }
+        _ukrposhtaPreparedSrc = raw;
+        _ukrposhtaPrepared = mapped;
+      } catch (_) {}
+    };
+    setTimeout(() => {
+      if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(preloadUkrposhtaIdle, { timeout: 3000 });
+      } else {
+        preloadUkrposhtaIdle();
+      }
+    }, 1500);
   }
 
   // Кеш у пам'яті для відділень Нової пошти (швидкодія + збереження завантажених міст)
@@ -1307,6 +1336,7 @@
     // Якщо в запиті вказано номер відділення/поштомату (parsed.targetBranchNumber), і його не знайдено:
     // Для Нової Пошти КАТЕГОРИЧНО ЗАБОРОНЕНО фолбечитись до показу всіх інших відділень міста!
     // Для Укрпошти: у селах/СМТ відділення мають поштовий індекс замість номера 1-9, тому показуємо відділення населеного пункту з індексом
+    let fellBackToSettlementOnMissingBranch = false;
     if (results.length === 0) {
       if (state.selectedSettlement) {
         const sName = (state.selectedSettlement.cleanName || state.selectedSettlement.name || '').toLowerCase();
@@ -1320,7 +1350,22 @@
           if (sRaionClean && b.raion && !b.raion.toLowerCase().includes(sRaion) && !areRaionsCompatible(sRaionClean, b.raion)) return false;
           return true;
         });
-        if (settlementBranches.length > 0) results = settlementBranches;
+        if (settlementBranches.length > 0) {
+          const isPostomatSearch = parsed.isPostomat || state.typeFilter === 'postomat' || /(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)/i.test(rawQuery);
+          let sortedSettlement = (engine && typeof engine.sortBranchesBySettlementOrder === 'function')
+            ? engine.sortBranchesBySettlementOrder(settlementBranches, isPostomatSearch, !isPostomatSearch)
+            : settlementBranches;
+          if (parsed.targetBranchNumber && isNP) {
+            fellBackToSettlementOnMissingBranch = true;
+            if (!isPostomatSearch) {
+              const regularOnly = sortedSettlement.filter(b => !isPostomatBranch(b));
+              if (regularOnly.length > 0) {
+                sortedSettlement = regularOnly;
+              }
+            }
+          }
+          results = sortedSettlement;
+        }
       } else if (!isNP && parsed.matchedSettlement) {
         const sName = parsed.matchedSettlement.name.toLowerCase();
         const targetObl = (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast) || parsed.matchedSettlement.oblast || '').toLowerCase().slice(0, 4);
@@ -1372,13 +1417,16 @@
 
     // Формуємо інформацію про цільове відділення, якого немає в базі
     let missingTargetBranch = null;
-    if (parsed.targetBranchNumber && results.length === 0) {
+    if (parsed.targetBranchNumber && (results.length === 0 || fellBackToSettlementOnMissingBranch)) {
+      const fallbackSettl = parsed.matchedSettlement || state.selectedSettlement;
       missingTargetBranch = {
         number: parsed.targetBranchNumber,
-        city: parsed.matchedSettlement ? parsed.matchedSettlement.name : (parsed.facets ? parsed.facets.city : ''),
-        settlement: parsed.matchedSettlement || state.selectedSettlement,
-        oblast: parsed.detectedOblast || (parsed.facets ? parsed.facets.oblast : (parsed.matchedSettlement ? parsed.matchedSettlement.oblast : '')),
-        raion: parsed.detectedRaion || (parsed.facets ? parsed.facets.raion : (parsed.matchedSettlement ? parsed.matchedSettlement.raion : ''))
+        city: parsed.matchedSettlement
+          ? parsed.matchedSettlement.name
+          : (state.selectedSettlement ? (state.selectedSettlement.cleanName || state.selectedSettlement.name) : (parsed.facets ? parsed.facets.city : '')),
+        settlement: fallbackSettl,
+        oblast: parsed.detectedOblast || (parsed.facets ? parsed.facets.oblast : (fallbackSettl ? (fallbackSettl.cleanOblast || fallbackSettl.oblast || '') : '')),
+        raion: parsed.detectedRaion || (parsed.facets ? parsed.facets.raion : (fallbackSettl ? (fallbackSettl.cleanRaion || fallbackSettl.raion || '') : ''))
       };
       if (!parsed.didYouMeanText) {
         didYouMeanText = null;
@@ -1398,10 +1446,10 @@
     if (currentSignal.aborted) return;
 
     // Гарантуємо природний порядок видачі населеного пункту (спочатку відділення №1..N, потім поштомати)
-    if (results.length > 1 && !parsed.targetBranchNumber && !hasStreetInQuery) {
+    if (results.length > 1 && (!parsed.targetBranchNumber || fellBackToSettlementOnMissingBranch) && !hasStreetInQuery) {
       if (engine && typeof engine.sortBranchesBySettlementOrder === 'function') {
         const isPostomatSearch = parsed.isPostomat || state.typeFilter === 'postomat' || /(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)/i.test(rawQuery);
-        const isBranchSearch = /(?:відділення|відділ|вд|склад)/i.test(rawQuery) || state.typeFilter === 'cargo' || state.typeFilter === 'branch';
+        const isBranchSearch = /(?:відділення|відділ|вд|склад)/i.test(rawQuery) || state.typeFilter === 'cargo' || state.typeFilter === 'branch' || fellBackToSettlementOnMissingBranch;
         results = engine.sortBranchesBySettlementOrder(results, isPostomatSearch, isBranchSearch);
       }
     }
@@ -1409,7 +1457,7 @@
     state.currentResults = results;
     let fullGeoQuery = '';
     const hasExplicitTargetNum = parsed.targetBranchNumber && results.some(b => String(b.number) === String(parsed.targetBranchNumber));
-    if ((allowSingleAutoSelect && results.length === 1) || (isExplicitSubmit && results.length > 0 && hasExplicitTargetNum)) {
+    if (!fellBackToSettlementOnMissingBranch && ((allowSingleAutoSelect && results.length === 1) || (isExplicitSubmit && results.length > 0 && hasExplicitTargetNum))) {
       state.selectedBranch = hasExplicitTargetNum
         ? results.find(b => String(b.number) === String(parsed.targetBranchNumber))
         : results[0];
@@ -2916,6 +2964,7 @@
 
     // Відображення Google-style підказки (лише якщо є реальна помилка та не обрано конкретне відділення)
     if (didYouMeanText && dom.didYouMeanBox && !state.selectedBranch) {
+      dom.didYouMeanBox.innerHTML = '';
       dom.didYouMeanBox.classList.remove('hidden');
       dom.didYouMeanBox.style.cursor = 'pointer';
       dom.didYouMeanBox.setAttribute('title', 'Натисніть, щоб підставити виправлену назву');
@@ -2985,6 +3034,125 @@
       const link = document.getElementById('linkDidYouMean');
       if (link) {
         link.onclick = handleDidYouMeanClick;
+      }
+    } else if (missingTargetBranch && missingTargetBranch.number && missingTargetBranch.city && dom.didYouMeanBox && !state.selectedBranch) {
+      const allPool = getAllCurrentServiceBranches();
+      const mCityCanon = canonCity(missingTargetBranch.city);
+      const mObl = cleanOblastName(missingTargetBranch.oblast || '').toLowerCase().slice(0, 4);
+      const mRai = cleanRaionName(missingTargetBranch.raion || '').toLowerCase();
+      const mRaiShort = mRai.slice(0, 4);
+      let cityBranches = allPool.filter(b => {
+        const bc = b._canonCity || canonCity(b.city);
+        if (bc !== mCityCanon) return false;
+        if (mObl && b.oblast && !b.oblast.toLowerCase().includes(mObl)) return false;
+        if (mRai && b.raion && !b.raion.toLowerCase().includes(mRaiShort) && !areRaionsCompatible(mRai, b.raion)) return false;
+        return true;
+      });
+      if (cityBranches.length === 0 && mRai) {
+        cityBranches = allPool.filter(b => {
+          const bc = b._canonCity || canonCity(b.city);
+          if (bc !== mCityCanon) return false;
+          if (mObl && b.oblast && !b.oblast.toLowerCase().includes(mObl)) return false;
+          return true;
+        });
+      }
+
+      const postomatCount = cityBranches.filter(isPostomatBranch).length;
+      const regularBranches = cityBranches.filter(b => !isPostomatBranch(b));
+      const stdNumsSet = new Set();
+      const allRegNumsSet = new Set();
+      regularBranches.forEach(b => {
+        const rawNum = String(b.number || b.postalCode || b.index || '').trim();
+        const n = parseInt(rawNum, 10);
+        if (!isNaN(n) && n > 0 && String(n) === rawNum) {
+          allRegNumsSet.add(n);
+          const bName = b.name || '';
+          if (n < 900 && !/^(?:Пункт|Склад)\b/i.test(bName) && !/ЗАКРИТОГО ТИПУ|Фулфілмент/i.test(bName)) {
+            stdNumsSet.add(n);
+          }
+        }
+      });
+      const branchNums = Array.from(stdNumsSet.size > 0 ? stdNumsSet : allRegNumsSet).sort((a, b) => a - b);
+
+      const formatPostomats = (n) => {
+        const abs = Math.abs(n) % 100;
+        const last = abs % 10;
+        if (abs > 10 && abs < 20) return `${n} поштоматів`;
+        if (last === 1) return `${n} поштомат`;
+        if (last >= 2 && last <= 4) return `${n} поштомати`;
+        return `${n} поштоматів`;
+      };
+
+      let typePrefix = 'м.';
+      if (missingTargetBranch.settlement && missingTargetBranch.settlement.type) {
+        const t = missingTargetBranch.settlement.type.toLowerCase();
+        typePrefix = t === 'місто' ? 'м.' : (t === 'смт' ? 'смт' : (t === 'селище' ? 'сел.' : 'с.'));
+      }
+
+      const SMALL_CITY_BRANCH_LIMIT = 6;
+      dom.didYouMeanBox.innerHTML = '';
+      dom.didYouMeanBox.onclick = null;
+      dom.didYouMeanBox.removeAttribute('title');
+
+      if (branchNums.length > 0 && branchNums.length <= SMALL_CITY_BRANCH_LIMIT) {
+        dom.didYouMeanBox.classList.remove('hidden');
+        dom.didYouMeanBox.style.cursor = 'default';
+        dom.didYouMeanBox.innerHTML = `
+          <span class="did-you-mean-icon" aria-hidden="true">💡</span>
+          <span class="did-you-mean-label">Відділення №<strong>${escapeHtml(String(missingTargetBranch.number))}</strong> немає. Діють:</span>
+        `;
+        const chipsWrap = document.createElement('span');
+        chipsWrap.className = 'did-you-mean-chips';
+        branchNums.forEach(num => {
+          const btn = document.createElement('button');
+          btn.className = 'did-you-mean-chip';
+          btn.setAttribute('type', 'button');
+          btn.setAttribute('data-branch-num', String(num));
+          btn.setAttribute('title', `Перейти до відділення №${num}`);
+          btn.textContent = `№${num}`;
+          btn.addEventListener('click', (e) => {
+            if (e && e.preventDefault) e.preventDefault();
+            if (e && e.stopPropagation) e.stopPropagation();
+            const nextQuery = [
+              missingTargetBranch.city,
+              missingTargetBranch.raion,
+              missingTargetBranch.oblast,
+              String(num)
+            ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+            if (dom.searchInput) dom.searchInput.value = nextQuery;
+            if (dom.btnClearSearch) dom.btnClearSearch.classList.remove('hidden');
+            dom.didYouMeanBox.classList.add('hidden');
+            closeAutocomplete();
+            executeSearch(nextQuery, true, true);
+          });
+          chipsWrap.appendChild(btn);
+        });
+        dom.didYouMeanBox.appendChild(chipsWrap);
+        if (postomatCount > 0) {
+          const metaEl = document.createElement('span');
+          metaEl.className = 'did-you-mean-meta';
+          metaEl.textContent = `• та ${formatPostomats(postomatCount)}`;
+          dom.didYouMeanBox.appendChild(metaEl);
+        }
+      } else if (branchNums.length > SMALL_CITY_BRANCH_LIMIT) {
+        const minNum = branchNums[0];
+        const maxNum = branchNums[branchNums.length - 1];
+        const postomatPart = postomatCount > 0 ? ` та ${formatPostomats(postomatCount)}` : '';
+        dom.didYouMeanBox.classList.remove('hidden');
+        dom.didYouMeanBox.style.cursor = 'default';
+        dom.didYouMeanBox.innerHTML = `
+          <span class="did-you-mean-icon" aria-hidden="true">💡</span>
+          <span class="did-you-mean-label">Відділення №<strong>${escapeHtml(String(missingTargetBranch.number))}</strong> немає. У ${typePrefix} ${escapeHtml(missingTargetBranch.city)} діють <strong>відділення №${minNum}–${maxNum}</strong>${postomatPart}.</span>
+        `;
+      } else if (postomatCount > 0) {
+        dom.didYouMeanBox.classList.remove('hidden');
+        dom.didYouMeanBox.style.cursor = 'default';
+        dom.didYouMeanBox.innerHTML = `
+          <span class="did-you-mean-icon" aria-hidden="true">💡</span>
+          <span class="did-you-mean-label">Відділення №<strong>${escapeHtml(String(missingTargetBranch.number))}</strong> немає. У ${typePrefix} ${escapeHtml(missingTargetBranch.city)} діють лише поштомати (${formatPostomats(postomatCount)}).</span>
+        `;
+      } else {
+        dom.didYouMeanBox.classList.add('hidden');
       }
     } else if (dom.didYouMeanBox) {
       dom.didYouMeanBox.classList.add('hidden');
@@ -3074,7 +3242,7 @@
 
     // EMPTY STATE: Якщо нічого не знайдено
     if (filtered.length === 0) {
-      if (!didYouMeanText && dom.didYouMeanBox) dom.didYouMeanBox.classList.add('hidden');
+      if (!didYouMeanText && !missingTargetBranch && dom.didYouMeanBox) dom.didYouMeanBox.classList.add('hidden');
       if (dom.limitSelector) dom.limitSelector.style.display = 'none';
       // Панель табів залишається видимою, щоб можна було переключитись на інший таб
       applyTypeFiltersVisibility();
@@ -3592,51 +3760,136 @@
   // ==========================================================================
   // 3. АНАЛІЗ НАЙЧАСТІШИХ ЗАПИТІВ ДНЯ
   // ==========================================================================
-  function getTodayKey() {
-    const now = new Date();
-    return `freq_queries_${now.getFullYear()}_${now.getMonth() + 1}_${now.getDate()}`;
+  // Реальна статистика: рахується з нуля, зберігається за ковзне вікно 14 днів,
+  // старі дні впливають на рейтинг слабше (експоненційне згасання).
+  const FREQ_STORAGE_KEY = 'frequent_queries_v3';
+  const FREQ_WINDOW_DAYS = 14;
+  const FREQ_DECAY = 0.85;
+  const FREQ_SLOTS = 10;
+
+  function getDayKey(date) {
+    const d = date || new Date();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  }
+
+  function dayKeyToAge(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    const then = new Date(y, m - 1, d).getTime();
+    const today = new Date();
+    const now = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    return Math.round((now - then) / 86400000);
+  }
+
+  function cleanupLegacyFrequentKeys() {
+    // Старі ключі freq_queries_YYYY_M_D містили штучно завищені дефолтні лічильники
+    try {
+      const toRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && /^freq_queries_\d/.test(k)) toRemove.push(k);
+      }
+      toRemove.forEach(k => localStorage.removeItem(k));
+    } catch (e) { /* ignore */ }
+  }
+
+  function loadFrequentStore() {
+    cleanupLegacyFrequentKeys();
+    let store = { days: {} };
+    try {
+      const raw = localStorage.getItem(FREQ_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.days && typeof parsed.days === 'object') store = parsed;
+      }
+    } catch (e) {
+      console.error('Помилка парсингу частих запитів', e);
+    }
+    Object.keys(store.days).forEach(day => {
+      const age = dayKeyToAge(day);
+      if (!(age >= 0 && age < FREQ_WINDOW_DAYS)) delete store.days[day];
+    });
+    return store;
+  }
+
+  function saveFrequentStore(store) {
+    try {
+      localStorage.setItem(FREQ_STORAGE_KEY, JSON.stringify(store));
+    } catch (e) { /* ignore */ }
   }
 
   function getFrequentQueries() {
-    const todayKey = getTodayKey();
-    const stored = localStorage.getItem(todayKey);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch (e) {
-        console.error('Помилка парсингу частих запитів', e);
+    const store = loadFrequentStore();
+    const agg = new Map();
+    Object.keys(store.days).forEach(day => {
+      const weight = Math.pow(FREQ_DECAY, dayKeyToAge(day));
+      const entries = store.days[day] || {};
+      Object.keys(entries).forEach(lower => {
+        const e = entries[lower];
+        if (!e || !e.q || !(e.c > 0)) return;
+        const cur = agg.get(lower) || { query: e.q, count: 0, score: 0 };
+        cur.count += e.c;
+        cur.score += e.c * weight;
+        agg.set(lower, cur);
+      });
+    });
+
+    const real = Array.from(agg.values())
+      .sort((a, b) => (b.score - a.score) || (b.count - a.count))
+      .slice(0, FREQ_SLOTS)
+      .map(({ query, count }) => ({ query, count }));
+
+    if (real.length < FREQ_SLOTS) {
+      const used = new Set(real.map(r => r.query.toLowerCase()));
+      for (const def of DEFAULT_CITIES) {
+        if (real.length >= FREQ_SLOTS) break;
+        if (!used.has(def.query.toLowerCase())) real.push({ query: def.query, count: 0 });
       }
     }
-    return DEFAULT_CITIES;
+    return real;
   }
 
-  function saveFrequentQueries(list) {
-    const todayKey = getTodayKey();
-    localStorage.setItem(todayKey, JSON.stringify(list));
+  // Один пошуковий «сеанс» = одне зарахування: уточнення того ж міста
+  // (Київ → Київ 123 + Enter) не рахується повторно. Сеанс скидається
+  // очищенням поля, кліком по чіпу або запитом іншого міста.
+  let lastRecordedFreqKey = null;
+  function resetFrequentSession() {
+    lastRecordedFreqKey = null;
   }
 
   function recordFrequentQuery(query) {
-    const normalized = query.trim();
+    const normalized = (query || '').trim();
     if (!normalized || normalized.length < 2) return;
+    if (lastRecordedFreqKey === normalized.toLowerCase()) return;
+    lastRecordedFreqKey = normalized.toLowerCase();
 
-    let list = getFrequentQueries();
-    const existingIndex = list.findIndex(item => item.query.toLowerCase() === normalized.toLowerCase());
-
-    if (existingIndex !== -1) {
-      list[existingIndex].count += 1;
+    const store = loadFrequentStore();
+    const day = getDayKey();
+    const lower = normalized.toLowerCase();
+    if (!store.days[day]) store.days[day] = {};
+    const entry = store.days[day][lower];
+    if (entry) {
+      entry.c += 1;
+      entry.q = normalized;
     } else {
-      list.push({ query: normalized, count: 1 });
+      store.days[day][lower] = { q: normalized, c: 1 };
     }
-
-    list.sort((a, b) => b.count - a.count);
-    list = list.slice(0, 10);
-    saveFrequentQueries(list);
-    renderFrequentChips(list);
+    saveFrequentStore(store);
+    renderFrequentChips();
   }
 
   function renderFrequentChips(list) {
     const items = list || getFrequentQueries();
     dom.frequentChipsGrid.innerHTML = '';
+
+    const hasReal = items.some(i => i.count > 0);
+    const subtext = document.getElementById('frequentSubtext');
+    if (subtext) {
+      subtext.textContent = hasReal ? 'Ваші найчастіші запити за 14 днів' : 'Швидкий вибір міста';
+    }
+    const titleEl = document.getElementById('frequentTitleText');
+    if (titleEl) titleEl.textContent = hasReal ? 'Найчастіші запити' : 'Швидкий вибір';
 
     items.forEach(item => {
       const chip = document.createElement('button');
@@ -3644,11 +3897,14 @@
       chip.setAttribute('type', 'button');
       chip.innerHTML = `
         <span class="chip-text">${escapeHtml(item.query)}</span>
-        <span class="chip-count" title="${item.count} запитів сьогодні">${item.count}</span>
+        ${item.count > 0
+          ? `<span class="chip-count" title="${item.count} запитів за 14 днів">${item.count}</span>`
+          : `<span class="chip-count" title="Запитів поки не було">0</span>`}
       `;
 
       chip.addEventListener('click', (e) => {
         e.preventDefault();
+        resetFrequentSession();
         const q = (item.query || '').trim();
         if (!q) return;
 
@@ -5365,6 +5621,7 @@
     // Автодоповнення та миттєвий живий пошук при введенні (LP-CRM City Mode <-> Branch Mode + дебаунс + AbortController)
     dom.searchInput.addEventListener('input', () => {
       const val = dom.searchInput.value.trim();
+      if (!val) resetFrequentSession();
       activeResultIndex = -1;
       updateSearchResultsFocus();
 
@@ -5778,6 +6035,7 @@
     }
 
     dom.btnClearSearch.addEventListener('click', () => {
+      resetFrequentSession();
       dom.searchInput.value = '';
       dom.btnClearSearch.classList.add('hidden');
       dom.searchResultsSection.classList.add('hidden');

@@ -56,7 +56,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.48">
+  <link rel="stylesheet" href="styles.css?v=1.6.49">
 </head>
 <body data-service="novaposhta">
 
@@ -95,7 +95,7 @@
         </button>
 
         <!-- 2. Кнопка «Про проєкт» -->
-        <a href="about.html" id="btnHeaderAbout" class="top-about-btn" aria-label="Про проєкт" title="Про проєкт: огляд можливостей та презентація">
+        <a href="about.html" target="_blank" rel="noopener" id="btnHeaderAbout" class="top-about-btn" aria-label="Про проєкт" title="Про проєкт: огляд можливостей та презентація">
           Про проєкт
         </a>
 
@@ -249,9 +249,9 @@
               <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
               <polyline points="17 6 23 6 23 12"></polyline>
             </svg>
-            Найчастіші запити
+            <span id="frequentTitleText">Найчастіші запити</span>
           </h2>
-          <span class="section-subtext">Аналізуються та оновлюються протягом дня</span>
+          <span class="section-subtext" id="frequentSubtext">Швидкий вибір міста</span>
         </div>
 
         <div id="frequentChipsGrid" class="chips-grid-10"></div>
@@ -283,7 +283,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.48</span>
+          <span class="version-tag">v1.6.49</span>
         </button>
       </div>
 
@@ -309,8 +309,22 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.48 -->
+        <!-- Версія 1.6.49 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.49</span>
+            <span class="version-state">Розумний гібрид частих запитів та адаптивна підказка діапазону відділень</span>
+            <span class="version-date">14 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Чесний лічильник «Найчастіші запити» з нуля:</strong> Прибрано штучні дефолтні лічильники (48, 41…); статистика ведеться з <code>0</code> за ковзне вікно 14 днів із дедуплікацією повторних уточнень у межах одного сеансу.</li>
+            <li><strong>Адаптивна підказка в <code>#didYouMeanBox</code> для неіснуючих відділень:</strong> Для малих населених пунктів (до 6 відділень) у плашці відображаються інтерактивні кнопки діючих відділень (<code>[№1]..[№5]</code>), а для великих міст — лаконічний текстовий діапазон (<code>відділення №1–N та K поштоматів</code>).</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.49.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.48 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.48</span>
             <span class="version-state">Покращення пошуку та автокомпліту Укрпошти</span>
@@ -1530,21 +1544,21 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.js?v=1.6.48"></script>
+  <script src="data/branches.fast.js?v=1.6.49"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.48"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.49"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.48"></script>
+  <script src="data/all_settlements.js?v=1.6.49"></script>
 
   <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
-  <script src="data/crm_settlements.js?v=1.6.48"></script>
+  <script src="data/crm_settlements.js?v=1.6.49"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.48"></script>
+  <script src="data/fuzzySearch.js?v=1.6.49"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.48"></script>
+  <script src="app.js?v=1.6.49"></script>
 </body>
 </html>
