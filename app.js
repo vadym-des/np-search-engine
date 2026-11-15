@@ -1336,8 +1336,14 @@
     // Якщо в запиті вказано номер відділення/поштомату (parsed.targetBranchNumber), і його не знайдено:
     // Для Нової Пошти КАТЕГОРИЧНО ЗАБОРОНЕНО фолбечитись до показу всіх інших відділень міста!
     // Для Укрпошти: у селах/СМТ відділення мають поштовий індекс замість номера 1-9, тому показуємо відділення населеного пункту з індексом
+    const isPostomatSearch = parsed.isPostomat || state.typeFilter === 'postomat' || /(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)/i.test(rawQuery);
+    const hasExactTargetMatch = Boolean(
+      parsed.targetBranchNumber &&
+      results.some(b => String(b.number || '').toLowerCase() === String(parsed.targetBranchNumber).toLowerCase())
+    );
+
     let fellBackToSettlementOnMissingBranch = false;
-    if (results.length === 0) {
+    if (results.length === 0 || (isNP && state.selectedSettlement && parsed.targetBranchNumber && !hasExactTargetMatch && !hasStreetInQuery && !isPostomatSearch)) {
       if (state.selectedSettlement) {
         const sName = (state.selectedSettlement.cleanName || state.selectedSettlement.name || '').toLowerCase();
         const sObl = (state.selectedSettlement.cleanOblast || state.selectedSettlement.oblast || '').toLowerCase().slice(0, 4);
@@ -1351,7 +1357,6 @@
           return true;
         });
         if (settlementBranches.length > 0) {
-          const isPostomatSearch = parsed.isPostomat || state.typeFilter === 'postomat' || /(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)/i.test(rawQuery);
           let sortedSettlement = (engine && typeof engine.sortBranchesBySettlementOrder === 'function')
             ? engine.sortBranchesBySettlementOrder(settlementBranches, isPostomatSearch, !isPostomatSearch)
             : settlementBranches;
@@ -1417,7 +1422,7 @@
 
     // Формуємо інформацію про цільове відділення, якого немає в базі
     let missingTargetBranch = null;
-    if (parsed.targetBranchNumber && (results.length === 0 || fellBackToSettlementOnMissingBranch)) {
+    if (parsed.targetBranchNumber && (results.length === 0 || fellBackToSettlementOnMissingBranch || (isNP && !hasExactTargetMatch && !hasStreetInQuery && !isPostomatSearch))) {
       const fallbackSettl = parsed.matchedSettlement || state.selectedSettlement;
       missingTargetBranch = {
         number: parsed.targetBranchNumber,

@@ -442,9 +442,65 @@ async function runCalmDirector() {
   await rec.hold(2800);
   await rec.compile(path.join(VIDEO_DIR, '09_showcase.mp4'));
 
+  // =========================================================================
+  // SCENARIO 10: АДАПТИВНИЙ ПОМІЧНИК ДІАПАЗОНУ ВІДДІЛЕНЬ (10_branch_range_hint.mp4)
+  // Пошук "Білгород-Дністровський 12" -> кнопки [№1]..[№5] в 1 клік -> "Київ 999" -> діапазон №1–822
+  // =========================================================================
+  console.log('\n--- [10/10] Recording Scenario 10: Smart Adaptive Branch Range Hint ---');
+  rec.reset();
+  await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle0' });
+  await page.evaluate(STUDIO_INJECT);
+
+  await rec.callout('⌨️ Клієнт назвав неіснуюче відділення: «Білгород-Дністровський 12»');
+  await rec.hold(900);
+
+  await rec.typeInput('#searchInput', 'Білгород-Дністровський 12');
+  await page.evaluate(() => {
+    state.selectedSettlement = {
+      name: 'Білгород-Дністровський',
+      cleanName: 'Білгород-Дністровський',
+      oblast: 'Одеська',
+      cleanOblast: 'Одеська',
+      raion: 'Білгород-Дністровський',
+      cleanRaion: 'Білгород-Дністровський'
+    };
+  });
+  await rec.moveTo('#btnSearchSubmit', true);
+  await page.click('#btnSearchSubmit');
+  await rec.hold(1000);
+
+  await rec.callout('💡 Мале місто (до 6 відділень): діючі номери як кнопки в 1 клік + список без поштоматів');
+  await rec.moveTo('.did-you-mean-chip[data-branch-num="2"]', false);
+  await rec.hold(2400);
+
+  await rec.callout('⚡ 1 клік по [№2] — миттєвий перехід на Відділення №2!');
+  const chip2 = await page.$('.did-you-mean-chip[data-branch-num="2"]');
+  if (chip2) {
+    await rec.moveTo('.did-you-mean-chip[data-branch-num="2"]', true);
+    await chip2.click();
+    await rec.hold(2200);
+  }
+
+  await rec.callout('🏙️ Мегаполіс («Київ 999»): чітка межа №1–822 без сотень зайвих кнопок');
+  await rec.typeInput('#searchInput', 'Київ 999');
+  await page.evaluate(() => {
+    state.selectedSettlement = {
+      name: 'Київ',
+      cleanName: 'Київ',
+      oblast: 'Київська',
+      cleanOblast: 'Київська'
+    };
+  });
+  await rec.moveTo('#btnSearchSubmit', true);
+  await page.click('#btnSearchSubmit');
+  await rec.hold(800);
+  await rec.moveTo('#didYouMeanBox', false);
+  await rec.hold(2600);
+  await rec.compile(path.join(VIDEO_DIR, '10_branch_range_hint.mp4'));
+
   await browser.close();
   server.close();
-  console.log('\n🎉 ALL 9 CALM SCENARIOS RECORDED AND COMPILED SUCCESSFULLY!');
+  console.log('\n🎉 ALL 10 CALM SCENARIOS RECORDED AND COMPILED SUCCESSFULLY!');
 }
 
 runCalmDirector().catch(err => {
