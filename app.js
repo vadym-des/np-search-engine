@@ -4954,6 +4954,7 @@
     if (!suggestions || suggestions.length === 0) {
       if (hasDigits) {
         closeAutocomplete();
+        executeSearch(query, false, false);
         return;
       }
       autocompleteItems = [];
@@ -5461,6 +5462,11 @@
 
     if (hasExplicitRegion) {
       return true;
+    }
+
+    const qTokens = query.trim().split(/\s+/).filter(Boolean);
+    if (qTokens.length === 1 && !/\d/.test(query) && !state.selectedSettlement && !state.lockedInputValue) {
+      return false;
     }
 
     // Перевірка на одноіменні населені пункти (Disambiguation Priority)

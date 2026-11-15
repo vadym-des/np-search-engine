@@ -154,6 +154,18 @@ const resLystvynMerged = window.SmartSearchEngine.searchBranches('великий
 assert(resLystvynMerged && resLystvynMerged.length > 0 && resLystvynMerged[0].city === 'Великий Листвен' && String(resLystvynMerged[0].postalCode) === '15160', 'searchBranches("великийлиствин 1") повинен повертати Великий Листвен 15160');
 console.log('  ✓ Успіх: Усі запити з "укр", злитим написанням та одруківками ("великийлиствин 1", "великий листвин", "нвоа пошат -- 15160 укр") знаходять Великий Листвен #15160!');
 
+// ТЕСТ 9: Пошук Укрпошти за вулицею та номером будинку ("хотинська 7 чернівці", "укр хотинська 7 чернівці", "чернівці хотинська 7" -> Чернівці #58007: вул. Хотинська, 7)
+console.log('\n▶ ТЕСТ 9: Пошук та автокомпліт Укрпошти за вулицею та номером будинку ("хотинська 7 чернівці", "укр хотинська 7 чернівці", "чернівці хотинська 7")');
+for (const qKhotyn of ['хотинська 7 чернівці', 'укр хотинська 7 чернівці', 'чернівці хотинська 7']) {
+  const sugsKhotyn = window.SmartSearchEngine.getAutocompleteSuggestions(qKhotyn, 'ukrposhta', null, ukrPool);
+  assert(sugsKhotyn && sugsKhotyn.length > 0, `Автокомпліт повинен знаходити відділення для "${qKhotyn}"`);
+  assert(sugsKhotyn[0].title.includes('58007') && sugsKhotyn[0].title.includes('Чернівці'), `Очікувалось 58007 — Чернівці для "${qKhotyn}", отримано: "${sugsKhotyn[0].title}"`);
+
+  const resKhotyn = window.SmartSearchEngine.searchBranches(qKhotyn, ukrPool, 5);
+  assert(resKhotyn && resKhotyn.length > 0 && resKhotyn[0].city === 'Чернівці' && String(resKhotyn[0].postalCode) === '58007', `searchBranches("${qKhotyn}") повинен повертати Чернівці #58007 (вул. Хотинська, 7), отримано: ${resKhotyn && resKhotyn[0] ? resKhotyn[0].city + ' #' + resKhotyn[0].postalCode : 'null'}`);
+}
+console.log('  ✓ Успіх: "хотинська 7 чернівці", "укр хотинська 7 чернівці" та "чернівці хотинська 7" знаходять Чернівці #58007 (вул. Хотинська, 7)!');
+
 console.log('\n===============================================================');
-console.log('📊 РЕЗУЛЬТАТ: ВСІ 8 ТЕСТІВ ІНТЕГРАЦІЇ УКРПОШТИ ПРОЙДЕНО УСПІШНО!');
+console.log('📊 РЕЗУЛЬТАТ: ВСІ 9 ТЕСТІВ ІНТЕГРАЦІЇ УКРПОШТИ ПРОЙДЕНО УСПІШНО!');
 console.log('===============================================================');

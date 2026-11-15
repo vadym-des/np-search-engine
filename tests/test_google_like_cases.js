@@ -9,12 +9,25 @@ global.document = { querySelector: () => null };
 const fs = require('fs');
 eval(fs.readFileSync('data/crm_settlements.js', 'utf8'));
 eval(fs.readFileSync('data/branches.js', 'utf8'));
+eval(fs.readFileSync('data/ukrposhta_branches.js', 'utf8'));
 eval(fs.readFileSync('data/all_settlements.js', 'utf8'));
 eval(fs.readFileSync('data/fuzzySearch.js', 'utf8'));
 
 window.SmartSearchEngine.setAllSettlementsData(window.ALL_SETTLEMENTS_DATA);
 
 const pool = window.BRANCHES_DATA.novaposhta;
+const ukrPool = (window.UKRPOSHTA_BRANCHES_DATA || []).map((b, i) => ({
+  id: 'up-' + (b.index || i),
+  city: b.city,
+  oblast: (b.region || '').replace(/\s*обл\.?.*$/i, '').trim(),
+  raion: (b.district || '').replace(/\s*район.*$/i, '').trim(),
+  number: String(b.index || ''),
+  postalCode: String(b.index || ''),
+  street: b.street || b.address || '',
+  address: b.address || b.street || '',
+  isUkrposhta: true
+}));
+window.BRANCHES_DATA.ukrposhta = ukrPool;
 
 const testCases = [
   { q: 'коломи я 6', expectedCity: 'Коломия', expectedNum: '6', desc: 'Склеювання розірваного міста + номер' },
@@ -122,7 +135,22 @@ const testCases = [
   // НОВІ КЕЙСИ: Контекстна підказка області при помилці в назві селища ("ясне закарпатська 2" -> Ясіня №2 Закарпатська обл.)
   { q: 'ясне закарпатська 2', expectedCity: 'Ясіня', expectedNum: '2', expectedOblast: 'Закарпатська', expectedStreet: 'Миру', desc: 'Омонім села з іншої області + контекст області: "ясне закарпатська 2" -> Ясіня #2 (Закарпатська обл.)' },
   { q: 'ясне закарпатська 2', checkAutocomplete: true, expectedCity: 'Ясіня', expectedNum: '2', expectedOblast: 'Закарпатська', expectedStreet: 'Миру', desc: 'Автокомпліт для "ясне закарпатська 2" -> Відділення №2 (сел. Ясіня, вул. Миру)' },
-  { q: 'нвоа пошат -- ясне закарпатська 2', expectedCity: 'Ясіня', expectedNum: '2', expectedOblast: 'Закарпатська', expectedStreet: 'Миру', desc: 'Google-style запит зі скріншота: "нвоа пошат -- ясне закарпатська 2" -> Ясіня #2' }
+  { q: 'нвоа пошат -- ясне закарпатська 2', expectedCity: 'Ясіня', expectedNum: '2', expectedOblast: 'Закарпатська', expectedStreet: 'Миру', desc: 'Google-style запит зі скріншота: "нвоа пошат -- ясне закарпатська 2" -> Ясіня #2' },
+  // НОВІ КЕЙСИ: Пріоритет обласного центру Івано-Франківськ над смт Івано-Франкове та селами Івано-* при введенні "івано" / "іван"
+  { q: 'івано', checkAutocomplete: true, expectedCity: 'Івано-Франківськ', desc: 'Пріоритет облцентру Івано-Франківськ #1 в автокомпліті при введенні "івано" (перед смт Івано-Франкове)' },
+  { q: 'іван', checkAutocomplete: true, expectedCity: 'Івано-Франківськ', desc: 'Пріоритет облцентру Івано-Франківськ #1 в автокомпліті при введенні "іван"' },
+  { q: 'івано 15', checkAutocomplete: true, expectedCity: 'Івано-Франківськ', expectedNum: '15', desc: 'Автокомпліт відділення №15 для скорочення "івано 15" -> Івано-Франківськ №15' },
+  { q: 'Івано-Івано-Франківськ', checkAutocomplete: true, expectedCity: 'Івано-Франківськ', desc: 'Автоматичне очищення подвоєного префікса "Івано-Івано-Франківськ" -> Івано-Франківськ' },
+  // НОВІ КЕЙСИ: Спільнокоренева корекція населеного пункту за вулицею та номером будинку ("Обухів Обухівський Київська медова 2а" -> Обухівка #2 вул. Медова, 2а)
+  { q: 'Обухів Обухівський Київська медова 2а', expectedCity: 'Обухівка', expectedNum: '2', expectedOblast: 'Дніпропетровська', expectedStreet: 'Медова', desc: 'Спільнокоренева корекція зі скріншота: "Обухів Обухівський Київська медова 2а" -> Обухівка #2 (вул. Медова, 2а)' },
+  { q: 'Обухів Обухівський Київська медова 2а', checkAutocomplete: true, expectedCity: 'Обухівка', expectedNum: '2', expectedOblast: 'Дніпропетровська', expectedStreet: 'Медова', desc: 'Автокомпліт зі скріншота: "Обухів Обухівський Київська медова 2а" -> Відділення №2 (сел. Обухівка, вул. Медова, 2а)' },
+  { q: 'нвоа пошта - Обухів Обухівський Київська медова 2а', expectedCity: 'Обухівка', expectedNum: '2', expectedOblast: 'Дніпропетровська', expectedStreet: 'Медова', desc: 'Google-style запит зі скріншота: "нвоа пошта - Обухів Обухівський Київська медова 2а" -> Обухівка #2 (вул. Медова, 2а)' },
+  { q: 'обухів медова 2а', expectedCity: 'Обухівка', expectedNum: '2', expectedOblast: 'Дніпропетровська', expectedStreet: 'Медова', desc: 'Короткий запит за вулицею та будинком: "обухів медова 2а" -> Обухівка #2 (вул. Медова, 2а)' },
+  // НОВІ КЕЙСИ: Укрпошта — пошук за вулицею та номером будинку попереду міста ("хотинська 7 чернівці" -> Чернівці #58007 вул. Хотинська, 7)
+  { q: 'хотинська 7 чернівці', service: 'ukrposhta', expectedCity: 'Чернівці', expectedNum: '58007', expectedStreet: 'Хотинська', desc: 'Укрпошта: вулиця + номер будинку попереду міста зі скріншота ("хотинська 7 чернівці" -> Чернівці #58007: вул. Хотинська, 7)' },
+  { q: 'хотинська 7 чернівці', service: 'ukrposhta', checkAutocomplete: true, expectedCity: 'Чернівці', expectedNum: '58007', expectedStreet: 'Хотинська', desc: 'Укрпошта автокомпліт зі скріншота ("хотинська 7 чернівці" -> 58007 — Чернівці, вул. Хотинська, 7)' },
+  { q: 'укр хотинська 7 чернівці', service: 'ukrposhta', expectedCity: 'Чернівці', expectedNum: '58007', expectedStreet: 'Хотинська', desc: 'Укрпошта Google-запит зі скріншота ("укр хотинська 7 чернівці" -> Чернівці #58007: вул. Хотинська, 7)' },
+  { q: 'чернівці хотинська 7', service: 'ukrposhta', expectedCity: 'Чернівці', expectedNum: '58007', expectedStreet: 'Хотинська', desc: 'Укрпошта: місто + вулиця + номер будинку ("чернівці хотинська 7" -> Чернівці #58007: вул. Хотинська, 7)' }
 ];
 
 console.log('===============================================================');
@@ -132,14 +160,18 @@ console.log('===============================================================\n')
 let passed = 0;
 for (let i = 0; i < testCases.length; i++) {
   const tc = testCases[i];
+  const activeService = tc.service || 'novaposhta';
+  const activePool = activeService === 'ukrposhta' ? ukrPool : pool;
+  window.currentService = activeService;
   let top = null;
   if (tc.checkAutocomplete) {
-    const sugg = window.SmartSearchEngine.getAutocompleteSuggestions(tc.q, 'novaposhta', null, pool);
+    const sugg = window.SmartSearchEngine.getAutocompleteSuggestions(tc.q, activeService, null, activePool);
     top = sugg && sugg[0] && sugg[0].branchObj ? sugg[0].branchObj : (sugg && sugg[0] ? { city: sugg[0].value, number: sugg[0].title, street: sugg[0].subtitle } : null);
   } else {
-    const res = window.SmartSearchEngine.searchBranches(tc.q, pool, 3);
+    const res = window.SmartSearchEngine.searchBranches(tc.q, activePool, 3);
     top = res[0];
   }
+  window.currentService = 'novaposhta';
   const okCity = top && top.city && (!tc.expectedCity || top.city.toLowerCase().includes(tc.expectedCity.toLowerCase()));
   const okNum = !tc.expectedNum || (top && String(top.number) === String(tc.expectedNum));
   const okStreet = !tc.expectedStreet || (top && top.street && top.street.toLowerCase().includes(tc.expectedStreet.toLowerCase()));
