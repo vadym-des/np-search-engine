@@ -65,7 +65,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.53">
+  <link rel="stylesheet" href="styles.css?v=1.6.54">
 </head>
 <body data-service="novaposhta">
 
@@ -292,7 +292,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.53</span>
+          <span class="version-tag">v1.6.54</span>
         </button>
       </div>
 
@@ -318,8 +318,24 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.53 -->
+        <!-- Версія 1.6.54 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.54</span>
+            <span class="version-state">Zero Layout Shift, стабільність скролбару та адаптивне відображення історії пошуків</span>
+            <span class="version-date">17 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Zero Layout Shift (фіксація скролбару):</strong> Додано <code>scrollbar-gutter: stable</code> та <code>overflow-y: scroll</code>, що повністю ліквідувало горизонтальне тремтіння/здригання макета сторінки при відкритті та закритті випадаючого списку підказок.</li>
+            <li><strong>Адаптивне відображення блоку історії:</strong> Автоматичне приховування «Історії останніх пошуків» при великому списку адрес (для збереження компактності екрана без скролу) та збереження історії за замовчуванням при відображенні картки обраного відділення чи на головній сторінці.</li>
+            <li><strong>Захист від дублювання райцентрів (Кам'янець-Подільський):</strong> Виправлено автозаповнення міст із однойменними районами — усунено дублювання назви та блокування списку відділень відділенням №11.</li>
+            <li><strong>Гарячі клавіші Command+A / Ctrl+A:</strong> Налаштовано миттєве закриття автокомпліту та виділення тексту поля пошуку в 1 клік (аналог клавіші Escape).</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.54.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.53 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.53</span>
             <span class="version-state">Інтеграція Microsoft Clarity, аналіз поведінки операторів та смарт-мітки пошуку</span>
@@ -1612,21 +1628,21 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.fast.js?v=1.6.53"></script>
+  <script src="data/branches.fast.js?v=1.6.54"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.53"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.54"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.53"></script>
+  <script src="data/all_settlements.js?v=1.6.54"></script>
 
   <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
-  <script src="data/crm_settlements.js?v=1.6.53"></script>
+  <script src="data/crm_settlements.js?v=1.6.54"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.53"></script>
+  <script src="data/fuzzySearch.js?v=1.6.54"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.53"></script>
+  <script src="app.js?v=1.6.54"></script>
 </body>
 </html>

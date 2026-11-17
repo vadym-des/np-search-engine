@@ -3648,6 +3648,7 @@
       card.addEventListener('mouseleave', () => setMarkerHighlightedOnMap(branch, false));
       container.appendChild(card);
       dom.resultsList.classList.remove('has-match-rows');
+      if (dom.searchResultsSection) dom.searchResultsSection.classList.remove('has-address-list');
       dom.resultsList.appendChild(container);
       safeRAF(() => {
         if (dom.resultsList) dom.resultsList.style.minHeight = '';
@@ -3657,6 +3658,7 @@
 
     // РЕЖИМ 2: ПОШУК ПО АДРЕСІ — ПОКАЗУЄМО СУТО ЗБІГИ АДРЕСИ В 1 КОЛОНКУ (як в LP-CRM)
     dom.resultsList.classList.add('has-match-rows');
+    if (dom.searchResultsSection) dom.searchResultsSection.classList.add('has-address-list');
     if (dom.limitSelector) dom.limitSelector.style.display = 'none';
     if (dom.btnResetSelectedBranch) dom.btnResetSelectedBranch.classList.add('hidden');
     applyTypeFiltersVisibility();

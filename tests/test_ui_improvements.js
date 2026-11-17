@@ -116,11 +116,13 @@ assert.ok(aboutHtml.includes('scrollbar-gutter: stable;'), 'about.html пови�
 assert.ok(aboutHtml.includes('overflow-y: scroll;'), 'about.html повинен мати overflow-y: scroll');
 console.log('  ✓ Успіх: Gutter скролбару зафіксовано, макет стабільний (0px зсуву при відкритті автокомпліту).\n');
 
-console.log('▶ ТЕСТ 13: Приховування блоку "Історія останніх пошуків" під час активної видачі результатів (#searchResultsSection:not(.hidden) ~ .recent-history-section)');
-assert.ok(stylesCss.includes('#searchResultsSection:not(.hidden) ~ .recent-history-section'), 'styles.css повинен приховувати .recent-history-section при видимих результатах пошуку');
+console.log('▶ ТЕСТ 13: Селективне приховування історії для великого списку адрес (#searchResultsSection:not(.hidden).has-address-list) та відображення за замовчуванням для обраного відділення');
+assert.ok(stylesCss.includes('#searchResultsSection:not(.hidden).has-address-list ~ .recent-history-section'), 'styles.css повинен приховувати .recent-history-section тільки при великому списку адрес');
+assert.ok(appJs.includes("classList.add('has-address-list')"), 'app.js повинен додавати has-address-list для великого списку адрес');
+assert.ok(appJs.includes("classList.remove('has-address-list')"), 'app.js повинен прибирати has-address-list для 1 обраного відділення');
 assert.ok(indexHtml.includes('id="recentHistorySection"'), 'index.html повинен містити id="recentHistorySection"');
 assert.ok(appJs.includes('recentHistorySection: document.getElementById(\'recentHistorySection\')'), 'app.js повинен містити посилання на recentHistorySection');
-console.log('  ✓ Успіх: Блок історії автоматично зникає при показі списку відділень, залишаючи екран чистим без вертикального скролу.\n');
+console.log('  ✓ Успіх: Блок історії зникає при масовому списку адрес, але залишається видимим за замовчуванням для 1 обраного відділення!\n');
 
 console.log('===============================================================');
 console.log('🎉 ВСІ UX-ТЕСТИ ПРОЙДЕНО УСПІШНО!');

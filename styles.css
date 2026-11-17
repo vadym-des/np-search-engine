@@ -2880,9 +2880,11 @@ body[data-theme="dark"] .status-pill {
   margin-top: 8px;
 }
 
-/* UX: Коли активний блок видачі результатів пошуку (searchResultsSection),
-   приховуємо історію останніх пошуків, щоб не змушувати користувача скролити сторінку вниз */
-#searchResultsSection:not(.hidden) ~ .recent-history-section {
+/* UX: Коли активний ВЕЛИКИЙ блок списку адрес (has-address-list / has-match-rows),
+   приховуємо історію останніх пошуків, щоб не змушувати користувача скролити сторінку вниз.
+   А при виборі конкретного відділення ("1 обране відділення") або порожньому пошуку — показуємо історію за замовчуванням! */
+#searchResultsSection:not(.hidden).has-address-list ~ .recent-history-section,
+#searchResultsSection:not(.hidden):has(.has-match-rows) ~ .recent-history-section {
   display: none !important;
 }
 
