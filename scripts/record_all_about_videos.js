@@ -82,6 +82,40 @@ const STUDIO_INJECT = `
         box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.28) !important;
         transition: all 0.25s ease !important;
       }
+      .studio-crm-row-pad {
+        padding-top: 28px !important;
+        padding-bottom: 4px !important;
+        transition: padding 0.24s ease !important;
+      }
+      .studio-crm-focus {
+        position: relative !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        background: #fff7ed !important;
+        border: 2px solid #ea580c !important;
+        border-radius: 8px !important;
+        padding: 4px 10px !important;
+        box-shadow: 0 10px 24px rgba(234, 88, 12, 0.22) !important;
+        transform: scale(1.05) !important;
+        transform-origin: left center !important;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        z-index: 20 !important;
+      }
+      .studio-crm-focus::before {
+        content: '👆 Як записано в LP-CRM';
+        position: absolute;
+        top: -26px;
+        left: 0;
+        background: #ea580c;
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 9999px;
+        white-space: nowrap;
+        box-shadow: 0 4px 10px rgba(234, 88, 12, 0.28);
+      }
       #studio-cursor {
         position: fixed;
         top: 0;
@@ -145,22 +179,6 @@ const STUDIO_INJECT = `
         pointer-events: none;
         transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       }
-      #studio-crm-simulation {
-        position: fixed;
-        top: 52%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0.94);
-        opacity: 0;
-        z-index: 2147483635;
-        width: 580px;
-        background: #ffffff;
-        border-radius: 16px;
-        box-shadow: 0 28px 70px rgba(15, 23, 42, 0.32), 0 0 0 1px rgba(15, 23, 42, 0.10);
-        padding: 20px 24px;
-        font-family: system-ui, -apple-system, sans-serif;
-        pointer-events: none;
-        transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-      }
     \`;
     document.head.appendChild(style);
 
@@ -181,32 +199,6 @@ const STUDIO_INJECT = `
     keycap.id = 'studio-keycap';
     keycap.innerHTML = '⌨️ Натиснуто [ Esc ]';
     document.body.appendChild(keycap);
-
-    const sim = document.createElement('div');
-    sim.id = 'studio-crm-simulation';
-    sim.innerHTML = \`
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="background:#2563eb; color:#fff; font-size:11px; font-weight:700; padding:3px 8px; border-radius:4px; letter-spacing:0.5px;">LP-CRM</span>
-          <strong style="color:#0f172a; font-size:14.5px;">Нове замовлення #84920</strong>
-        </div>
-        <span style="font-size:12px; color:#64748b;">Форма доставки Нова Пошта</span>
-      </div>
-      <div style="margin-bottom:12px;">
-        <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:6px;">Населений пункт (випадаючий список CRM):</label>
-        <div style="border:2px solid #2563eb; border-radius:8px; padding:9px 12px; background:#f8fafc; font-size:13.5px; color:#0f172a; font-weight:600; display:flex; align-items:center; justify-content:space-between; gap:8px;">
-          <span id="simCrmInputText" style="color:#94a3b8;">Натисніть Ctrl+V для вставки...</span>
-          <span id="simCrmBadge" style="opacity:0; background:#dcfce7; color:#15803d; font-size:11px; padding:3px 8px; border-radius:9999px; font-weight:700; white-space:nowrap;">✓ Точний збіг ОТГ</span>
-        </div>
-      </div>
-      <div id="simCrmDropdown" style="opacity:0; transition:opacity 0.2s ease; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,0.08); padding:6px;">
-        <div style="background:#eff6ff; color:#1d4ed8; padding:8px 10px; border-radius:6px; font-size:12.5px; font-weight:600; display:flex; align-items:center; justify-content:space-between; gap:8px;">
-          <span>📍 Калинівка (Калинівська територіальна громада)</span>
-          <span style="font-size:11px; color:#3b82f6; white-space:nowrap;">Вінницька обл. • 0 колізій</span>
-        </div>
-      </div>
-    \`;
-    document.body.appendChild(sim);
 
     window.studioMoveCursor = (x, y, scale = 1) => {
       cursor.style.transform = \`translate3d(\${x}px, \${y}px, 0) scale(\${scale})\`;
@@ -244,20 +236,11 @@ const STUDIO_INJECT = `
       keycap.style.opacity = show ? '1' : '0';
       keycap.style.transform = show ? 'scale(1)' : 'scale(0.9)';
     };
-    window.studioShowCrmSim = (show) => {
-      sim.style.opacity = show ? '1' : '0';
-      sim.style.transform = show ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0.94)';
-    };
-    window.studioPasteCrmSim = () => {
-      const txt = document.getElementById('simCrmInputText');
-      const badge = document.getElementById('simCrmBadge');
-      const drop = document.getElementById('simCrmDropdown');
-      if (txt) {
-        txt.textContent = 'Калинівка (Калинівська територіальна громада)';
-        txt.style.color = '#0f172a';
-      }
-      if (badge) badge.style.opacity = '1';
-      if (drop) drop.style.opacity = '1';
+    window.studioFocusCrmHint = (on) => {
+      const row = document.querySelector('.settlement-history-hint');
+      const wrap = document.querySelector('.crm-hint-wrapper');
+      if (row) row.classList.toggle('studio-crm-row-pad', !!on);
+      if (wrap) wrap.classList.toggle('studio-crm-focus', !!on);
     };
     window.studioHighlight = (selector, cls, on) => {
       const el = document.querySelector(selector);
@@ -424,6 +407,10 @@ class CardStudioRecorder {
 }
 
 async function runAll() {
+  const onlyArg = process.argv.find((a) => a.startsWith('--only='));
+  const onlySet = onlyArg ? new Set(onlyArg.replace('--only=', '').split(',').map((s) => Number(s.trim()))) : null;
+  const shouldRun = (id) => !onlySet || onlySet.has(id);
+
   const server = await startServer();
   const browser = await puppeteer.launch({
     executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -442,221 +429,249 @@ async function runAll() {
     // =========================================================================
     // 1. HERO-ВІТРИНА (01_hero.mp4 + 00_hero_retina.png + 00_hero_poster.png)
     // =========================================================================
-    console.log('\n[1/9] Hero Showcase: 01_hero.mp4');
-    await rec.startCleanScenario();
-    await rec.callout('⚡ Блискавичний пошук за містом, вулицею чи номером');
-    await rec.hold(550);
-    await rec.typeInput('#searchInput', 'київ 1');
-    await rec.moveTo('#btnSearchSubmit', 380);
-    await rec.clickAt('#btnSearchSubmit', async () => {
-      await rec.setCleanSearchValue('київ 1');
-    });
-    await rec.hold(850);
+    if (shouldRun(1)) {
+      console.log('\n[1/9] Hero Showcase: 01_hero.mp4');
+      await rec.startCleanScenario();
+      await rec.callout('⚡ Блискавичний пошук за містом, вулицею чи номером');
+      await rec.hold(550);
+      await rec.typeInput('#searchInput', 'київ 1');
+      await rec.moveTo('#btnSearchSubmit', 380);
+      await rec.clickAt('#btnSearchSubmit', async () => {
+        await rec.setCleanSearchValue('київ 1');
+      });
+      await rec.hold(850);
 
-    await rec.callout('✨ 1 клік — готовий чистий рядок для вашої CRM');
-    await rec.moveTo('.btn-copy-short', 460);
-    await rec.clickAt('.btn-copy-short');
-    await rec.hold(2200);
-    await rec.savePoster(path.join(SHOWCASE_DIR, '00_hero_retina.png'));
-    await rec.savePoster(path.join(SHOWCASE_DIR, '00_hero_poster.png'));
-    await rec.compile(path.join(VIDEO_DIR, '01_hero.mp4'));
+      await rec.callout('✨ 1 клік — готовий чистий рядок для вашої CRM');
+      await rec.moveTo('.btn-copy-short', 460);
+      await rec.clickAt('.btn-copy-short');
+      await rec.hold(2200);
+      await rec.savePoster(path.join(SHOWCASE_DIR, '00_hero_retina.png'));
+      await rec.savePoster(path.join(SHOWCASE_DIR, '00_hero_poster.png'));
+      await rec.compile(path.join(VIDEO_DIR, '01_hero.mp4'));
+    }
 
     // =========================================================================
     // 2. РЯДОК 01 — АДАПТИВНИЙ ПОМІЧНИК ДІАПАЗОНУ (10_branch_range_hint.mp4)
     // =========================================================================
-    console.log('\n[2/9] Row 01 Smart Range Hint: 10_branch_range_hint.mp4');
-    await rec.startCleanScenario();
-    await rec.callout('⌨️ Клієнт назвав неіснуючий номер: «Білгород-Дністровський 12»');
-    await rec.hold(550);
-    await rec.typeInput('#searchInput', 'Білгород-Дністровський 12');
-    await rec.moveTo('#btnSearchSubmit', 380);
-    await rec.clickAt('#btnSearchSubmit');
-    await rec.hold(850);
+    if (shouldRun(2)) {
+      console.log('\n[2/9] Row 01 Smart Range Hint: 10_branch_range_hint.mp4');
+      await rec.startCleanScenario();
+      await rec.callout('⌨️ Клієнт назвав неіснуючий номер: «Білгород-Дністровський 12»');
+      await rec.hold(550);
+      await rec.typeInput('#searchInput', 'Білгород-Дністровський 12');
+      await rec.moveTo('#btnSearchSubmit', 380);
+      await rec.clickAt('#btnSearchSubmit');
+      await rec.hold(850);
 
-    await rec.callout('💡 Мале місто: діючі номери [№1]–[№5] як кнопки в 1 клік');
-    await rec.moveTo('.did-you-mean-chip[data-branch-num="2"]', 520);
-    await rec.hold(1100);
-    await rec.clickAt('.did-you-mean-chip[data-branch-num="2"]');
-    await rec.hold(1600);
+      await rec.callout('💡 Мале місто: діючі номери [№1]–[№5] як кнопки в 1 клік');
+      await rec.moveTo('.did-you-mean-chip[data-branch-num="2"]', 520);
+      await rec.hold(1100);
+      await rec.clickAt('.did-you-mean-chip[data-branch-num="2"]');
+      await rec.hold(1600);
 
-    await rec.callout('🏙️ Мегаполіс («Київ 999»): чітка межа №1–822 без спаму поштоматами');
-    await rec.moveTo('#btnClearSearch', 360);
-    await rec.clickAt('#btnClearSearch');
-    await rec.typeInput('#searchInput', 'Київ 999', false);
-    await rec.moveTo('#btnSearchSubmit', 380);
-    await rec.clickAt('#btnSearchSubmit');
-    await rec.hold(400);
-    await rec.moveTo('#didYouMeanBox', 450);
-    await rec.hold(2400);
-    await rec.savePoster(path.join(SHOWCASE_DIR, '10_branch_range_hint.png'));
-    await rec.compile(path.join(VIDEO_DIR, '10_branch_range_hint.mp4'));
+      await rec.callout('🏙️ Мегаполіс («Київ 999»): чітка межа №1–822 без спаму поштоматами');
+      await rec.moveTo('#btnClearSearch', 360);
+      await rec.clickAt('#btnClearSearch');
+      await rec.typeInput('#searchInput', 'Київ 999', false);
+      await rec.moveTo('#btnSearchSubmit', 380);
+      await rec.clickAt('#btnSearchSubmit');
+      await rec.hold(400);
+      await rec.moveTo('#didYouMeanBox', 450);
+      await rec.hold(2400);
+      await rec.savePoster(path.join(SHOWCASE_DIR, '10_branch_range_hint.png'));
+      await rec.compile(path.join(VIDEO_DIR, '10_branch_range_hint.mp4'));
+    }
 
     // =========================================================================
-    // 3. РЯДОК 02 — LP-CRM ТА ГРОМАДИ (lpcrm-demo.mp4 + lpcrm-demo.webp)
+    // 3. РЯДОК 02 — ПІДКАЗКА ЗАПИСУ В LP-CRM (lpcrm-demo.mp4 + lpcrm-demo.webp)
     // =========================================================================
-    console.log('\n[3/9] Row 02 LP-CRM & TG Communities: lpcrm-demo.mp4');
-    await rec.startCleanScenario();
-    await rec.callout('🔍 Пошук відділення у селищі-тезці: «калинівка 1»');
-    await rec.hold(550);
-    await rec.typeInput('#searchInput', 'калинівка 1');
-    await rec.moveTo('#btnSearchSubmit', 380);
-    await rec.clickAt('#btnSearchSubmit', async () => {
-      await rec.setCleanSearchValue('калинівка 1');
-    });
-    await rec.hold(950);
+    if (shouldRun(3)) {
+      console.log('\n[3/9] Row 02 LP-CRM Hint: lpcrm-demo.mp4');
+      await rec.startCleanScenario();
+      await rec.callout('🤔 Не можете знайти місто чи село у списку LP-CRM?');
+      await rec.hold(650);
+      await rec.typeInput('#searchInput', 'олександрія кіровоградська 1');
+      await rec.moveTo('#btnSearchSubmit', 380);
+      await rec.clickAt('#btnSearchSubmit', async () => {
+        await rec.setCleanSearchValue('олександрія кіровоградська 1');
+      });
+      await rec.hold(650);
 
-    await rec.callout('✨ 1 клік — офіційна назва з громадою (ТГ) у буфері!');
-    await rec.moveTo('.btn-copy-crm-hint', 520);
-    await rec.clickAt('.btn-copy-crm-hint');
-    await rec.hold(1200);
+      await page.evaluate(() => window.studioFocusCrmHint(true));
+      await rec.moveTo('.crm-hint-wrapper', 520);
+      await rec.callout('💡 Підказка в картці показує, як саме пункт записаний в LP-CRM!');
+      await rec.hold(2200);
 
-    await rec.callout('📋 Вставка в LP-CRM ➔ точний вибір громади без помилок!');
-    await page.evaluate(() => window.studioShowCrmSim(true));
-    await rec.hold(700);
-    await page.evaluate(() => window.studioPasteCrmSim());
-    await rec.hold(2500);
-    await rec.savePoster(path.join(PROMO_DIR, 'lpcrm-demo.webp'), true);
-    await rec.compile(path.join(PROMO_DIR, 'lpcrm-demo.mp4'));
+      await rec.moveTo('#btnClearSearch', 380);
+      await rec.clickAt('#btnClearSearch');
+      await rec.typeInput('#searchInput', 'калинівка 1', false);
+      await rec.moveTo('#btnSearchSubmit', 380);
+      await rec.clickAt('#btnSearchSubmit', async () => {
+        await rec.setCleanSearchValue('калинівка 1');
+      });
+      await rec.hold(650);
+
+      await page.evaluate(() => window.studioFocusCrmHint(true));
+      await rec.moveTo('.btn-copy-crm-hint', 520);
+      await rec.callout('👁️ Подивіться очима або скопіюйте точний запис в 1 клік');
+      await rec.hold(1300);
+      await rec.savePoster(path.join(PROMO_DIR, 'lpcrm-demo.webp'), true);
+      await rec.clickAt('.btn-copy-crm-hint');
+      await rec.hold(2000);
+      await rec.compile(path.join(PROMO_DIR, 'lpcrm-demo.mp4'));
+    }
 
     // =========================================================================
     // 4. РЯДОК 03 — ШВИДКИЙ ПОШУК ЗА КЛАВІШЕЮ ESC (00_esc_hotkey.mp4)
     // =========================================================================
-    console.log('\n[4/9] Row 03 Esc Hotkey: 00_esc_hotkey.mp4');
-    await rec.startCleanScenario();
-    await rec.callout('⌨️ Попередній пошук: «київ хрещатик»');
-    await rec.hold(500);
-    await rec.typeInput('#searchInput', 'київ хрещатик');
-    await rec.moveTo('#btnSearchSubmit', 380);
-    await rec.clickAt('#btnSearchSubmit');
-    await rec.hold(1100);
+    if (shouldRun(4)) {
+      console.log('\n[4/9] Row 03 Esc Hotkey: 00_esc_hotkey.mp4');
+      await rec.startCleanScenario();
+      await rec.callout('⌨️ Попередній пошук: «київ хрещатик»');
+      await rec.hold(500);
+      await rec.typeInput('#searchInput', 'київ хрещатик');
+      await rec.moveTo('#btnSearchSubmit', 380);
+      await rec.clickAt('#btnSearchSubmit');
+      await rec.hold(1100);
 
-    await page.keyboard.press('Escape');
-    await page.evaluate(() => window.studioShowKeycap(true, '⌨️ Натиснуто [ Esc ]'));
-    await rec.callout('⚡ Натиснуто [Esc] — рядок виділено для миттєвої заміни!');
-    await rec.hold(1300);
-    await rec.savePoster(path.join(SHOWCASE_DIR, '09_esc_hotkey_demo.png'));
+      await page.keyboard.press('Escape');
+      await page.evaluate(() => window.studioShowKeycap(true, '⌨️ Натиснуто [ Esc ]'));
+      await rec.callout('⚡ Натиснуто [Esc] — рядок виділено для миттєвої заміни!');
+      await rec.hold(1300);
+      await rec.savePoster(path.join(SHOWCASE_DIR, '09_esc_hotkey_demo.png'));
 
-    await page.evaluate(() => window.studioShowKeycap(false));
-    await rec.typeInput('#searchInput', 'львів 1', false);
-    await rec.moveTo('#btnSearchSubmit', 380);
-    await rec.clickAt('#btnSearchSubmit', async () => {
-      await rec.setCleanSearchValue('львів 1');
-    });
-    await rec.callout('✓ Нова адреса в 1 дотик без зайвих рухів мишкою');
-    await rec.hold(2200);
-    await rec.compile(path.join(VIDEO_DIR, '00_esc_hotkey.mp4'));
+      await page.evaluate(() => window.studioShowKeycap(false));
+      await rec.typeInput('#searchInput', 'львів 1', false);
+      await rec.moveTo('#btnSearchSubmit', 380);
+      await rec.clickAt('#btnSearchSubmit', async () => {
+        await rec.setCleanSearchValue('львів 1');
+      });
+      await rec.callout('✓ Нова адреса в 1 дотик без зайвих рухів мишкою');
+      await rec.hold(2200);
+      await rec.compile(path.join(VIDEO_DIR, '00_esc_hotkey.mp4'));
+    }
 
     // =========================================================================
     // 5. РЯДОК 04 — ОРІЄНТИРИ ТА ДОСТУП ДО ПІД'ЇЗДУ (05_postomats.mp4)
     // =========================================================================
-    console.log('\n[5/9] Row 04 Postomat Landmarks: 05_postomats.mp4');
-    await rec.startCleanScenario();
-    await rec.callout('🚪 Перевірка поштомату за адресою: «київ стуса 23/9»');
-    await rec.hold(550);
-    await rec.typeInput('#searchInput', 'київ стуса 23/9');
-    await rec.moveTo('#btnSearchSubmit', 380);
-    await rec.clickAt('#btnSearchSubmit', async () => {
-      await rec.setCleanSearchValue('київ стуса 23/9');
-    });
-    await rec.hold(900);
+    if (shouldRun(5)) {
+      console.log('\n[5/9] Row 04 Postomat Landmarks: 05_postomats.mp4');
+      await rec.startCleanScenario();
+      await rec.callout('🚪 Перевірка поштомату за адресою: «київ стуса 23/9»');
+      await rec.hold(550);
+      await rec.typeInput('#searchInput', 'київ стуса 23/9');
+      await rec.moveTo('#btnSearchSubmit', 380);
+      await rec.clickAt('#btnSearchSubmit', async () => {
+        await rec.setCleanSearchValue('київ стуса 23/9');
+      });
+      await rec.hold(900);
 
-    await rec.moveTo('.street-highlight', 500);
-    await page.evaluate(() => window.studioHighlight('.street-highlight', 'studio-inline-highlight', true));
-    await rec.callout('🛡️ Видно ДО відправки: «підʼїзд №1 (ТІЛЬКИ ДЛЯ МЕШКАНЦІВ)»');
-    await rec.hold(2500);
-    await rec.savePoster(path.join(SHOWCASE_DIR, '06_postomats_landmarks.png'));
-    await rec.compile(path.join(VIDEO_DIR, '05_postomats.mp4'));
+      await rec.moveTo('.street-highlight', 500);
+      await page.evaluate(() => window.studioHighlight('.street-highlight', 'studio-inline-highlight', true));
+      await rec.callout('🛡️ Видно ДО відправки: «підʼїзд №1 (ТІЛЬКИ ДЛЯ МЕШКАНЦІВ)»');
+      await rec.hold(2500);
+      await rec.savePoster(path.join(SHOWCASE_DIR, '06_postomats_landmarks.png'));
+      await rec.compile(path.join(VIDEO_DIR, '05_postomats.mp4'));
+    }
 
     // =========================================================================
     // 6. РЯДОК 05 — РАЙОНИ ДО АДМІНРЕФОРМИ 2020 (04_crm_history.mp4)
     // =========================================================================
-    console.log('\n[6/9] Row 05 Historical Raions 2020: 04_crm_history.mp4');
-    await rec.startCleanScenario();
-    await rec.callout('📋 Пошук за старим районом: «буялик іванівський 1»');
-    await rec.hold(550);
-    await rec.typeInput('#searchInput', 'буялик іванівський 1');
-    await rec.moveTo('#btnSearchSubmit', 380);
-    await rec.clickAt('#btnSearchSubmit', async () => {
-      await rec.setCleanSearchValue('буялик іванівський 1');
-    });
-    await rec.hold(900);
+    if (shouldRun(6)) {
+      console.log('\n[6/9] Row 05 Historical Raions 2020: 04_crm_history.mp4');
+      await rec.startCleanScenario();
+      await rec.callout('📋 Пошук за старим районом: «буялик іванівський 1»');
+      await rec.hold(550);
+      await rec.typeInput('#searchInput', 'буялик іванівський 1');
+      await rec.moveTo('#btnSearchSubmit', 380);
+      await rec.clickAt('#btnSearchSubmit', async () => {
+        await rec.setCleanSearchValue('буялик іванівський 1');
+      });
+      await rec.hold(900);
 
-    await rec.moveTo('.settlement-history-hint', 520);
-    await page.evaluate(() => window.studioHighlight('.settlement-history-hint', 'studio-inline-highlight', true));
-    await rec.callout('🏷️ Видно новий район, старий «Іванівський р-н» та колишню назву!');
-    await rec.hold(2600);
-    await rec.savePoster(path.join(SHOWCASE_DIR, '08_lpcrm_historical_index.png'));
-    await rec.compile(path.join(VIDEO_DIR, '04_crm_history.mp4'));
+      await rec.moveTo('.settlement-history-hint', 520);
+      await page.evaluate(() => window.studioHighlight('.settlement-history-hint', 'studio-inline-highlight', true));
+      await rec.callout('🏷️ Видно новий район, старий «Іванівський р-н» та колишню назву!');
+      await rec.hold(2600);
+      await rec.savePoster(path.join(SHOWCASE_DIR, '08_lpcrm_historical_index.png'));
+      await rec.compile(path.join(VIDEO_DIR, '04_crm_history.mp4'));
+    }
 
     // =========================================================================
     // 7. РЯДОК 06 — FUZZY TOPO-ENGINE: ОДРУКИ (03_fuzzy.mp4)
     // =========================================================================
-    console.log('\n[7/9] Row 06 Fuzzy Typo Engine: 03_fuzzy.mp4');
-    await rec.startCleanScenario();
-    await rec.callout('⌨️ Реальний одрук оператора: «брвари 2»');
-    await rec.hold(550);
-    await rec.typeInput('#searchInput', 'брвари 2');
-    await rec.moveTo('#btnSearchSubmit', 380);
-    await rec.clickAt('#btnSearchSubmit', async () => {
-      await rec.setCleanSearchValue('брвари 2');
-    });
-    await rec.hold(850);
+    if (shouldRun(7)) {
+      console.log('\n[7/9] Row 06 Fuzzy Typo Engine: 03_fuzzy.mp4');
+      await rec.startCleanScenario();
+      await rec.callout('⌨️ Реальний одрук оператора: «брвари 2»');
+      await rec.hold(550);
+      await rec.typeInput('#searchInput', 'брвари 2');
+      await rec.moveTo('#btnSearchSubmit', 380);
+      await rec.clickAt('#btnSearchSubmit', async () => {
+        await rec.setCleanSearchValue('брвари 2');
+      });
+      await rec.hold(850);
 
-    await rec.callout('✓ Автовиправлення одруку ➔ м. Бровари, Відділення №2');
-    await rec.moveTo('.btn-copy-short', 480);
-    await rec.clickAt('.btn-copy-short');
-    await rec.hold(2300);
-    await rec.savePoster(path.join(SHOWCASE_DIR, '07_homonym_disambiguation.png'));
-    await rec.compile(path.join(VIDEO_DIR, '03_fuzzy.mp4'));
+      await rec.callout('✓ Автовиправлення одруку ➔ м. Бровари, Відділення №2');
+      await rec.moveTo('.btn-copy-short', 480);
+      await rec.clickAt('.btn-copy-short');
+      await rec.hold(2300);
+      await rec.savePoster(path.join(SHOWCASE_DIR, '07_homonym_disambiguation.png'));
+      await rec.compile(path.join(VIDEO_DIR, '03_fuzzy.mp4'));
+    }
 
     // =========================================================================
     // 8. РЯДОК 07 — КРОС-МІСТ УКРПОШТИ В СЕЛАХ (02_bridge.mp4)
     // =========================================================================
-    console.log('\n[8/9] Row 07 Cross-Service Ukrposhta Bridge: 02_bridge.mp4');
-    await rec.startCleanScenario();
-    await rec.callout('🏘️ У селі покупця немає Нової пошти: «багрин київська»');
-    await rec.hold(550);
-    await rec.typeInput('#searchInput', 'багрин київська');
-    await rec.moveTo('#btnSearchSubmit', 380);
-    await rec.clickAt('#btnSearchSubmit');
-    await rec.hold(900);
+    if (shouldRun(8)) {
+      console.log('\n[8/9] Row 07 Cross-Service Ukrposhta Bridge: 02_bridge.mp4');
+      await rec.startCleanScenario();
+      await rec.callout('🏘️ У селі покупця немає Нової пошти: «багрин київська»');
+      await rec.hold(550);
+      await rec.typeInput('#searchInput', 'багрин київська');
+      await rec.moveTo('#btnSearchSubmit', 380);
+      await rec.clickAt('#btnSearchSubmit');
+      await rec.hold(900);
 
-    await rec.callout('📮 Рушій автоматично знайшов відділення Укрпошти (08624)');
-    await rec.moveTo('#btnSwitchServiceBridge', 500);
-    await page.evaluate(() => window.studioHighlight('#btnSwitchServiceBridge', 'studio-target-glow', true));
-    await rec.hold(1300);
-    await rec.clickAt('#btnSwitchServiceBridge');
-    await rec.callout('✓ Перехід в Укрпошту в 1 клік разом із 5-значним індексом!');
-    await rec.hold(2400);
-    await rec.savePoster(path.join(SHOWCASE_DIR, '03_cross_service_bridge.png'));
-    await rec.compile(path.join(VIDEO_DIR, '02_bridge.mp4'));
+      await rec.callout('📮 Рушій автоматично знайшов відділення Укрпошти (08624)');
+      await rec.moveTo('#btnSwitchServiceBridge', 500);
+      await page.evaluate(() => window.studioHighlight('#btnSwitchServiceBridge', 'studio-target-glow', true));
+      await rec.hold(1300);
+      await rec.clickAt('#btnSwitchServiceBridge');
+      await rec.callout('✓ Перехід в Укрпошту в 1 клік разом із 5-значним індексом!');
+      await rec.hold(2400);
+      await rec.savePoster(path.join(SHOWCASE_DIR, '03_cross_service_bridge.png'));
+      await rec.compile(path.join(VIDEO_DIR, '02_bridge.mp4'));
+    }
 
     // =========================================================================
     // 9. РЯДОК 08 — ТОП-МІСТА ТА ЧЕСНИЙ СТАРТ ІЗ 0 (06_popular.mp4)
     // =========================================================================
-    console.log('\n[9/9] Row 08 Honest 0 Start & Popular Cities: 06_popular.mp4');
-    await rec.startCleanScenario();
-    await rec.callout('📊 Чесний старт із 0 — без штучних накруток');
-    await rec.hold(1200);
+    if (shouldRun(9)) {
+      console.log('\n[9/9] Row 08 Honest 0 Start & Popular Cities: 06_popular.mp4');
+      await rec.startCleanScenario();
+      await rec.callout('📊 Чесний старт із 0 — без штучних накруток');
+      await rec.hold(1200);
 
-    const firstChipSel = '#frequentChipsGrid .query-chip-btn';
-    await rec.moveTo(firstChipSel, 480);
-    await page.evaluate((sel) => window.studioHighlight(sel, 'studio-target-glow', true), firstChipSel);
-    await rec.hold(400);
-    await rec.clickAt(firstChipSel);
-    await rec.hold(350);
+      const firstChipSel = '#frequentChipsGrid .query-chip-btn';
+      await rec.moveTo(firstChipSel, 480);
+      await page.evaluate((sel) => window.studioHighlight(sel, 'studio-target-glow', true), firstChipSel);
+      await rec.hold(400);
+      await rec.clickAt(firstChipSel);
+      await rec.hold(350);
 
-    const firstAcSel = '#autocompleteDropdown .autocomplete-item';
-    if (await page.$(firstAcSel)) {
-      await rec.moveTo(firstAcSel, 420);
-      await rec.clickAt(firstAcSel);
+      const firstAcSel = '#autocompleteDropdown .autocomplete-item';
+      if (await page.$(firstAcSel)) {
+        await rec.moveTo(firstAcSel, 420);
+        await rec.clickAt(firstAcSel);
+      }
+      await rec.callout('⚡ Миттєва видача за 0.01 с та автопідйом ваших робочих міст у топ');
+      await rec.hold(2400);
+      await rec.savePoster(path.join(SHOWCASE_DIR, '01_popular_queries.png'));
+      await rec.compile(path.join(VIDEO_DIR, '06_popular.mp4'));
     }
-    await rec.callout('⚡ Миттєва видача за 0.01 с та автопідйом ваших робочих міст у топ');
-    await rec.hold(2400);
-    await rec.savePoster(path.join(SHOWCASE_DIR, '01_popular_queries.png'));
-    await rec.compile(path.join(VIDEO_DIR, '06_popular.mp4'));
 
-    console.log('\n🎉 ALL 9 ABOUT SHOWCASE VIDEOS & POSTERS REGENERATED SUCCESSFULLY!');
+    console.log('\n🎉 ABOUT SHOWCASE RECORDING COMPLETE!');
   } finally {
     await browser.close();
     server.close();

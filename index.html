@@ -13,13 +13,15 @@
     gtag('config', 'G-FDP1F97F01');
   </script>
 
-  <!-- Microsoft Clarity -->
+  <!-- Microsoft Clarity (тільки для реальних відвідувачів на живому сайті, без localhost та headless-ботів) -->
   <script type="text/javascript">
-    (function(c,l,a,r,i,t,y){
-      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "zf6z81nkc9");
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && window.location.protocol !== 'file:' && !navigator.userAgent.includes('HeadlessChrome')) {
+      (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "zf6z81nkc9");
+    }
   </script>
   <title>Пошук відділень — Нова пошта та Укрпошта</title>
   
@@ -331,7 +333,7 @@
             <li><strong>Адаптивне відображення блоку історії:</strong> Автоматичне приховування «Історії останніх пошуків» при великому списку адрес (для збереження компактності екрана без скролу) та збереження історії за замовчуванням при відображенні картки обраного відділення чи на головній сторінці.</li>
             <li><strong>Захист від дублювання райцентрів (Кам'янець-Подільський):</strong> Виправлено автозаповнення міст із однойменними районами — усунено дублювання назви та блокування списку відділень відділенням №11.</li>
             <li><strong>Гарячі клавіші Command+A / Ctrl+A:</strong> Налаштовано миттєве закриття автокомпліту та виділення тексту поля пошуку в 1 клік (аналог клавіші Escape).</li>
-            <li><strong>Розширений поведінковий трекінг Clarity &amp; GA4:</strong> Додано зняття маскування <code>data-clarity-unmask="true"</code>, аналітику кинутих пошуків (<code>search_abandoned</code>), замір швидкості знаходження (<code>time_to_copy</code>) та детекцію перемикання пошти після невдалого запиту (<code>switch_after_unsuccessful_search</code>).</li>
+            <li><strong>Розширений поведінковий трекінг Clarity &amp; GA4:</strong> Додано зняття маскування <code>data-clarity-unmask="true"</code>, аналітику кинутих пошуків (<code>search_abandoned</code>), замір швидкості знаходження (<code>time_to_copy</code>), детекцію перемикання пошти після невдалого запиту (<code>switch_after_unsuccessful_search</code>) та фільтрацію localhost/HeadlessChrome для збереження чистоти аналітики.</li>
             <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.54.</li>
           </ul>
         </div>

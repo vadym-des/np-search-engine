@@ -885,9 +885,9 @@ async function runAboutTourDirector() {
     await rec.moveTo('#feature-branch-range-hint .ds-zigzag-media', 600);
     await rec.hold(3600);
 
-    // Block 02: LP-CRM & Communities
+    // Block 02: LP-CRM Hint
     await rec.smoothScrollToElement('#feature-lpcrm-tg', 150, 850);
-    await rec.showCallout('02 / 04', 'Точні назви громад (ТГ) для LP-CRM в 1 клік');
+    await rec.showCallout('02 / 04', 'Підказка «В LP-CRM»: показує, як населений пункт записаний у базі CRM');
     await rec.moveTo('#feature-lpcrm-tg .ds-zigzag-media', 600);
     await rec.hold(3400);
 
