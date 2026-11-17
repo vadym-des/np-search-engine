@@ -527,17 +527,28 @@ async function runAll() {
     if (shouldRun(4)) {
       console.log('\n[4/9] Row 03 Esc Hotkey: 00_esc_hotkey.mp4');
       await rec.startCleanScenario();
-      await rec.callout('⌨️ Попередній пошук: «київ хрещатик»');
+      await rec.callout('🔍 Попереднє замовлення клієнта: «київ хрещатик 1»');
       await rec.hold(500);
-      await rec.typeInput('#searchInput', 'київ хрещатик');
+      await rec.typeInput('#searchInput', 'київ хрещатик 1');
       await rec.moveTo('#btnSearchSubmit', 380);
-      await rec.clickAt('#btnSearchSubmit');
+      await rec.clickAt('#btnSearchSubmit', async () => {
+        await rec.setCleanSearchValue('київ хрещатик 1');
+      });
       await rec.hold(1100);
 
+      // Імітуємо рух руки: замість кліку по хрестику (×) — натискаємо Esc
+      await rec.moveTo('#searchInput', 320);
       await page.keyboard.press('Escape');
-      await page.evaluate(() => window.studioShowKeycap(true, '⌨️ Натиснуто [ Esc ]'));
-      await rec.callout('⚡ Натиснуто [Esc] — рядок виділено для миттєвої заміни!');
-      await rec.hold(1300);
+      await page.evaluate(() => {
+        const inp = document.querySelector('#searchInput');
+        if (inp) {
+          inp.focus();
+          inp.select();
+        }
+        window.studioShowKeycap(true, '⌨️ [ Esc ] або [ Cmd+A ]');
+      });
+      await rec.callout('⚡ Не тягніться до хрестика (×) — [Esc] виділяє весь текст!');
+      await rec.hold(1500);
       await rec.savePoster(path.join(SHOWCASE_DIR, '09_esc_hotkey_demo.png'));
 
       await page.evaluate(() => window.studioShowKeycap(false));
@@ -546,8 +557,8 @@ async function runAll() {
       await rec.clickAt('#btnSearchSubmit', async () => {
         await rec.setCleanSearchValue('львів 1');
       });
-      await rec.callout('✓ Нова адреса в 1 дотик без зайвих рухів мишкою');
-      await rec.hold(2200);
+      await rec.callout('✓ Одразу друкуйте нову адресу — заміна за 1 секунду без мишки!');
+      await rec.hold(2400);
       await rec.compile(path.join(VIDEO_DIR, '00_esc_hotkey.mp4'));
     }
 

@@ -893,7 +893,7 @@ async function runAboutTourDirector() {
 
     // Block 03 & 04: Hotkeys Esc + Postomat Landmarks
     await rec.smoothScrollToElement('#feature-hotkeys', 150, 850);
-    await rec.showCallout('03 / 04', 'Гаряча клавіша Esc, орієнтири підʼїздів та історичні райони');
+    await rec.showCallout('03 / 04', 'Швидка заміна замовлення за Esc: руки на клавіатурі без кліків по (×)');
     await rec.moveTo('#feature-hotkeys .ds-zigzag-media', 500);
     await rec.hold(1700);
 
