@@ -17,7 +17,7 @@
 
 <br>
 
-<img src="assets/showcase/00_hero_retina.png" alt="NP & Ukrposhta Smart Search Engine Interface" width="100%" style="border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.15); max-width: 1100px;">
+<img src="assets/showcase/00_start_screen.png" alt="NP & Ukrposhta Smart Search Engine — Стартовий екран" width="100%" style="border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.15); max-width: 1100px;">
 
 </div>
 
