@@ -7,7 +7,17 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.6.53';
+  const APP_VERSION = '1.6.54';
+
+  // Відстеження активної пошукової сесії для розширеної воронки (Abandonment, Time-to-Copy, Friction)
+  const lastSearchSession = {
+    query: '',
+    service: 'novaposhta',
+    timestamp: 0,
+    resultsCount: 0,
+    hasCopied: false,
+    abandonedTracked: false
+  };
 
   // Безпечне відправлення подій у Microsoft Clarity
   function trackClarityEvent(eventName) {
@@ -35,6 +45,43 @@
     }
   }
 
+  // Обробник відвалу оператора (закрив вкладку або пішов на інший сайт без копіювання)
+  function handleSessionAbandonment() {
+    try {
+      if (
+        lastSearchSession.query &&
+        !lastSearchSession.hasCopied &&
+        !lastSearchSession.abandonedTracked &&
+        lastSearchSession.timestamp > 0
+      ) {
+        const elapsed = Date.now() - lastSearchSession.timestamp;
+        // Фіксуємо кинутий пошук тільки якщо користувач пробув з результатами хоча б 3 секунди
+        if (elapsed >= 3000) {
+          lastSearchSession.abandonedTracked = true;
+          trackClarityEvent('search_abandoned');
+          setClarityTag('abandoned_query', lastSearchSession.query.slice(0, 50));
+          trackEvent('search_abandoned', {
+            search_term: lastSearchSession.query,
+            service: lastSearchSession.service === 'novaposhta' ? 'NP' : 'UKR',
+            results_count: lastSearchSession.resultsCount,
+            duration_sec: Math.round(elapsed / 1000)
+          });
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        handleSessionAbandonment();
+      }
+    });
+  }
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('pagehide', handleSessionAbandonment);
+  }
+
   // Безпечне відправлення подій у Google Analytics 4 (GA4) та синхронізація з Clarity
   function trackEvent(eventName, params = {}) {
     try {
@@ -53,6 +100,16 @@
         trackClarityEvent('branch_copied');
         if (params && params.branch_type) {
           setClarityTag('branch_type', params.branch_type);
+        }
+        if (lastSearchSession.query && !lastSearchSession.hasCopied) {
+          lastSearchSession.hasCopied = true;
+          const timeToCopy = Math.max(1, Math.round((Date.now() - lastSearchSession.timestamp) / 1000));
+          setClarityTag('time_to_copy_sec', timeToCopy);
+          trackEvent('time_to_copy', {
+            search_term: lastSearchSession.query,
+            duration_sec: timeToCopy,
+            service: lastSearchSession.service === 'novaposhta' ? 'NP' : 'UKR'
+          });
         }
       }
     } catch (e) {
@@ -290,6 +347,21 @@
   // ==========================================================================
   async function switchService(serviceName, explicitTargetQuery = null, directBranchTarget = null) {
     if (state.currentService === serviceName && !explicitTargetQuery && !directBranchTarget) return;
+
+    // Детекція перемикання після неуспішного пошуку (Switch on Failure)
+    if (lastSearchSession.query && !lastSearchSession.hasCopied && !lastSearchSession.abandonedTracked) {
+      const elapsed = Date.now() - lastSearchSession.timestamp;
+      if (elapsed > 1000 && elapsed < 45000) {
+        trackClarityEvent('switch_after_unsuccessful_search');
+        setClarityTag('switched_from_query', lastSearchSession.query.slice(0, 50));
+        trackEvent('switch_after_unsuccessful_search', {
+          search_term: lastSearchSession.query,
+          from_service: state.currentService === 'novaposhta' ? 'NP' : 'UKR',
+          to_service: serviceName === 'novaposhta' ? 'NP' : 'UKR',
+          results_count: lastSearchSession.resultsCount
+        });
+      }
+    }
 
     state.currentService = serviceName;
     dom.body.setAttribute('data-service', serviceName);
@@ -1619,6 +1691,15 @@
       recordSearchHistory(historyQuery, results.length);
       const svc = state.currentService === 'novaposhta' ? 'NP' : 'UKR';
       setClarityTag('service', svc);
+
+      // Оновлюємо стан сесії для відстеження конверсій та відвалів
+      lastSearchSession.query = rawQuery;
+      lastSearchSession.service = state.currentService;
+      lastSearchSession.timestamp = Date.now();
+      lastSearchSession.resultsCount = results.length;
+      lastSearchSession.hasCopied = false;
+      lastSearchSession.abandonedTracked = false;
+
       trackEvent('search_performed', {
         search_term: rawQuery,
         query_length: rawQuery.length,

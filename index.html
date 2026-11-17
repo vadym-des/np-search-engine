@@ -207,6 +207,7 @@
               placeholder="Місто, індекс, вулиця чи № відділення..." 
               autocomplete="off"
               spellcheck="false"
+              data-clarity-unmask="true"
             >
 
             <button type="button" id="btnClearSearch" class="btn-clear-search hidden" title="Очистити поле" aria-label="Очистити">✕</button>
@@ -218,11 +219,11 @@
         </form>
 
         <!-- LP-CRM стиль інтерактивний Autocomplete Dropdown -->
-        <div id="autocompleteDropdown" class="autocomplete-dropdown hidden" role="listbox" aria-label="Підказки населених пунктів та відділень"></div>
+        <div id="autocompleteDropdown" class="autocomplete-dropdown hidden" role="listbox" aria-label="Підказки населених пунктів та відділень" data-clarity-unmask="true"></div>
       </section>
 
       <!-- РЕЗУЛЬТАТИ ПОШУКУ (Динамічний блок) -->
-      <section id="searchResultsSection" class="search-results-section hidden" aria-live="polite">
+      <section id="searchResultsSection" class="search-results-section hidden" aria-live="polite" data-clarity-unmask="true">
         <!-- Блок Google-style "Можливо, ви мали на увазі:" -->
         <div id="didYouMeanBox" class="did-you-mean-box hidden"></div>
 
@@ -330,6 +331,7 @@
             <li><strong>Адаптивне відображення блоку історії:</strong> Автоматичне приховування «Історії останніх пошуків» при великому списку адрес (для збереження компактності екрана без скролу) та збереження історії за замовчуванням при відображенні картки обраного відділення чи на головній сторінці.</li>
             <li><strong>Захист від дублювання райцентрів (Кам'янець-Подільський):</strong> Виправлено автозаповнення міст із однойменними районами — усунено дублювання назви та блокування списку відділень відділенням №11.</li>
             <li><strong>Гарячі клавіші Command+A / Ctrl+A:</strong> Налаштовано миттєве закриття автокомпліту та виділення тексту поля пошуку в 1 клік (аналог клавіші Escape).</li>
+            <li><strong>Розширений поведінковий трекінг Clarity &amp; GA4:</strong> Додано зняття маскування <code>data-clarity-unmask="true"</code>, аналітику кинутих пошуків (<code>search_abandoned</code>), замір швидкості знаходження (<code>time_to_copy</code>) та детекцію перемикання пошти після невдалого запиту (<code>switch_after_unsuccessful_search</code>).</li>
             <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.54.</li>
           </ul>
         </div>
