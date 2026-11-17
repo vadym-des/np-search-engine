@@ -312,8 +312,14 @@ class StudioRecorder {
       const videos = Array.from(document.querySelectorAll('video'));
       const seeks = [];
       for (const v of videos) {
+        if (!v.duration || !isFinite(v.duration) || v.duration <= 0) continue;
         const rect = v.getBoundingClientRect();
-        if (rect.bottom > -80 && rect.top < vh + 80 && v.duration && isFinite(v.duration) && v.duration > 0) {
+        // Рахуємо видиму частину висоти відео на екрані
+        const visibleHeight = Math.max(0, Math.min(rect.bottom, vh) - Math.max(rect.top, 0));
+        const visibleRatio = rect.height > 0 ? (visibleHeight / rect.height) : 0;
+
+        // Відео прокручується вперед ТІЛЬКИ коли >= 50% його площі реально на екрані
+        if (visibleRatio >= 0.50) {
           v.pause();
           const nextTime = (v.currentTime + dt) % v.duration;
           seeks.push(new Promise(resolve => {
@@ -329,10 +335,25 @@ class StudioRecorder {
             v.currentTime = nextTime;
             setTimeout(finish, 65);
           }));
+        } else if (visibleRatio < 0.15 && v.currentTime > 0) {
+          // Якщо відео вийшло з фокусу — скидаємо його на нульову секунду
+          v.currentTime = 0;
         }
       }
       if (seeks.length) await Promise.all(seeks);
     }, 1 / FPS);
+  }
+
+  async focusBlockVideo(selector) {
+    await this.page.evaluate((sel) => {
+      const container = document.querySelector(sel);
+      if (!container) return;
+      const v = container.tagName === 'VIDEO' ? container : container.querySelector('video');
+      if (v) {
+        v.pause();
+        v.currentTime = 0;
+      }
+    }, selector);
   }
 
   async snap() {
@@ -881,33 +902,39 @@ async function runAboutTourDirector() {
     console.log('\n--- [Scene 3/5] Features Walkthrough ---');
 
     // Block 01: Smart Branch Range Hint
+    await rec.focusBlockVideo('#feature-branch-range-hint');
     await rec.showCallout('01 / 04', 'Розумна підказка номерів відділень без спаму поштоматами');
     await rec.moveTo('#feature-branch-range-hint .ds-zigzag-media', 600);
     await rec.hold(3600);
 
     // Block 02: LP-CRM Hint
     await rec.smoothScrollToElement('#feature-lpcrm-tg', 150, 850);
+    await rec.focusBlockVideo('#feature-lpcrm-tg');
     await rec.showCallout('02 / 04', 'Підказка «В LP-CRM»: показує, як населений пункт записаний у базі CRM');
     await rec.moveTo('#feature-lpcrm-tg .ds-zigzag-media', 600);
     await rec.hold(3400);
 
     // Block 03 & 04: Hotkeys Esc + Postomat Landmarks
     await rec.smoothScrollToElement('#feature-hotkeys', 150, 850);
+    await rec.focusBlockVideo('#feature-hotkeys');
     await rec.showCallout('03 / 04', 'Швидка заміна замовлення за Esc: руки на клавіатурі без кліків по (×)');
     await rec.moveTo('#feature-hotkeys .ds-zigzag-media', 500);
     await rec.hold(1700);
 
     await rec.smoothScrollToElement('[data-media-slot="postomats"]', 160, 800);
+    await rec.focusBlockVideo('[data-media-slot="postomats"]');
     await rec.moveTo('[data-media-slot="postomats"]', 500);
     await rec.hold(1900);
 
     // Block 06 & 07: Fuzzy Topo-Engine + Ukrposhta Bridge
     await rec.smoothScrollToElement('[data-media-slot="fuzzy"]', 160, 950);
+    await rec.focusBlockVideo('[data-media-slot="fuzzy"]');
     await rec.showCallout('04 / 04', 'Виправлення одруків та автоперехід на Укрпошту');
     await rec.moveTo('[data-media-slot="fuzzy"]', 500);
     await rec.hold(1700);
 
     await rec.smoothScrollToElement('[data-media-slot="bridge"]', 160, 800);
+    await rec.focusBlockVideo('[data-media-slot="bridge"]');
     await rec.moveTo('[data-media-slot="bridge"]', 500);
     await rec.hold(1900);
 
