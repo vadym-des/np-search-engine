@@ -3912,6 +3912,280 @@ async function runTests() {
     console.error('  ✗ Провал Тесту 63:', err.message, '\n');
   }
 
+  // --------------------------------------------------------------------------
+  totalTests++;
+  try {
+    console.log('▶ ТЕСТ 64: Захист від втрати символів при надшвидкому наборі цифр (Fast Digits Typing Protection)');
+
+    // 1. Сценарій А: Швидкий набір номера відділення після міста ("Київ 1" -> "Київ 14" -> "Київ 144")
+    searchInput.value = 'Київ ';
+    searchInput.dispatchEvent({ type: 'input' });
+
+    searchInput.value = 'Київ 1';
+    searchInput.dispatchEvent({ type: 'input' });
+
+    // Імітуємо швидке натискання наступних цифр без очікування повного дебаунсу
+    await sleep(20);
+    searchInput.value = 'Київ 14';
+    searchInput.dispatchEvent({ type: 'input' });
+
+    await sleep(20);
+    searchInput.value = 'Київ 144';
+    searchInput.dispatchEvent({ type: 'input' });
+
+    // Очікуємо спрацьовування фонових таймерів (дебаунс + safeRAF)
+    await sleep(250);
+
+    // Перевіряємо, що інпут зберіг повне набране значення "Київ 144" і не був передчасно
+    // перезаписаний або обрізаний фоновим пошуком проміжних цифр (наприклад до "Київ 1" чи "Київ Київська 1")
+    if (searchInput.value !== 'Київ 144') {
+      throw new Error(`Очікувалось збереження значення 'Київ 144', поточне: '${searchInput.value}'`);
+    }
+
+    // 2. Сценарій Б: Швидкий набір 5-значного поштового індексу ("4" -> "47" -> "475" -> "4750" -> "47501")
+    searchInput.value = '4';
+    searchInput.dispatchEvent({ type: 'input' });
+
+    await sleep(15);
+    searchInput.value = '47';
+    searchInput.dispatchEvent({ type: 'input' });
+
+    await sleep(15);
+    searchInput.value = '475';
+    searchInput.dispatchEvent({ type: 'input' });
+
+    await sleep(15);
+    searchInput.value = '4750';
+    searchInput.dispatchEvent({ type: 'input' });
+
+    await sleep(15);
+    searchInput.value = '47501';
+    searchInput.dispatchEvent({ type: 'input' });
+
+    await sleep(250);
+
+    if (searchInput.value !== '47501') {
+      throw new Error(`Очікувалось збереження індексу '47501', поточне: '${searchInput.value}'`);
+    }
+
+    console.log('  ✓ Успіх: Швидкий набір цифр (\"Київ 144\", \"47501\") бездоганно зберігає всі символи без втрат та перезапису!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 64:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  totalTests++;
+  try {
+    console.log('▶ ТЕСТ 65: Захист від воскресіння старих запитів при перемиканні служб із порожнім інпутом');
+
+    // 1. Користувач був на Новій пошті та виконав пошук "Київ 1"
+    await window.switchService('novaposhta', 'Київ 1');
+    await window.executeSearch('Київ 1', true, true);
+    await sleep(50);
+
+    const appState = window._appStateForTesting;
+    if (!appState.selectedBranch) {
+      throw new Error('Повинно бути обране відділення на Новій пошті');
+    }
+
+    // 2. Перейшов на Укрпошту (запит перенісся на "Київ")
+    await window.switchService('ukrposhta');
+    await sleep(50);
+
+    // 3. Стер в полі Укрпошти все (порожній інпут)
+    searchInput.value = '';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(50);
+
+    if (searchInput.value !== '') {
+      throw new Error(`Поле пошуку має бути порожнім після стирання, поточне: '${searchInput.value}'`);
+    }
+
+    // 4. Переходить назад на Нову пошту
+    await window.switchService('novaposhta');
+    await sleep(50);
+
+    // 5. Поле має залишатися абсолютно порожнім, старий запит не воскресає!
+    if (searchInput.value !== '') {
+      throw new Error(`Очікувалось чисте порожнє поле на Новій пошті, отримано: '${searchInput.value}'`);
+    }
+    if (appState.searchQuery !== '') {
+      throw new Error(`state.searchQuery має бути порожнім, поточне: '${appState.searchQuery}'`);
+    }
+    if (appState.selectedBranch !== null) {
+      throw new Error('state.selectedBranch має бути null після переходу з порожнього поля');
+    }
+
+    const resultsSec = elementsById['searchResultsSection'];
+    if (resultsSec && !resultsSec.classList.contains('hidden')) {
+      throw new Error('searchResultsSection має бути приховано для порожнього інпуту');
+    }
+
+    console.log('  ✓ Успіх: Очищене поле на Укрпошті не воскрешає старий запит при поверненні на Нову пошту!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 65:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  totalTests++;
+  try {
+    console.log('▶ ТЕСТ 66: Перемикання з обраного індексу Укрпошти на Нову пошту повертає відділення Києва (без Киликиєва)');
+
+    // 1. Користувач переходить на Укрпошту та обирає відділення Києва 01001
+    await window.switchService('ukrposhta', 'Київ');
+    await window.executeSearch('Київ', true, true);
+    await sleep(50);
+
+    const appState = window._appStateForTesting;
+    const upBranches = window.BRANCHES_DATA.ukrposhta || [];
+    const kyivUp = upBranches.find(b => b.city === 'Київ' && (b.index === '01001' || b.number === '01001')) || upBranches[0];
+
+    if (kyivUp && window.renderResultCard) {
+      // Імітуємо клік на картку першого індексу Укрпошти
+      window.selectBranch(kyivUp);
+      await sleep(50);
+    }
+
+    if (!searchInput.value.includes('Київ')) {
+      throw new Error(`В полі Укрпошти очікувався Київ, отримано: '${searchInput.value}'`);
+    }
+
+    // 2. Користувач тисне на таб "Нова пошта"
+    await window.switchService('novaposhta');
+    await sleep(80);
+
+    // 3. Перевіряємо, що запит перенісся на Київ, а не на Киликиїв
+    if (searchInput.value.includes('Киликиїв') || appState.searchQuery.includes('Киликиїв')) {
+      throw new Error(`Хибне зіставлення з селом Киликиїв! Поточний інпут: '${searchInput.value}', state.searchQuery: '${appState.searchQuery}'`);
+    }
+    if (!searchInput.value.includes('Київ')) {
+      throw new Error(`Поле Нової пошти повинно містити Київ, отримано: '${searchInput.value}'`);
+    }
+    if (!appState.currentResults || appState.currentResults.length === 0) {
+      throw new Error('Очікувались відділення Нової пошти для Києва, список результатів порожній');
+    }
+    const firstCity = appState.currentResults[0].city;
+    if (firstCity !== 'Київ') {
+      throw new Error(`Очікувалось місто Київ, перший результат: '${firstCity}'`);
+    }
+
+    console.log(`  ✓ Успіх: Перехід з Укрпошти відкрив ${appState.currentResults.length} відділень Києва Нової пошти без колізії з Киликиєвом!\n`);
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 66:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  totalTests++;
+  try {
+    console.log('▶ ТЕСТ 67: Підтримка гарячих клавіш Command+A / Ctrl+A для виділення тексту та закриття поп-апу (еквівалент Escape)');
+
+    // 1. Відкриваємо автокомпліт
+    searchInput.value = 'Льв';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(350);
+
+    let textSelected = false;
+    searchInput.select = () => { textSelected = true; };
+
+    // 2. Симулюємо Command+A в інпуті
+    searchInput.dispatchEvent({
+      type: 'keydown',
+      metaKey: true,
+      key: 'a',
+      code: 'KeyA',
+      preventDefault: () => {}
+    });
+
+    if (!dropdown.classList.contains('hidden')) {
+      throw new Error('Поп-ап не закрився після натискання Command+A в інпуті');
+    }
+    if (!textSelected) {
+      throw new Error('Command+A не викликав select() для виділення тексту');
+    }
+
+    // 3. Симулюємо Command+A глобально по документу (наприклад, з українською розкладкою 'ф')
+    textSelected = false;
+    mockDocument.dispatchEvent({
+      type: 'keydown',
+      metaKey: true,
+      key: 'ф',
+      code: 'KeyA',
+      preventDefault: () => {}
+    });
+
+    if (!textSelected) {
+      throw new Error('Command+A з українською розкладкою (ф) не викликав select()');
+    }
+
+    // 4. Симулюємо Ctrl+A (Windows/Linux)
+    textSelected = false;
+    mockDocument.dispatchEvent({
+      type: 'keydown',
+      ctrlKey: true,
+      key: 'a',
+      code: 'KeyA',
+      preventDefault: () => {}
+    });
+
+    if (!textSelected) {
+      throw new Error('Ctrl+A не викликав select()');
+    }
+
+    console.log('  ✓ Успіх: Command+A та Ctrl+A (як з en "a", так і з ua "ф") закривають поп-ап та виділяють текст як кнопка Escape!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 67:', err.message, '\n');
+  }
+
+  // --------------------------------------------------------------------------
+  // ТЕСТ 68: Вибір міста з однойменним районом ("Кам'янець-Подільський")
+  //          - не дублює назву району в інпуті ("Кам'янець-Подільський Хмельницька ")
+  //          - показує повний список відділень у природному порядку (№1, 2, 3...)
+  //          - не ізолює хибно Відділення №11 як єдине обране
+  // --------------------------------------------------------------------------
+  totalTests++;
+  try {
+    console.log('▶ ТЕСТ 68: Вибір міста з однойменним районом ("Кам\'янець-Подільський") без дублювання та хибного вибору №11');
+    const searchInput = elementsById['searchInput'];
+    searchInput.value = 'кам';
+
+    if (window.selectAutocompleteItem) {
+      await window.selectAutocompleteItem({
+        mode: 'city',
+        type: 'місто',
+        title: 'Кам\'янець-Подільський',
+        settlementObj: {
+          name: 'місто Кам\'янець-Подільський',
+          cleanName: 'Кам\'янець-Подільський',
+          raion: 'Кам\'янець-Подільський',
+          oblast: 'Хмельницька',
+          type: 'місто'
+        }
+      });
+    }
+
+    const val = searchInput.value;
+    if (val.includes('Кам\'янець-Подільський Кам\'янець-Подільський') || val.includes('Камянець Камянець')) {
+      throw new Error(`Назва міста здубльована в інпуті: "${val}"`);
+    }
+    if (!val.startsWith('Кам\'янець-Подільський')) {
+      throw new Error(`Інпут не починається з назви міста: "${val}"`);
+    }
+
+    // Перевіряємо що обране відділення не встановлене у №11 і результат містить нормальні відділення міста
+    if (window.state && window.state.selectedBranch) {
+      throw new Error(`Місто помилково встановило selectedBranch #${window.state.selectedBranch.number} замість показу списку`);
+    }
+
+    console.log('  ✓ Успіх: "Кам\'янець-Подільський" підставив чистий рядок без дублювання району, а список відділень не блокується відділенням №11!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 68:', err.message, '\n');
+  }
+
   console.log('===============================================================');
   console.log(`📊 РЕЗУЛЬТАТ: ${passedTests} / ${totalTests} ТЕСТІВ ПРОЙДЕНО УСПІШНО!`);
   console.timeEnd('⏱️ Час виконання тестів');

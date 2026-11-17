@@ -12,6 +12,15 @@
     gtag('js', new Date());
     gtag('config', 'G-FDP1F97F01');
   </script>
+
+  <!-- Microsoft Clarity -->
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "zf6z81nkc9");
+  </script>
   <title>Пошук відділень — Нова пошта та Укрпошта</title>
   
   <!-- Cache Control Meta Tags to ensure immediate index.html updates -->
@@ -56,7 +65,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.52">
+  <link rel="stylesheet" href="styles.css?v=1.6.53">
 </head>
 <body data-service="novaposhta">
 
@@ -258,7 +267,7 @@
       </section>
 
       <!-- 5. ІСТОРІЯ ОСТАННІХ ПОШУКІВ (За останні 5 днів, 5 записів) -->
-      <section class="recent-history-section" aria-label="Історія останніх пошуків">
+      <section id="recentHistorySection" class="recent-history-section" aria-label="Історія останніх пошуків">
         <div class="section-meta-header">
           <h2 class="section-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
@@ -283,7 +292,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.52</span>
+          <span class="version-tag">v1.6.53</span>
         </button>
       </div>
 
@@ -309,8 +318,23 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.52 -->
+        <!-- Версія 1.6.53 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.53</span>
+            <span class="version-state">Інтеграція Microsoft Clarity, аналіз поведінки операторів та смарт-мітки пошуку</span>
+            <span class="version-date">17 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Microsoft Clarity Session Recording:</strong> Підключено офіційний скрипт аналітики сесій Microsoft Clarity (<code>zf6z81nkc9</code>) для візуального запису взаємодії операторів з пошуком.</li>
+            <li><strong>Смарт-мітки якості видачі:</strong> Додано кастомні події Clarity: <code>search_zero_results</code> (із фіксацією тексту проблемного запиту), <code>search_success</code>, <code>branch_copied</code> та перемикання поштової служби (<code>service: NP / UKR</code>) для миттєвої фільтрації проблемних сесій у кабінеті Clarity.</li>
+            <li><strong>Збагачення GA4-подій:</strong> У подію <code>search_performed</code> інтегровано параметри <code>search_term</code> та <code>has_results</code> для точного формування пошукових воронок.</li>
+            <li><strong>Оновлення Service Worker:</strong> Налаштовано прямий пропуск аналітики <code>clarity.ms</code> повз кеш та оновлено статичний кеш до v1.6.53.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.52 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.52</span>
             <span class="version-state">Пріоритет Івано-Франківська в автокомпліті, спільнокоренева корекція за вулицею та пошук Укрпошти за адресою</span>
@@ -1588,21 +1612,21 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.fast.js?v=1.6.52"></script>
+  <script src="data/branches.fast.js?v=1.6.53"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.52"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.53"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.52"></script>
+  <script src="data/all_settlements.js?v=1.6.53"></script>
 
   <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
-  <script src="data/crm_settlements.js?v=1.6.52"></script>
+  <script src="data/crm_settlements.js?v=1.6.53"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.52"></script>
+  <script src="data/fuzzySearch.js?v=1.6.53"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.52"></script>
+  <script src="app.js?v=1.6.53"></script>
 </body>
 </html>

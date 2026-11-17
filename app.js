@@ -7,9 +7,35 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.6.18';
+  const APP_VERSION = '1.6.53';
 
-  // Безпечне відправлення подій у Google Analytics 4 (GA4)
+  // Безпечне відправлення подій у Microsoft Clarity
+  function trackClarityEvent(eventName) {
+    try {
+      if (typeof clarity === 'function') {
+        clarity('event', eventName);
+      } else if (typeof window !== 'undefined' && typeof window.clarity === 'function') {
+        window.clarity('event', eventName);
+      }
+    } catch (e) {
+      // Захист від блокувальників реклами
+    }
+  }
+
+  // Безпечне встановлення кастомних тегів у Microsoft Clarity
+  function setClarityTag(key, value) {
+    try {
+      if (typeof clarity === 'function') {
+        clarity('set', key, String(value));
+      } else if (typeof window !== 'undefined' && typeof window.clarity === 'function') {
+        window.clarity('set', key, String(value));
+      }
+    } catch (e) {
+      // Захист від блокувальників реклами
+    }
+  }
+
+  // Безпечне відправлення подій у Google Analytics 4 (GA4) та синхронізація з Clarity
   function trackEvent(eventName, params = {}) {
     try {
       if (typeof gtag === 'function') {
@@ -19,6 +45,18 @@
       }
     } catch (e) {
       // Захист від блокувальників реклами та розривів виконання
+    }
+
+    // Автоматична синхронізація ключових дій у Clarity
+    try {
+      if (eventName === 'copy_branch_address' || eventName === 'copy_crm_hint') {
+        trackClarityEvent('branch_copied');
+        if (params && params.branch_type) {
+          setClarityTag('branch_type', params.branch_type);
+        }
+      }
+    } catch (e) {
+      // Ізоляція від помилок
     }
   }
 
@@ -107,6 +145,7 @@
 
     // Найчастіші запити та історія
     frequentChipsGrid: document.getElementById('frequentChipsGrid'),
+    recentHistorySection: document.getElementById('recentHistorySection'),
     recentHistoryList: document.getElementById('recentHistoryList'),
     btnClearHistory: document.getElementById('btnClearHistory'),
 
@@ -254,6 +293,8 @@
 
     state.currentService = serviceName;
     dom.body.setAttribute('data-service', serviceName);
+    setClarityTag('service', serviceName === 'novaposhta' ? 'NP' : 'UKR');
+    trackClarityEvent('switch_service_' + (serviceName === 'novaposhta' ? 'np' : 'ukr'));
 
     if (serviceName === 'novaposhta') {
       dom.btnNovaPoshta.classList.add('active');
@@ -363,16 +404,28 @@
     }
 
     // Сценарій 1 & 2: Розумний перенос населеного пункту або цільового запиту при зміні служби
-    const prevQuery = (state.searchQuery || (dom.searchInput ? dom.searchInput.value : '')).trim();
+    const currentInputVal = (dom.searchInput ? dom.searchInput.value : '').trim();
     let transferQuery = '';
 
     if (explicitTargetQuery) {
       transferQuery = explicitTargetQuery.trim();
+    } else if (!currentInputVal) {
+      // КРИТИЧНО: Якщо поле пошуку в поточній службі повністю порожнє (користувач стер текст або очистив поле),
+      // заборонено воскрешати старий збережений запит або трансформувати попередній вибір!
+      // Поле нової служби має залишатися абсолютно чистим і результати приховані!
+      transferQuery = '';
+      state.searchQuery = '';
+      state.selectedBranch = null;
+      state.selectedSettlement = null;
+      state.lockedInputValue = null;
     } else if (state.selectedBranch && state.selectedBranch.city) {
       const b = state.selectedBranch;
       const cCity = cleanSettlementName(b.city);
       let cRaion = cleanRaionName(b.raion || b.district || b.SettlementRegionsDescription || '');
       let cObl = cleanOblastName(b.oblast || b.region || b.SettlementAreaDescription || '');
+      if (cCity.toLowerCase() === 'київ' && (!cObl || cObl.toLowerCase() === 'київ')) {
+        cObl = 'Київська';
+      }
       if ((!cRaion || !cObl) && window.SmartSearchEngine) {
         const found = findSettlementInEngine(cCity, cObl);
         if (found) {
@@ -381,24 +434,36 @@
         }
       }
       const parts = [cCity];
-      if (cRaion) parts.push(cRaion);
-      if (cObl) parts.push(cObl);
+      if (cRaion && cRaion.toLowerCase() !== cCity.toLowerCase()) parts.push(cRaion);
+      if (cObl && cObl.toLowerCase() !== cCity.toLowerCase()) parts.push(cObl);
       transferQuery = parts.join(' ');
     } else if (state.selectedSettlement && (state.selectedSettlement.cleanName || state.selectedSettlement.name)) {
       const s = state.selectedSettlement;
       const cCity = cleanSettlementName(s.cleanName || s.name);
       let cRaion = cleanRaionName(s.cleanRaion || s.raion || '');
       let cObl = cleanOblastName(s.cleanOblast || s.oblast || '');
+      if (cCity.toLowerCase() === 'київ' && (!cObl || cObl.toLowerCase() === 'київ')) {
+        cObl = 'Київська';
+      }
       const parts = [cCity];
-      if (cRaion) parts.push(cRaion);
-      if (cObl) parts.push(cObl);
+      if (cRaion && cRaion.toLowerCase() !== cCity.toLowerCase()) parts.push(cRaion);
+      if (cObl && cObl.toLowerCase() !== cCity.toLowerCase()) parts.push(cObl);
       transferQuery = parts.join(' ');
-    } else if (prevQuery) {
+    } else if (currentInputVal) {
       // Очищаємо запит від специфічних слів (поштомат, відділення тощо), але зберігаємо всю географію
-      transferQuery = prevQuery
+      let cleaned = currentInputVal
         .replace(/(?<!\p{L})(?:поштомат|відділення|склад|вантажне|укрпошта|нова\s*пошта|нп|уп)(?!\p{L})/giu, '')
+        .replace(/\b\d{5}\b/g, '')
         .replace(/\s+/g, ' ')
         .trim();
+      const tWords = cleaned.split(/\s+/).filter(Boolean);
+      const uniqueWords = [];
+      for (const w of tWords) {
+        if (!uniqueWords.some(uw => uw.toLowerCase() === w.toLowerCase())) {
+          uniqueWords.push(w);
+        }
+      }
+      transferQuery = uniqueWords.join(' ');
     }
 
     state.selectedBranch = null;
@@ -417,7 +482,12 @@
       state.searchQuery = '';
       dom.searchInput.value = '';
       dom.btnClearSearch.classList.add('hidden');
-      dom.searchResultsSection.classList.add('hidden');
+      if (dom.searchResultsSection) {
+        dom.searchResultsSection.classList.add('hidden');
+      }
+      if (dom.btnResetSelectedBranch) {
+        dom.btnResetSelectedBranch.classList.add('hidden');
+      }
     }
     renderRecentHistory();
 
@@ -494,7 +564,10 @@
   function mapUkrposhtaRaw(rawList) {
     return rawList.map(item => {
             const idx = String(item.index || item.number || item.postalCode || '');
-            const obl = item.oblast || (item.region ? item.region.replace(/\s*обл\.?.*$/i, '').trim() : '');
+            let obl = item.oblast || (item.region ? item.region.replace(/\s*обл\.?.*$/i, '').trim() : '');
+            if (obl === 'Київ' || obl === 'м. Київ' || item.city === 'Київ' || item.city === 'м. Київ') {
+              obl = 'Київська';
+            }
             const rai = item.raion || (item.district ? item.district.replace(/\s*район.*$/i, '').trim() : '');
             const addr = item.address || item.street || `ВПЗ ${idx}`;
             const isCentr = item.type === 'central' || idx.endsWith('000') || idx.endsWith('001') || idx.endsWith('00');
@@ -643,6 +716,34 @@
         getTabFilteredPool(window.BRANCHES_DATA.novaposhta, 'branch');
       }
     }
+
+    // Фонове розігрівання пулів міст, районів та автокомпліту під час очікування (requestIdleCallback),
+    // щоб перший натиск клавіші користувача відпрацьовував за < 10 мс без зависань (Zero Jutter)
+    const prewarmSearchCachesIdle = () => {
+      try {
+        const eng = window.SmartSearchEngine;
+        if (!eng) return;
+        const npPool = window.BRANCHES_DATA && window.BRANCHES_DATA.novaposhta;
+        if (Array.isArray(npPool) && npPool.length > 0) {
+          if (typeof eng.getCityBranchesFromPool === 'function') {
+            eng.getCityBranchesFromPool(npPool, 'київ');
+          }
+          if (typeof eng.extractFacets === 'function') {
+            eng.extractFacets('київ');
+          }
+          if (typeof eng.getAutocompleteSuggestions === 'function') {
+            eng.getAutocompleteSuggestions('ки', 'novaposhta', null, npPool);
+          }
+        }
+      } catch (_) {}
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(prewarmSearchCachesIdle, { timeout: 1000 });
+    } else {
+      setTimeout(prewarmSearchCachesIdle, 50);
+    }
+
     // Фонове прогрівання бази Укрпошти (мапінг 26 500 записів + індекс), щоб перше перемикання
     // на таб «Укрпошта» було миттєвим. Той самий шлях, що й при кліку на таб, лише раніше.
     const preloadUkrposhtaIdle = () => {
@@ -1037,7 +1138,11 @@
       dom.btnResetSelectedBranch.classList.add('hidden');
     }
     if (dom.searchInput) {
-      if (dom.searchInput.value.startsWith(' ') || dom.searchInput.value.trim() !== rawQuery) {
+      if (isExplicitSubmit) {
+        if (!dom.searchInput.value || !dom.searchInput.value.trim() || dom.searchInput.value.startsWith(' ') || dom.searchInput.value.trim() !== rawQuery) {
+          dom.searchInput.value = rawQuery;
+        }
+      } else if (!dom.searchInput.value || !dom.searchInput.value.trim()) {
         dom.searchInput.value = rawQuery;
       }
     }
@@ -1481,7 +1586,7 @@
           type: results[0].settlementType || 'місто'
         };
       }
-      if ((isExplicitSubmit || hasExplicitTargetNum) && state.selectedBranch) {
+      if (isExplicitSubmit && state.selectedBranch) {
         fullGeoQuery = buildFullGeoQuery(state.selectedBranch, parsed.targetBranchNumber);
         if (fullGeoQuery && dom.searchInput) {
           dom.searchInput.value = fullGeoQuery;
@@ -1512,11 +1617,23 @@
       recordFrequentQuery(recordTitle);
       const historyQuery = (state.selectedBranch && fullGeoQuery) ? fullGeoQuery : rawQuery;
       recordSearchHistory(historyQuery, results.length);
+      const svc = state.currentService === 'novaposhta' ? 'NP' : 'UKR';
+      setClarityTag('service', svc);
       trackEvent('search_performed', {
+        search_term: rawQuery,
         query_length: rawQuery.length,
-        tab_type: state.currentService === 'novaposhta' ? 'NP' : 'UKR',
-        results_count: results.length
+        tab_type: svc,
+        results_count: results.length,
+        has_results: results.length > 0
       });
+      if (results.length === 0) {
+        trackClarityEvent('search_zero_results');
+        setClarityTag('last_zero_query', rawQuery.slice(0, 50));
+        trackEvent('search_zero_results', { search_term: rawQuery, tab_type: svc });
+      } else {
+        trackClarityEvent('search_success');
+        setClarityTag('last_success_query', rawQuery.slice(0, 50));
+      }
     }
 
     // Оновлення карти: показуємо до 20 відділень знайденого міста, а шукане відділення виділяємо!
@@ -1643,6 +1760,9 @@
       .replace(/[()[\]{}«»"']/g, ' ')
       .replace(/\s*(?:область|області|областю|обл\.?)$/i, '')
       .trim();
+    if (o.toLowerCase() === 'київ' || o.toLowerCase() === 'м. київ' || o.toLowerCase() === 'м київ') {
+      return 'Київська';
+    }
     if (/(?:ської|ській|ською|ську)$/i.test(o)) {
       o = o.replace(/(?:ської|ській|ською|ську)$/i, 'ська');
     } else if (/(?:цької|цькій|цькою|цьку)$/i.test(o)) {
@@ -2766,9 +2886,12 @@
     if (cName) parts.push(cName);
 
     const cRaion = cleanRaionName(branch.raion || '');
-    const cOblast = cleanOblastName(branch.oblast || '');
+    let cOblast = cleanOblastName(branch.oblast || '');
+    if (cName.toLowerCase() === 'київ' && (!cOblast || cOblast.toLowerCase() === 'київ')) {
+      cOblast = 'Київська';
+    }
 
-    if (cRaion) {
+    if (cRaion && cRaion.toLowerCase() !== cName.toLowerCase()) {
       const rStem = cRaion.toLowerCase().slice(0, 4);
       const nStem = cName.toLowerCase().slice(0, 4);
       // Додаємо район, якщо він не має спільного кореня з містом (наприклад Ужгородський для Середнє, Бучанський для Макарів)
@@ -2777,7 +2900,7 @@
       }
     }
 
-    if (cOblast) {
+    if (cOblast && cOblast.toLowerCase() !== cName.toLowerCase()) {
       parts.push(cOblast);
     }
 
@@ -4953,6 +5076,10 @@
     // При пошуку міста показуємо охайне повідомлення «Нічого не знайдено».
     if (!suggestions || suggestions.length === 0) {
       if (hasDigits) {
+        // Якщо користувач продовжує друкувати (вміст поля вже змінився/довший), не викликаємо застарілий executeSearch
+        if (dom.searchInput && dom.searchInput.value.trim() !== query.trim()) {
+          return;
+        }
         closeAutocomplete();
         executeSearch(query, false, false);
         return;
@@ -5234,17 +5361,39 @@
     if (isSettlement) {
       const settlement = item.settlementObj || item;
       const sName = cleanSettlementName(item.settlement || settlement.settlement || settlement.cleanName || settlement.name || item.title || item.value || '').replace(/[()]/g, '').trim();
-      const sRaion = cleanRaionName(item.raion || settlement.cleanRaion || settlement.raion || '').replace(/[()]/g, '').trim();
+      let sRaion = cleanRaionName(item.raion || settlement.cleanRaion || settlement.raion || '').replace(/[()]/g, '').trim();
       const sOblast = cleanOblastName(item.oblast || settlement.cleanOblast || settlement.oblast || '').replace(/[()]/g, '').trim();
 
-      // Гарантуємо чистий формат виключно через одинарні пробіли з кінцевим пробілом для швидкого дописування номера
-      if (item.title && item.title.includes('(смт)')) {
-        fill = `${sName} (смт) ${sRaion} ${sOblast}`.replace(/\s+/g, ' ').trim() + ' ';
-      } else if (item.title && item.title.includes('(село)')) {
-        fill = `${sName} (село) ${sRaion} ${sOblast}`.replace(/\s+/g, ' ').trim() + ' ';
-      } else {
-        fill = `${sName} ${sRaion} ${sOblast}`.replace(/\s+/g, ' ').trim() + ' ';
+      // Запобігаємо дублюванню району з назвою міста (напр. "Кам'янець-Подільський Кам'янець-Подільський", "Коломия Коломийський"):
+      const sType = (settlement.type || item.type || item.badge || '').toLowerCase();
+      if (sRaion) {
+        const rCanon = (window.SmartSearchEngine && window.SmartSearchEngine.canonCity)
+          ? window.SmartSearchEngine.canonCity(sRaion)
+          : sRaion.toLowerCase().replace(/[^а-яіїєґa-z0-9]/gi, '');
+        const nCanon = (window.SmartSearchEngine && window.SmartSearchEngine.canonCity)
+          ? window.SmartSearchEngine.canonCity(sName)
+          : sName.toLowerCase().replace(/[^а-яіїєґa-z0-9]/gi, '');
+        const rStem = rCanon.slice(0, 4);
+        const nStem = nCanon.slice(0, 4);
+        if (rCanon === nCanon || (rStem && nStem && rStem === nStem) || sType === 'місто') {
+          sRaion = '';
+        }
       }
+
+      // Гарантуємо чистий формат виключно через одинарні пробіли з кінцевим пробілом для швидкого дописування номера
+      const fillParts = [sName];
+      if (item.title && item.title.includes('(смт)')) {
+        fillParts.push('(смт)');
+      } else if (item.title && item.title.includes('(село)')) {
+        fillParts.push('(село)');
+      }
+      if (sRaion) {
+        fillParts.push(sRaion);
+      }
+      if (sOblast && sOblast.toLowerCase() !== sName.toLowerCase()) {
+        fillParts.push(sOblast);
+      }
+      fill = fillParts.join(' ').replace(/\s+/g, ' ').trim() + ' ';
 
       state.selectedSettlement = {
         cleanName: sName,
@@ -5499,7 +5648,7 @@
     }
 
     // 3. Запит містить розпізнане місто та номер відділення/поштомату (наприклад: "львів 32348", "київ 111")
-    if (detectedCity && (/d+/.test(query) || (engine && engine.extractFacets && engine.extractFacets(query).number))) {
+    if (detectedCity && (/\d+/.test(query) || (engine && engine.extractFacets && engine.extractFacets(query).number))) {
       return true;
     }
 
@@ -5688,9 +5837,14 @@
       } else {
         dom.btnClearSearch.classList.add('hidden');
         closeAutocomplete();
+        state.searchQuery = '';
+        state.currentResults = [];
         state.selectedSettlement = null;
         state.selectedBranch = null;
         state.lockedInputValue = null;
+        if (dom.btnResetSelectedBranch) {
+          dom.btnResetSelectedBranch.classList.add('hidden');
+        }
       }
 
       // Скасовуємо попередні незавершені запити пошуку та автокомпліту
@@ -5728,7 +5882,10 @@
           liveSearchDebounceTimer = setTimeout(() => {
             if (!currentSignal.aborted) {
               safeRAF(() => {
-                executeSearch(val, false, false); // isExplicitSubmit = false
+                if (currentSignal.aborted) return;
+                const currentInput = dom.searchInput ? dom.searchInput.value.trim() : val;
+                if (!currentInput || currentInput.length < 2) return;
+                executeSearch(currentInput, false, false); // isExplicitSubmit = false
               });
             }
           }, 150);
@@ -5742,7 +5899,10 @@
           autocompleteDebounceTimer = setTimeout(() => {
             if (currentSignal.aborted) return;
             safeRAF(() => {
-              triggerAutocomplete(val);
+              if (currentSignal.aborted) return;
+              const currentInput = dom.searchInput ? dom.searchInput.value.trim() : val;
+              if (!currentInput || currentInput.length < 2) return;
+              triggerAutocomplete(currentInput);
             });
           }, 180);
         }
@@ -5755,9 +5915,12 @@
       updateBottomBarVisibility();
     });
 
-    // Навігація клавішами в autocomplete та списку карток (ArrowUp, ArrowDown, Enter, Esc)
+    // Навігація клавішами в autocomplete та списку карток (ArrowUp, ArrowDown, Enter, Esc, Cmd+A / Ctrl+A)
     dom.searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
+      const isSelectAll = (e.metaKey || e.ctrlKey) && (
+        e.code === 'KeyA' || e.key === 'a' || e.key === 'A' || e.key === 'ф' || e.key === 'Ф'
+      );
+      if (e.key === 'Escape' || isSelectAll) {
         if (dom.autocompleteDropdown && !dom.autocompleteDropdown.classList.contains('hidden') && autocompleteItems.length > 0) {
           e.preventDefault();
           closeAutocomplete();
@@ -5765,7 +5928,8 @@
           e.preventDefault();
           activeResultIndex = -1;
           updateSearchResultsFocus();
-        } else if (dom.searchInput) {
+        }
+        if (dom.searchInput) {
           e.preventDefault();
           dom.searchInput.focus();
           dom.searchInput.select();
@@ -5913,19 +6077,39 @@
     document.addEventListener('pointerdown', (e) => {
       const isInputClick = dom.searchInput && dom.searchInput.contains(e.target);
       const isDropdownClick = dom.autocompleteDropdown && dom.autocompleteDropdown.contains(e.target);
-      if (!isInputClick && !isDropdownClick) {
+      const isQuickClick = Boolean(e.target && e.target.closest && e.target.closest('.query-chip-btn, .history-card-item, .frequent-queries-section, .recent-history-section'));
+      if (!isInputClick && !isDropdownClick && !isQuickClick) {
         closeAutocomplete();
       }
     });
 
-    // Десктопні гарячі клавіші для оператора: / або Esc для миттєвого фокусу на рядок пошуку
+    // Десктопні гарячі клавіші для оператора: / або Esc / Cmd+A / Ctrl+A для миттєвого фокусу та виділення рядка пошуку
     if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
       document.addEventListener('keydown', (e) => {
         const isModalOpen = (dom.copyPresetModal && dom.copyPresetModal.open) ||
                             (dom.versionModal && dom.versionModal.open);
         if (isModalOpen) return;
 
-        if (e.key === '/' && document.activeElement !== dom.searchInput) {
+        const isSelectAll = (e.metaKey || e.ctrlKey) && (
+          e.code === 'KeyA' || e.key === 'a' || e.key === 'A' || e.key === 'ф' || e.key === 'Ф'
+        );
+
+        if (isSelectAll) {
+          const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+          // Працює глобально по всій сторінці (крім спеціальних модалок або сторонніх textarea)
+          if (tag !== 'textarea' && (tag !== 'input' || document.activeElement === dom.searchInput)) {
+            e.preventDefault();
+            closeAutocomplete();
+            if (activeResultIndex >= 0) {
+              activeResultIndex = -1;
+              updateSearchResultsFocus();
+            }
+            if (dom.searchInput) {
+              dom.searchInput.focus();
+              dom.searchInput.select();
+            }
+          }
+        } else if (e.key === '/' && document.activeElement !== dom.searchInput) {
           const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
           if (tag !== 'input' && tag !== 'textarea') {
             e.preventDefault();
@@ -6787,6 +6971,7 @@
     prewarmBranchIndices();
     applyTheme(getStoredTheme(), false);
     initEventListeners();
+    setClarityTag('service', state.currentService === 'novaposhta' ? 'NP' : 'UKR');
     updateBottomBarVisibility();
     checkServerApiStatus();
     renderFrequentChips();

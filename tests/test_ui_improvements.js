@@ -109,6 +109,19 @@ assert.ok(fs.existsSync(promoMp4) && fs.statSync(promoMp4).size > 10000, 'assets
 assert.ok(fs.existsSync(promoWebp) && fs.statSync(promoWebp).size > 1000, 'assets/promo/lpcrm-demo.webp повинен існувати');
 console.log('  ✓ Успіх: index.html залишається чистим і швидким, а фіча LP-CRM & ТГ повноцінно презентована в about.html.\n');
 
+console.log('▶ ТЕСТ 12: Запобігання горизонтальному тремтінню/здриганню макета (Zero Layout Shift via scrollbar-gutter та overflow-y: scroll)');
+assert.ok(stylesCss.includes('scrollbar-gutter: stable;'), 'styles.css повинен мати scrollbar-gutter: stable для блокування зсуву екрана');
+assert.ok(stylesCss.includes('overflow-y: scroll;'), 'styles.css html повинен мати overflow-y: scroll для стабільної ширини viewport');
+assert.ok(aboutHtml.includes('scrollbar-gutter: stable;'), 'about.html повинен мати scrollbar-gutter: stable');
+assert.ok(aboutHtml.includes('overflow-y: scroll;'), 'about.html повинен мати overflow-y: scroll');
+console.log('  ✓ Успіх: Gutter скролбару зафіксовано, макет стабільний (0px зсуву при відкритті автокомпліту).\n');
+
+console.log('▶ ТЕСТ 13: Приховування блоку "Історія останніх пошуків" під час активної видачі результатів (#searchResultsSection:not(.hidden) ~ .recent-history-section)');
+assert.ok(stylesCss.includes('#searchResultsSection:not(.hidden) ~ .recent-history-section'), 'styles.css повинен приховувати .recent-history-section при видимих результатах пошуку');
+assert.ok(indexHtml.includes('id="recentHistorySection"'), 'index.html повинен містити id="recentHistorySection"');
+assert.ok(appJs.includes('recentHistorySection: document.getElementById(\'recentHistorySection\')'), 'app.js повинен містити посилання на recentHistorySection');
+console.log('  ✓ Успіх: Блок історії автоматично зникає при показі списку відділень, залишаючи екран чистим без вертикального скролу.\n');
+
 console.log('===============================================================');
 console.log('🎉 ВСІ UX-ТЕСТИ ПРОЙДЕНО УСПІШНО!');
 console.log('===============================================================');

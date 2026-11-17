@@ -1,28 +1,28 @@
 /**
  * Service Worker для "Пошук відділень Нова Пошта & Укрпошта"
- * Версія: v1.6.52
+ * Версія: v1.6.53
  * Забезпечує миттєве оновлення (skipWaiting + clients.claim) та офлайн-доступ.
  */
 
-const CACHE_VERSION = 'v1.6.52';
-const CACHE_NAME = 'np-search-cache-v1.6.52';
+const CACHE_VERSION = 'v1.6.53';
+const CACHE_NAME = 'np-search-cache-v1.6.53';
 
 // Ресурси для попереднього кешування з версіонуванням
 const PRECACHE_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.6.52',
-  './favicon.svg?v=1.6.52',
-  './data/branches.fast.js?v=1.6.52',
-  './data/ukrposhta_branches.js?v=1.6.52',
-  './data/all_settlements.js?v=1.6.52',
-  './data/crm_settlements.js?v=1.6.52',
-  './data/fuzzySearch.js?v=1.6.52',
+  './styles.css?v=1.6.53',
+  './favicon.svg?v=1.6.53',
+  './data/branches.fast.js?v=1.6.53',
+  './data/ukrposhta_branches.js?v=1.6.53',
+  './data/all_settlements.js?v=1.6.53',
+  './data/crm_settlements.js?v=1.6.53',
+  './data/fuzzySearch.js?v=1.6.53',
   './data/raion_aliases.json',
   './data/settlement_aliases.json',
   './data/crm_settlements.json',
   './data/crm_branch_overrides.json',
-  './app.js?v=1.6.52'
+  './app.js?v=1.6.53'
 ];
 
 // Встановлення: попереднє кешування ресурсів
@@ -76,8 +76,8 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  // Прямий пропуск зовнішніх запитів аналітики (Google Analytics / Google Tag Manager) повз кеш
-  if (url.hostname.includes('google-analytics.com') || url.hostname.includes('googletagmanager.com')) {
+  // Прямий пропуск зовнішніх запитів аналітики (Google Analytics / Google Tag Manager / Microsoft Clarity) повз кеш
+  if (url.hostname.includes('google-analytics.com') || url.hostname.includes('googletagmanager.com') || url.hostname.includes('clarity.ms')) {
     return;
   }
 
