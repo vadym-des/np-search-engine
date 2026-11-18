@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.6.60';
+  const APP_VERSION = '1.6.61';
 
   // Вебхук автоматичного запису проблемних запитів у Google Таблицю
   const TELEMETRY_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzSV99G9gc9XEvyZRs1cxN3BU5Ka74EBPLJDO0n3R7JODWN3GAtumlIFOcj3VcDTI02/exec';
@@ -29,16 +29,30 @@
     }
   }
 
+  function isEmbeddedMode() {
+    return Boolean(
+      typeof document !== 'undefined' &&
+      document.documentElement &&
+      document.documentElement.classList &&
+      typeof document.documentElement.classList.contains === 'function' &&
+      document.documentElement.classList.contains('is-embedded')
+    );
+  }
+
   // Надійна відправка проблемних випадків пошуку в Google Таблицю операторів
   function logFailureTelemetry(payload) {
     try {
+      if (typeof window !== 'undefined') window.__lastTelemetryPayload = payload;
       if (typeof window === 'undefined' || typeof location === 'undefined') return;
-      // Захист: не спамимо в робочу таблицю з localhost, 127.0.0.1 або автоматичних тестів
+      if (isEmbeddedMode()) return;
+      // Захист: не спамимо в робочу таблицю з localhost, 127.0.0.1 або автоматичних Node/Headless тестів
       if (
+        typeof process !== 'undefined' ||
+        !location.hostname ||
         location.hostname === 'localhost' ||
         location.hostname === '127.0.0.1' ||
         location.protocol === 'file:' ||
-        (navigator.userAgent && navigator.userAgent.includes('HeadlessChrome'))
+        (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.includes('HeadlessChrome'))
       ) {
         return;
       }
@@ -80,6 +94,7 @@
     service: 'novaposhta',
     timestamp: 0,
     resultsCount: 0,
+    hasAltServiceBranch: false,
     hasCopied: false,
     abandonedTracked: false,
     source: 'manual',
@@ -95,11 +110,12 @@
     lastSearchSession.previousResultsCount = 0;
     lastSearchSession.timestamp = 0;
     lastSearchSession.resultsCount = 0;
+    lastSearchSession.hasAltServiceBranch = false;
     lastSearchSession.hasCopied = false;
     lastSearchSession.abandonedTracked = false;
   }
 
-  function updateSearchSessionState(query, resultsCount, source) {
+  function updateSearchSessionState(query, resultsCount, source, hasAltServiceBranch = false) {
     const cleanQ = (query || '').trim();
     if (!cleanQ || cleanQ.length < 2) return;
 
@@ -115,6 +131,7 @@
     lastSearchSession.service = (typeof state !== 'undefined' && state.currentService) ? state.currentService : 'novaposhta';
     lastSearchSession.timestamp = Date.now();
     lastSearchSession.resultsCount = (typeof resultsCount === 'number') ? resultsCount : 0;
+    lastSearchSession.hasAltServiceBranch = Boolean(hasAltServiceBranch);
     lastSearchSession.source = source || currentInputSource || 'manual';
     lastSearchSession.hasCopied = false;
     lastSearchSession.abandonedTracked = false;
@@ -288,6 +305,7 @@
             if (elapsed >= 200 && elapsed <= 60000) {
               const oldQ = lastSearchSession.query;
               const oldResults = lastSearchSession.resultsCount;
+              const isRedZero = oldResults === 0 && !lastSearchSession.hasAltServiceBranch;
               lastSearchSession.previousQuery = oldQ;
               lastSearchSession.previousResultsCount = oldResults;
               if (!lastSearchSession.initialQuery) {
@@ -297,7 +315,7 @@
               logFailureTelemetry({
                 query: `«${oldQ}» ➔ «${(newQuery || '').trim()}»`,
                 service: lastSearchSession.service || state.currentService,
-                status: oldResults === 0 ? '🔴 0 рез. ➔ Переписано' : '🟠 Переписування запиту',
+                status: isRedZero ? '🔴 0 рез. ➔ Переписано' : '🟠 Переписування запиту',
                 resultsCount: oldResults,
                 duration: Math.max(1, Math.round(elapsed / 1000)),
                 details: `Початковий запит «${oldQ}» (${oldResults} рез.) було змінено на «${(newQuery || '').trim()}». Джерело: ${getSourceLabel(currentInputSource)}`
@@ -1383,10 +1401,109 @@
     }
     dom.btnClearSearch.classList.remove('hidden');
     suppressNextFocusActivation = true;
-    dom.searchInput.focus();
+    if (!(dom.searchInput.dataset && dom.searchInput.dataset.demoTyping === '1')) {
+      dom.searchInput.focus({ preventScroll: true });
+    }
     suppressNextFocusActivation = false;
     const len = dom.searchInput.value.length;
     dom.searchInput.setSelectionRange(len, len);
+  }
+
+  /**
+   * Шукає відділення в альтернативній службі (Укрпошта <-> Нова пошта)
+   * для розпізнаного населеного пункту або 5-значного поштового індексу у запиті.
+   */
+  function findAlternativeServiceBranchForQuery(targetSettlement, rawQuery) {
+    const altService = state.currentService === 'novaposhta' ? 'ukrposhta' : 'novaposhta';
+    const pcMatch = (rawQuery || '').match(/\b(\d{5})\b/);
+    const engine = window.SmartSearchEngine;
+
+    if (targetSettlement) {
+      const sName = cleanSettlementName(targetSettlement.cleanName || targetSettlement.name || '');
+      const sRaion = cleanRaionName(targetSettlement.cleanRaion || targetSettlement.raion || '');
+      const sOblast = cleanOblastName(targetSettlement.cleanOblast || targetSettlement.oblast || '');
+
+      let altBranch = null;
+      if (altService === 'ukrposhta') {
+        if (engine && typeof engine.getUkrposhtaBranchesForSettlement === 'function') {
+          const upBranches = engine.getUkrposhtaBranchesForSettlement(sName, sOblast, sRaion);
+          if (upBranches && upBranches.length > 0) {
+            altBranch = upBranches[0];
+          }
+        }
+        if (!altBranch) {
+          const upList = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.ukrposhta))
+            ? window.BRANCHES_DATA.ukrposhta
+            : null;
+          if (upList) {
+            const cName = canonCity(sName);
+            const sObl = sOblast.toLowerCase().slice(0, 4);
+            const sRai = sRaion.toLowerCase();
+            altBranch = upList.find(b => {
+              if ((b._canonCity || canonCity(b.city)) !== cName) return false;
+              const bObl = (b.oblast || b.region || '').toLowerCase();
+              const bRai = (b.raion || b.district || '').toLowerCase();
+              if (sObl && !bObl.includes(sObl)) return false;
+              if (sRai && !bRai.includes(sRai.slice(0, 4)) && !areRaionsCompatible(sRai, bRai)) return false;
+              return true;
+            });
+          }
+        }
+        if (!altBranch && pcMatch && engine && typeof engine.getUkrposhtaBranchByIndex === 'function') {
+          altBranch = engine.getUkrposhtaBranchByIndex(pcMatch[1]);
+        }
+        if (altBranch) {
+          const idx = altBranch.index || altBranch.postalCode || altBranch.number || '';
+          return {
+            service: 'ukrposhta',
+            branch: altBranch,
+            index: idx ? String(idx) : null,
+            number: altBranch.number ? String(altBranch.number) : null
+          };
+        }
+      } else {
+        const npList = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.novaposhta))
+          ? window.BRANCHES_DATA.novaposhta
+          : null;
+        if (npList) {
+          const cName = canonCity(sName);
+          const sObl = sOblast.toLowerCase().slice(0, 4);
+          const sRai = sRaion.toLowerCase();
+          altBranch = npList.find(b => {
+            if ((b._canonCity || canonCity(b.city)) !== cName) return false;
+            const bObl = (b.oblast || '').toLowerCase();
+            const bRai = (b.raion || '').toLowerCase();
+            if (sObl && !bObl.includes(sObl)) return false;
+            if (sRai && !bRai.includes(sRai.slice(0, 4)) && !areRaionsCompatible(sRai, bRai)) return false;
+            return true;
+          });
+        }
+        if (altBranch) {
+          const num = altBranch.number || altBranch.postalCode || altBranch.index || '';
+          return {
+            service: 'novaposhta',
+            branch: altBranch,
+            index: altBranch.index ? String(altBranch.index) : null,
+            number: num ? String(num) : null
+          };
+        }
+      }
+    }
+
+    if (altService === 'ukrposhta' && pcMatch && engine && typeof engine.getUkrposhtaBranchByIndex === 'function') {
+      const directUp = engine.getUkrposhtaBranchByIndex(pcMatch[1]);
+      if (directUp) {
+        const idx = directUp.index || directUp.postalCode || pcMatch[1];
+        return {
+          service: 'ukrposhta',
+          branch: directUp,
+          index: String(idx),
+          number: directUp.number ? String(directUp.number) : null
+        };
+      }
+    }
+
+    return null;
   }
 
   async function executeSearch(query, shouldRecordAnalytics = true, isExplicitSubmit = false, allowSingleAutoSelect = true) {
@@ -1891,17 +2008,40 @@
     const activeSource = currentInputSource || 'manual';
     const svcName = state.currentService === 'novaposhta' ? 'Нова пошта' : 'Укрпошта';
 
+    const settlementForAlt = (!missingTargetBranch) ? missingSettlement : null;
+    const altInfo = results.length === 0 ? findAlternativeServiceBranchForQuery(settlementForAlt, rawQuery) : null;
+
     // Оновлюємо стан сесії та перевіряємо переписування попереднього запиту
-    updateSearchSessionState(rawQuery, results.length, activeSource);
+    updateSearchSessionState(rawQuery, results.length, activeSource, Boolean(altInfo || settlementForAlt));
 
     clearTimeout(zeroResultsDebounceTimer);
     if (results.length === 0 && rawQuery.length >= 2) {
-      trackClarityEvent('search_zero_results');
-      setClarityTag('last_zero_query', rawQuery.slice(0, 50));
-      trackEvent('search_zero_results', { search_term: rawQuery, tab_type: svc });
+      let zeroStatus;
+      let zeroDetails;
+      if (altInfo && altInfo.service === 'ukrposhta') {
+        zeroStatus = '🟡 Немає НП (доступна Укрпошта)';
+        zeroDetails = `У населеному пункті немає відділень Нової пошти, запропоновано Укрпошту (індекс ${altInfo.index || 'УП'}). Джерело: ${getSourceLabel(activeSource)}`;
+      } else if (altInfo && altInfo.service === 'novaposhta') {
+        zeroStatus = '🟡 Немає УП (доступна Нова пошта)';
+        zeroDetails = `У населеному пункті немає відділень Укрпошти, запропоновано Нову пошту (відділення №${altInfo.number || '1'}). Джерело: ${getSourceLabel(activeSource)}`;
+      } else if (settlementForAlt) {
+        zeroStatus = state.currentService === 'novaposhta' ? '🟡 У селі немає відділень НП' : '🟡 У селі немає відділень УП';
+        zeroDetails = `Населений пункт розпізнано, але в ньому немає відкритих відділень ${svcName}. Джерело: ${getSourceLabel(activeSource)}`;
+      } else {
+        zeroStatus = activeSource === 'paste' ? '🔴 0 результатів (Вставка)' : '🔴 0 результатів';
+        zeroDetails = `Жодного відділення не знайдено. Джерело: ${getSourceLabel(activeSource)}. Служба: ${svcName}`;
+      }
 
-      const zeroStatus = activeSource === 'paste' ? '🔴 0 результатів (Вставка)' : '🔴 0 результатів';
-      const zeroDetails = `Жодного відділення не знайдено. Джерело: ${getSourceLabel(activeSource)}. Служба: ${svcName}`;
+      if (zeroStatus.startsWith('🔴')) {
+        trackClarityEvent('search_zero_results');
+        setClarityTag('last_zero_query', rawQuery.slice(0, 50));
+        trackEvent('search_zero_results', { search_term: rawQuery, tab_type: svc });
+      } else {
+        trackClarityEvent('alt_service_suggested');
+        setClarityTag('alt_service_query', rawQuery.slice(0, 50));
+        trackEvent('alt_service_suggested', { search_term: rawQuery, tab_type: svc });
+      }
+
       const sendZero = () => {
         const curInput = dom.searchInput ? dom.searchInput.value.trim() : rawQuery;
         if (!isExplicitSubmit && curInput !== rawQuery) return;
@@ -3403,8 +3543,8 @@
           updateVisibleMarkersFromViewport();
         }
       }
-      if (dom.searchInput) {
-        dom.searchInput.focus();
+      if (dom.searchInput && !(dom.searchInput.dataset && dom.searchInput.dataset.demoTyping === '1')) {
+        dom.searchInput.focus({ preventScroll: true });
       }
     }, container ? 120 : 0);
   }
@@ -3849,53 +3989,11 @@
         const altSvcTitle = altService === 'ukrposhta' ? 'Укрпошті' : 'Новій пошті';
         const altSvcIcon = altService === 'ukrposhta' ? '📮' : '🏢';
 
-        let altBranchFound = null;
-        if (altService === 'ukrposhta') {
-          if (window.SmartSearchEngine && typeof window.SmartSearchEngine.getUkrposhtaBranchesForSettlement === 'function') {
-            const upBranches = window.SmartSearchEngine.getUkrposhtaBranchesForSettlement(sName, sOblast, sRaion);
-            if (upBranches && upBranches.length > 0) {
-              altBranchFound = upBranches[0];
-            }
-          }
-          if (!altBranchFound) {
-            const upList = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.ukrposhta))
-              ? window.BRANCHES_DATA.ukrposhta
-              : null;
-            if (upList) {
-              const cName = canonCity(sName);
-              const sObl = sOblast.toLowerCase().slice(0, 4);
-              const sRai = sRaion.toLowerCase();
-              altBranchFound = upList.find(b => {
-                if ((b._canonCity || canonCity(b.city)) !== cName) return false;
-                const bObl = (b.oblast || b.region || '').toLowerCase();
-                const bRai = (b.raion || b.district || '').toLowerCase();
-                if (sObl && !bObl.includes(sObl)) return false;
-                if (sRai && !bRai.includes(sRai.slice(0, 4)) && !areRaionsCompatible(sRai, bRai)) return false;
-                return true;
-              });
-            }
-          }
-        } else {
-          const npList = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.novaposhta))
-            ? window.BRANCHES_DATA.novaposhta
-            : null;
-          if (npList) {
-            const cName = canonCity(sName);
-            const sObl = sOblast.toLowerCase().slice(0, 4);
-            const sRai = sRaion.toLowerCase();
-            altBranchFound = npList.find(b => {
-              if ((b._canonCity || canonCity(b.city)) !== cName) return false;
-              const bObl = (b.oblast || '').toLowerCase();
-              const bRai = (b.raion || '').toLowerCase();
-              if (sObl && !bObl.includes(sObl)) return false;
-              if (sRai && !bRai.includes(sRai.slice(0, 4)) && !areRaionsCompatible(sRai, bRai)) return false;
-              return true;
-            });
-          }
-        }
+        const altMatch = findAlternativeServiceBranchForQuery(targetSettlement, query || state.searchQuery);
+        const altBranchFound = altMatch ? altMatch.branch : null;
 
         let altActionHtml = '';
-        const altIdx = altBranchFound ? (altBranchFound.index || altBranchFound.postalCode || altBranchFound.number) : null;
+        const altIdx = altMatch && altMatch.service === 'ukrposhta' ? altMatch.index : null;
         const altDetail = altIdx
           ? `(індекс ${altIdx})`
           : (altBranchFound && altBranchFound.number ? `(відділення №${altBranchFound.number})` : '');
@@ -3943,10 +4041,8 @@
       }
       const rawQ = query || state.searchQuery || '';
       const pcMatch = rawQ.match(/\b(\d{5})\b/);
-      let directUpBranch = null;
-      if (state.currentService === 'novaposhta' && pcMatch && window.SmartSearchEngine && typeof window.SmartSearchEngine.getUkrposhtaBranchByIndex === 'function') {
-        directUpBranch = window.SmartSearchEngine.getUkrposhtaBranchByIndex(pcMatch[1]);
-      }
+      const directAltMatch = state.currentService === 'novaposhta' && pcMatch ? findAlternativeServiceBranchForQuery(null, rawQ) : null;
+      const directUpBranch = directAltMatch ? directAltMatch.branch : null;
       const directUpHtml = directUpBranch ? `
         <div style="margin-top: 18px;">
           <button type="button" class="btn-switch-service-bridge" id="btnSwitchServiceBridgeDirect">
@@ -6009,11 +6105,14 @@
     if (activeAutocompleteIndex >= renderedAutocompleteCount && renderedAutocompleteCount < autocompleteItems.length) {
       appendAutocompleteChunk(AUTOCOMPLETE_CHUNK_SIZE);
     }
+    const isEmbedded = isEmbeddedMode();
     const items = dom.autocompleteDropdown.querySelectorAll('.autocomplete-item');
     items.forEach((item, idx) => {
       if (idx === activeAutocompleteIndex) {
         item.classList.add('focused');
-        item.scrollIntoView({ block: 'nearest' });
+        if (!isEmbedded && typeof item.scrollIntoView === 'function') {
+          item.scrollIntoView({ block: 'nearest' });
+        }
       } else {
         item.classList.remove('focused');
       }
@@ -6029,12 +6128,13 @@
     }
     const items = dom.resultsList.querySelectorAll('.address-match-row');
     if (items.length === 0) return;
+    const isEmbedded = isEmbeddedMode();
 
     items.forEach((item, idx) => {
       if (idx === activeResultIndex) {
         item.classList.add('focused');
         item.setAttribute('aria-selected', 'true');
-        if (typeof item.scrollIntoView === 'function') {
+        if (!isEmbedded && typeof item.scrollIntoView === 'function') {
           item.scrollIntoView({ block: 'nearest' });
         }
         const branch = currentSearchResults[idx];
@@ -6369,6 +6469,8 @@
       clearTimeout(autocompleteDebounceTimer);
       clearTimeout(liveSearchDebounceTimer);
 
+      const isDemoTyping = Boolean(dom.searchInput && dom.searchInput.dataset && dom.searchInput.dataset.demoTyping === '1');
+
       if (val.length >= 2) {
         const hasDigitOrBranch = /\d/.test(val) || /(?:поштомат|відділення|віділення|відділ|№|#)/i.test(val);
         const isFixedSettlement = hasFixedSettlementContext(val);
@@ -6387,17 +6489,21 @@
             }
           }
 
-          // 2. Живий фільтр основного списку карток (debounce 150ms + safeRAF для 60fps)
-          liveSearchDebounceTimer = setTimeout(() => {
-            if (!currentSignal.aborted) {
-              safeRAF(() => {
-                if (currentSignal.aborted) return;
-                const currentInput = dom.searchInput ? dom.searchInput.value.trim() : val;
-                if (!currentInput || currentInput.length < 2) return;
-                executeSearch(currentInput, false, false); // isExplicitSubmit = false
-              });
-            }
-          }, 150);
+          if (isDemoTyping) {
+            executeSearch(val, false, false);
+          } else {
+            // 2. Живий фільтр основного списку карток (debounce 150ms + safeRAF для 60fps)
+            liveSearchDebounceTimer = setTimeout(() => {
+              if (!currentSignal.aborted) {
+                safeRAF(() => {
+                  if (currentSignal.aborted) return;
+                  const currentInput = dom.searchInput ? dom.searchInput.value.trim() : val;
+                  if (!currentInput || currentInput.length < 2) return;
+                  executeSearch(currentInput, false, false); // isExplicitSubmit = false
+                });
+              }
+            }, 150);
+          }
         } else {
           // Варіант 1: Коли користувач друкує запит (напр. "конотоп", "конотоп 1"),
           // відображається ВИКЛЮЧНО верхній поп-ап автокомпліту.
@@ -6405,50 +6511,56 @@
           // щоб картки не пробивалися і не накладалися під випадаючий список.
           dom.searchResultsSection.classList.add('hidden');
 
-          const acDelay = currentInputSource === 'paste' ? 20 : 180;
-          autocompleteDebounceTimer = setTimeout(() => {
-            if (currentSignal.aborted) return;
-            safeRAF(() => {
+          if (isDemoTyping) {
+            triggerAutocomplete(val);
+          } else {
+            const acDelay = currentInputSource === 'paste' ? 20 : 180;
+            autocompleteDebounceTimer = setTimeout(() => {
               if (currentSignal.aborted) return;
-              const currentInput = dom.searchInput ? dom.searchInput.value.trim() : val;
-              if (!currentInput || currentInput.length < 2) return;
-              triggerAutocomplete(currentInput);
-            });
-          }, acDelay);
+              safeRAF(() => {
+                if (currentSignal.aborted) return;
+                const currentInput = dom.searchInput ? dom.searchInput.value.trim() : val;
+                if (!currentInput || currentInput.length < 2) return;
+                triggerAutocomplete(currentInput);
+              });
+            }, acDelay);
+          }
         }
 
-        // Фіксація стабілізованого запиту через 700 мс після зупинки друку
-        settledQueryTimer = setTimeout(() => {
-          if (currentSignal.aborted) return;
-          const settledVal = dom.searchInput ? dom.searchInput.value.trim() : val;
-          if (!settledVal || settledVal.length < 2) return;
-          const curCount = isAutocompleteOpen
-            ? autocompleteItems.length
-            : (state.searchQuery === settledVal ? state.currentResults.length : autocompleteItems.length);
-          updateSearchSessionState(settledVal, curCount, currentInputSource);
-          if (curCount > 0) {
-            if (currentInputSource === 'paste') {
-              const svcName = state.currentService === 'novaposhta' ? 'Нова пошта' : 'Укрпошта';
-              logFailureTelemetry({
-                query: settledVal,
-                service: state.currentService,
-                status: '🔵 Пошук: Вставка з буфера',
-                resultsCount: curCount,
-                duration: 1,
-                details: `Оператор вставив запит з буфера обміну (знайдено ${curCount} варіантів/відділень). Служба: ${svcName}`
-              });
-            } else if (currentInputSource === 'manual') {
-              logFailureTelemetry({
-                query: settledVal,
-                service: state.currentService,
-                status: '🔵 Ручний ввід (живий пошук)',
-                resultsCount: curCount,
-                duration: 1,
-                details: `Стабілізований ручний ввід (знайдено ${curCount} варіантів/відділень).`
-              });
+        if (!isDemoTyping) {
+          // Фіксація стабілізованого запиту через 700 мс після зупинки друку
+          settledQueryTimer = setTimeout(() => {
+            if (currentSignal.aborted) return;
+            const settledVal = dom.searchInput ? dom.searchInput.value.trim() : val;
+            if (!settledVal || settledVal.length < 2) return;
+            const curCount = isAutocompleteOpen
+              ? autocompleteItems.length
+              : (state.searchQuery === settledVal ? state.currentResults.length : autocompleteItems.length);
+            updateSearchSessionState(settledVal, curCount, currentInputSource);
+            if (curCount > 0) {
+              if (currentInputSource === 'paste') {
+                const svcName = state.currentService === 'novaposhta' ? 'Нова пошта' : 'Укрпошта';
+                logFailureTelemetry({
+                  query: settledVal,
+                  service: state.currentService,
+                  status: '🔵 Пошук: Вставка з буфера',
+                  resultsCount: curCount,
+                  duration: 1,
+                  details: `Оператор вставив запит з буфера обміну (знайдено ${curCount} варіантів/відділень). Служба: ${svcName}`
+                });
+              } else if (currentInputSource === 'manual') {
+                logFailureTelemetry({
+                  query: settledVal,
+                  service: state.currentService,
+                  status: '🔵 Ручний ввід (живий пошук)',
+                  resultsCount: curCount,
+                  duration: 1,
+                  details: `Стабілізований ручний ввід (знайдено ${curCount} варіантів/відділень).`
+                });
+              }
             }
-          }
-        }, 700);
+          }, 700);
+        }
       } else {
         closeAutocomplete();
         if (dom.searchResultsSection) {
@@ -6827,7 +6939,9 @@
       if (state.isMapVisible) {
         updateVisibleMarkersFromViewport();
       }
-      dom.searchInput.focus();
+      if (!(dom.searchInput.dataset && dom.searchInput.dataset.demoTyping === '1')) {
+        dom.searchInput.focus({ preventScroll: true });
+      }
     });
 
     if (dom.btnResetSelectedBranch) {
@@ -7561,8 +7675,9 @@
 
     // Автофокус на поле пошуку для миттєвої роботи оператора без зайвих кліків
     setTimeout(() => {
-      if (dom.searchInput) {
-        dom.searchInput.focus();
+      const isEmbedded = isEmbeddedMode();
+      if (dom.searchInput && !isEmbedded) {
+        dom.searchInput.focus({ preventScroll: true });
       }
     }, 120);
   }

@@ -70,7 +70,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.60">
+  <link rel="stylesheet" href="styles.css?v=1.6.61">
 </head>
 <body data-service="novaposhta">
 
@@ -298,7 +298,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.60</span>
+          <span class="version-tag">v1.6.61</span>
         </button>
       </div>
 
@@ -324,8 +324,22 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.60 -->
+        <!-- Версія 1.6.61 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.61</span>
+            <span class="version-state">Чиста телеметрія сіл без Нової пошти (доступна Укрпошта)</span>
+            <span class="version-date">18 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Окремий статус замість «0 результатів»:</strong> Коли в обраному селі фізично немає відділень Нової пошти, але розпізнано населений пункт або доступна Укрпошта (наприклад, «Березнегувате Компаніївський Кіровоградська» → індекс 28446), телеметрія фіксує статус <code>🟡 Немає НП (доступна Укрпошта)</code> замість аварійного <code>🔴 0 результатів</code>.</li>
+            <li><strong>Чистіший дашборд:</strong> Переформування такого запиту більше не потрапляє до червоного лічильника <code>🔴 Запитів з 0 результатів</code>.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.61.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.60 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.60</span>
             <span class="version-state">Гарантований поп-ап вибору населеного пункту (НП / УП)</span>
@@ -1707,22 +1721,22 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.fast.js?v=1.6.60"></script>
+  <script src="data/branches.fast.js?v=1.6.61"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.60"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.61"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.60"></script>
+  <script src="data/all_settlements.js?v=1.6.61"></script>
 
   <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
-  <script src="data/crm_settlements.js?v=1.6.60"></script>
+  <script src="data/crm_settlements.js?v=1.6.61"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.60"></script>
+  <script src="data/fuzzySearch.js?v=1.6.61"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.60"></script>
+  <script src="app.js?v=1.6.61"></script>
 
   <!-- Інтерактивний контролер для демо-прев'ю (about.html embed) -->
   <script>
@@ -1730,18 +1744,14 @@
       try {
         var params = new URLSearchParams(window.location.search);
         if (params.get('embed') === '1') {
-          var activeTypewriterTimer = null;
-
-          var stopTypewriter = function() {
-            if (activeTypewriterTimer) {
-              clearTimeout(activeTypewriterTimer);
-              activeTypewriterTimer = null;
-            }
-          };
+          var scenarioToken = 0;
 
           // Сигнал батьківському вікну про активність користувача (пауза автотаймера)
           var notifyParentInteraction = function() {
-            stopTypewriter();
+            var input = document.getElementById('searchInput');
+            if (input && input.dataset) {
+              delete input.dataset.demoTyping;
+            }
             try {
               if (window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: 'DEMO_USER_INTERACTION' }, '*');
@@ -1760,106 +1770,120 @@
             } catch (e) {}
           });
 
-          // Плавний інтерактивний ввід запиту (typewriter effect) з показом процесу і фіналом
-          var typeQuery = function(queryText, onDone) {
-            stopTypewriter();
+          // Обробка синхронних команд сценаріїв від about.html (без внутрішніх setTimeout у фреймі)
+          window.addEventListener('message', function(ev) {
+            if (!ev.data) return;
+
+            if (ev.data.type === 'SET_THEME' && ev.data.theme) {
+              document.documentElement.setAttribute('data-theme', ev.data.theme);
+              try { localStorage.setItem('app_theme', ev.data.theme); } catch (e) {}
+              return;
+            }
+
+            var btnNp = document.getElementById('btnNovaPoshta');
+            var btnUp = document.getElementById('btnUkrposhta');
             var input = document.getElementById('searchInput');
             var form = document.getElementById('searchForm');
             var clearBtn = document.getElementById('btnClearSearch');
             var resSection = document.getElementById('searchResultsSection');
             var didYouMean = document.getElementById('didYouMeanBox');
             var historySection = document.getElementById('recentHistorySection');
+            var acDropdown = document.getElementById('autocompleteDropdown');
 
-            if (!input) return;
-
-            // Скидаємо попередній стан та готуємо інпут
-            input.value = '';
-            input.focus();
-            if (clearBtn) clearBtn.classList.add('hidden');
-            if (resSection) resSection.classList.add('hidden');
-            if (didYouMean) didYouMean.classList.add('hidden');
-            if (historySection) historySection.classList.add('hidden');
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-
-            var charIndex = 0;
-            var baseSpeed = 65;
-
-            var typeNext = function() {
-              if (charIndex < queryText.length) {
-                input.value = queryText.substring(0, charIndex + 1);
-                charIndex++;
-                if (clearBtn) clearBtn.classList.remove('hidden');
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                
-                // Легка жива варіація швидкості друкування (50-85 мс)
-                var delay = baseSpeed + Math.floor(Math.random() * 20);
-                activeTypewriterTimer = setTimeout(typeNext, delay);
-              } else {
-                // Всі літери надруковано! Невелика пауза 400мс для огляду введеного тексту та підказок
-                activeTypewriterTimer = setTimeout(function() {
-                  if (typeof onDone === 'function') {
-                    onDone();
-                  } else if (form) {
-                    var searchBtn = document.getElementById('btnSubmitSearch');
-                    if (searchBtn) {
-                      searchBtn.style.transform = 'scale(0.96)';
-                      setTimeout(function() { searchBtn.style.transform = ''; }, 150);
-                    }
-                    form.dispatchEvent(new Event('submit', { cancelable: true }));
-                  }
-                  activeTypewriterTimer = null;
-                }, 400);
-              }
-            };
-
-            // Коротка пауза перед початком введення (120 мс)
-            activeTypewriterTimer = setTimeout(typeNext, 120);
-          };
-
-          // Обробка сценаріїв від about.html
-          window.addEventListener('message', function(ev) {
-            if (!ev.data) return;
-            if (ev.data.type === 'SET_THEME' && ev.data.theme) {
-              document.documentElement.setAttribute('data-theme', ev.data.theme);
-              try { localStorage.setItem('app_theme', ev.data.theme); } catch (e) {}
-            } else if (ev.data.type === 'RUN_SCENARIO') {
+            if (ev.data.type === 'DEMO_SCENE_INIT') {
               var idx = ev.data.scenario;
-              var btnNp = document.getElementById('btnNovaPoshta');
-              var btnUp = document.getElementById('btnUkrposhta');
-              var input = document.getElementById('searchInput');
-              var clearBtn = document.getElementById('btnClearSearch');
-              var resSection = document.getElementById('searchResultsSection');
-              var didYouMean = document.getElementById('didYouMeanBox');
-              var historySection = document.getElementById('recentHistorySection');
+              var targetService = ev.data.service || (idx === 2 ? 'ukrposhta' : 'novaposhta');
+              var currentToken = ++scenarioToken;
 
-              if (idx === 0) {
-                // Сценарій 01: Дефолтний вигляд
-                stopTypewriter();
-                if (btnNp) btnNp.click();
-                if (clearBtn) clearBtn.click();
+              if (document.documentElement) document.documentElement.scrollTop = 0;
+              if (document.body) document.body.scrollTop = 0;
+
+              if (input) {
+                input.dataset.demoTyping = '1';
+                input.value = '';
+              }
+              if (clearBtn) clearBtn.click();
+              if (input) {
+                input.dataset.demoTyping = '1';
+                input.value = '';
+              }
+              if (acDropdown) acDropdown.classList.add('hidden');
+              if (resSection) resSection.classList.add('hidden');
+              if (didYouMean) didYouMean.classList.add('hidden');
+              if (historySection) historySection.classList.add('hidden');
+
+              var switchPromise = typeof window.switchService === 'function'
+                ? Promise.resolve(window.switchService(targetService))
+                : Promise.resolve(
+                    targetService === 'ukrposhta'
+                      ? (btnUp && btnUp.click())
+                      : (btnNp && btnNp.click())
+                  );
+
+              var finishInit = function() {
+                if (currentToken !== scenarioToken) return;
                 if (input) {
+                  input.dataset.demoTyping = '1';
                   input.value = '';
-                  input.blur();
                 }
+                if (clearBtn) clearBtn.classList.add('hidden');
+                if (acDropdown) acDropdown.classList.add('hidden');
                 if (resSection) resSection.classList.add('hidden');
                 if (didYouMean) didYouMean.classList.add('hidden');
-                if (historySection) historySection.classList.remove('hidden');
-              } else if (idx === 1) {
-                // Сценарій 02: Забута розкладка клавіатури (retd 1 -> Київ №1)
-                if (btnNp) btnNp.click();
-                typeQuery('retd 1');
-              } else if (idx === 2) {
-                // Сценарій 03: Пошук суто за номером поштомату (33159)
-                if (btnNp) btnNp.click();
-                typeQuery('33159');
-              } else if (idx === 3) {
-                // Сценарій 04: Прямий пошук за 5-значним індексом Укрпошти (47501)
-                if (btnUp) btnUp.click();
-                typeQuery('47501');
-              } else if (idx === 4) {
-                // Сценарій 05: Декомунізація та старі назви міст (Кузнецовськ 1 -> Вараш №1)
-                if (btnNp) btnNp.click();
-                typeQuery('Кузнецовськ 1');
+                if (historySection) historySection.classList.add('hidden');
+                try {
+                  if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ type: 'DEMO_SCENE_READY', scenario: idx }, '*');
+                  }
+                } catch (e) {}
+              };
+
+              switchPromise.then(finishInit).catch(finishInit);
+            } else if (ev.data.type === 'DEMO_SCENE_TYPE') {
+              if (!input) return;
+              input.dataset.demoTyping = '1';
+              input.value = ev.data.value || '';
+              if (clearBtn) {
+                if (input.value.length > 0) clearBtn.classList.remove('hidden');
+                else clearBtn.classList.add('hidden');
+              }
+              if (historySection) historySection.classList.add('hidden');
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+            } else if (ev.data.type === 'DEMO_SCENE_HOVER_POPUP') {
+              if (!acDropdown || acDropdown.classList.contains('hidden')) return;
+              var firstItem = acDropdown.querySelector('.autocomplete-item');
+              if (ev.data.hoverBridge) {
+                if (firstItem) firstItem.classList.add('demo-hovered', 'focused');
+                var popupBridgeBtn = acDropdown.querySelector('.btn-autocomplete-bridge');
+                if (popupBridgeBtn) popupBridgeBtn.classList.add('demo-hovered');
+              } else if (firstItem) {
+                firstItem.classList.add('focused');
+              }
+            } else if (ev.data.type === 'DEMO_SCENE_SUBMIT') {
+              if (!input || !form) return;
+              input.dataset.demoTyping = '1';
+              if (ev.data.query) {
+                input.value = ev.data.query;
+              }
+              if (ev.data.clickCityItem && acDropdown && !acDropdown.classList.contains('hidden')) {
+                var firstAcItem = acDropdown.querySelector('.autocomplete-item');
+                if (firstAcItem) {
+                  firstAcItem.click();
+                  return;
+                }
+              }
+              var searchBtn = document.getElementById('btnSubmitSearch');
+              if (searchBtn) {
+                searchBtn.style.transform = 'scale(0.96)';
+                setTimeout(function() { searchBtn.style.transform = ''; }, 140);
+              }
+              form.dispatchEvent(new Event('submit', { cancelable: true }));
+            } else if (ev.data.type === 'DEMO_SCENE_BRIDGE_CLICK') {
+              var bridgeBtn = document.getElementById('btnSwitchServiceBridge') || document.getElementById('btnSwitchServiceBridgeDirect');
+              if (bridgeBtn) {
+                bridgeBtn.style.transform = 'scale(0.96)';
+                setTimeout(function() { bridgeBtn.style.transform = ''; }, 140);
+                bridgeBtn.click();
               }
             }
           });

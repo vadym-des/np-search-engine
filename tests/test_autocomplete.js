@@ -4258,7 +4258,20 @@ async function runTests() {
       throw new Error('Enter по "Березнегувате" при закритому поп-апі не відкрив дезамбігуацію з 2 варіантами');
     }
 
-    console.log('  ✓ Успіх: Вставка, стирання області, Enter та submit для "Березнегувате" стабільно відкривають поп-ап із 2 варіантами (НП + УП)!\n');
+    // 5. Виконання пошуку села без НП ("Березнегувате Компаніївський Кіровоградська")
+    //    показує кнопку переходу в Укрпошту (28446) і логує "🟡 Немає НП (доступна Укрпошта)" замість "🔴 0 результатів"
+    const resultsList = elementsById['resultsList'];
+    window.__lastTelemetryPayload = null;
+    await window.executeSearch('Березнегувате Компаніївський Кіровоградська', true, true);
+    await sleep(30);
+    if (!resultsList.innerHTML.includes('Знайти в Укрпошті (індекс 28446)')) {
+      throw new Error('Empty state не містить кнопку переходу в Укрпошту (індекс 28446)');
+    }
+    if (!window.__lastTelemetryPayload || window.__lastTelemetryPayload.status !== '🟡 Немає НП (доступна Укрпошта)') {
+      throw new Error(`Очікувався статус телеметрії "🟡 Немає НП (доступна Укрпошта)", отримано: "${window.__lastTelemetryPayload && window.__lastTelemetryPayload.status}"`);
+    }
+
+    console.log('  ✓ Успіх: Вставка, стирання області, Enter, submit та телеметрія без НП ("🟡 Немає НП (доступна Укрпошта)") працюють коректно!\n');
     passedTests++;
   } catch (err) {
     console.error('  ✗ Провал Тесту 69:', err.message, '\n');
