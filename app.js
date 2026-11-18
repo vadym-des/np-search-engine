@@ -7,11 +7,13 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.6.57';
+  const APP_VERSION = '1.6.58';
 
   // Вебхук автоматичного запису проблемних запитів у Google Таблицю
   const TELEMETRY_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzSV99G9gc9XEvyZRs1cxN3BU5Ka74EBPLJDO0n3R7JODWN3GAtumlIFOcj3VcDTI02/exec';
   const loggedRecentEvents = new Map();
+  let settledQueryTimer = null;
+  let zeroResultsDebounceTimer = null;
 
   // Відстеження активного джерела введення (Ручний, Вставка з буфера, Швидкий чіп, Історія, Автокомпліт)
   let currentInputSource = 'manual'; // 'manual' | 'paste' | 'frequent_chip' | 'history_card' | 'autocomplete' | 'smart_banner'
@@ -74,6 +76,7 @@
   // Відстеження активної пошукової сесії та ланцюжка переписування (Journey)
   const lastSearchSession = {
     query: '',
+    initialQuery: '',
     service: 'novaposhta',
     timestamp: 0,
     resultsCount: 0,
@@ -84,6 +87,38 @@
     previousResultsCount: 0,
     previousService: 'novaposhta'
   };
+
+  function resetSearchSessionState() {
+    lastSearchSession.query = '';
+    lastSearchSession.initialQuery = '';
+    lastSearchSession.previousQuery = '';
+    lastSearchSession.previousResultsCount = 0;
+    lastSearchSession.timestamp = 0;
+    lastSearchSession.resultsCount = 0;
+    lastSearchSession.hasCopied = false;
+    lastSearchSession.abandonedTracked = false;
+  }
+
+  function updateSearchSessionState(query, resultsCount, source) {
+    const cleanQ = (query || '').trim();
+    if (!cleanQ || cleanQ.length < 2) return;
+
+    checkSearchRefinementFriction(cleanQ);
+
+    if (!lastSearchSession.initialQuery || lastSearchSession.hasCopied) {
+      lastSearchSession.initialQuery = cleanQ;
+      lastSearchSession.previousQuery = '';
+      lastSearchSession.previousResultsCount = 0;
+    }
+
+    lastSearchSession.query = cleanQ;
+    lastSearchSession.service = (typeof state !== 'undefined' && state.currentService) ? state.currentService : 'novaposhta';
+    lastSearchSession.timestamp = Date.now();
+    lastSearchSession.resultsCount = (typeof resultsCount === 'number') ? resultsCount : 0;
+    lastSearchSession.source = source || currentInputSource || 'manual';
+    lastSearchSession.hasCopied = false;
+    lastSearchSession.abandonedTracked = false;
+  }
 
   // Безпечне відправлення подій у Microsoft Clarity
   function trackClarityEvent(eventName) {
@@ -177,27 +212,57 @@
         if (params && params.branch_type) {
           setClarityTag('branch_type', params.branch_type);
         }
-        if (lastSearchSession.query && !lastSearchSession.hasCopied) {
+        const activeQuery = (
+          lastSearchSession.query ||
+          (typeof dom !== 'undefined' && dom.searchInput ? dom.searchInput.value.trim() : '') ||
+          (typeof state !== 'undefined' ? state.searchQuery : '') ||
+          ''
+        ).trim();
+
+        if (activeQuery && !lastSearchSession.hasCopied) {
           lastSearchSession.hasCopied = true;
-          const timeToCopy = Math.max(1, Math.round((Date.now() - lastSearchSession.timestamp) / 1000));
+          const timeToCopy = lastSearchSession.timestamp > 0
+            ? Math.max(1, Math.round((Date.now() - lastSearchSession.timestamp) / 1000))
+            : 1;
           setClarityTag('time_to_copy_sec', timeToCopy);
           trackEvent('time_to_copy', {
-            search_term: lastSearchSession.query,
+            search_term: activeQuery,
             duration_sec: timeToCopy,
-            service: lastSearchSession.service === 'novaposhta' ? 'NP' : 'UKR'
+            service: (lastSearchSession.service || state.currentService) === 'novaposhta' ? 'NP' : 'UKR'
           });
 
-          // Якщо оператор перед цим мав невдалий/переписаний запит і нарешті успішно скопіював адресу:
-          if (lastSearchSession.previousQuery && lastSearchSession.previousQuery.trim().toLowerCase() !== lastSearchSession.query.trim().toLowerCase()) {
+          const cleanInit = (lastSearchSession.initialQuery || '').trim().toLowerCase();
+          const cleanFinal = activeQuery.toLowerCase();
+          const wasRewritten = Boolean(lastSearchSession.previousQuery) ||
+            (cleanInit && cleanFinal && !cleanFinal.startsWith(cleanInit));
+          const srcLabel = getSourceLabel(lastSearchSession.source || currentInputSource);
+          const countVal = lastSearchSession.resultsCount || (typeof state !== 'undefined' && state.currentResults ? state.currentResults.length : 1) || 1;
+
+          if (wasRewritten && cleanInit && cleanInit !== cleanFinal) {
             logFailureTelemetry({
-              query: `«${lastSearchSession.previousQuery}» ➔ «${lastSearchSession.query}»`,
-              service: lastSearchSession.service,
+              query: `«${lastSearchSession.initialQuery}» ➔ «${activeQuery}»`,
+              service: lastSearchSession.service || state.currentService,
               status: '🟢 Успіх після переписування',
-              resultsCount: lastSearchSession.resultsCount,
+              resultsCount: countVal,
               duration: timeToCopy,
-              details: `Оператор успішно знайшов і скопіював відділення після переписування початкового запиту «${lastSearchSession.previousQuery}». Джерело: ${getSourceLabel(lastSearchSession.source || currentInputSource)}`
+              details: `Оператор успішно знайшов і скопіював відділення після переписування початкового запиту «${lastSearchSession.initialQuery}». Джерело: ${srcLabel}`
+            });
+          } else {
+            logFailureTelemetry({
+              query: activeQuery,
+              service: lastSearchSession.service || state.currentService,
+              status: '🟢 Успішний пошук (Скопійовано)',
+              resultsCount: countVal,
+              duration: timeToCopy,
+              details: `Оператор успішно знайшов і скопіював адресу відділення. Джерело: ${srcLabel}`
             });
           }
+
+          // Скидаємо початковий і попередній запити після успішного копіювання,
+          // щоб наступний незалежний пошук ніколи не склеювався зі старим
+          lastSearchSession.initialQuery = '';
+          lastSearchSession.previousQuery = '';
+          lastSearchSession.previousResultsCount = 0;
         }
       }
     } catch (e) {
@@ -217,20 +282,21 @@
         const cleanOld = lastSearchSession.query.trim().toLowerCase();
         const cleanNew = (newQuery || '').trim().toLowerCase();
         if (cleanOld && cleanNew && cleanOld !== cleanNew) {
-          const isRealChange = Math.abs(cleanOld.length - cleanNew.length) > 2 || 
-                               cleanOld.split(' ')[0] !== cleanNew.split(' ')[0] || 
-                               lastSearchSession.resultsCount === 0;
+          const isRealChange = !cleanNew.startsWith(cleanOld) || lastSearchSession.resultsCount === 0;
           if (isRealChange) {
             const elapsed = Date.now() - lastSearchSession.timestamp;
-            if (elapsed >= 800 && elapsed <= 60000) {
+            if (elapsed >= 200 && elapsed <= 60000) {
               const oldQ = lastSearchSession.query;
               const oldResults = lastSearchSession.resultsCount;
               lastSearchSession.previousQuery = oldQ;
               lastSearchSession.previousResultsCount = oldResults;
-              
+              if (!lastSearchSession.initialQuery) {
+                lastSearchSession.initialQuery = oldQ;
+              }
+
               logFailureTelemetry({
                 query: `«${oldQ}» ➔ «${(newQuery || '').trim()}»`,
-                service: lastSearchSession.service,
+                service: lastSearchSession.service || state.currentService,
                 status: oldResults === 0 ? '🔴 0 рез. ➔ Переписано' : '🟠 Переписування запиту',
                 resultsCount: oldResults,
                 duration: Math.max(1, Math.round(elapsed / 1000)),
@@ -475,9 +541,9 @@
     if (state.currentService === serviceName && !explicitTargetQuery && !directBranchTarget) return;
 
     // Детекція перемикання після неуспішного пошуку (Switch on Failure)
-    if (lastSearchSession.query && !lastSearchSession.hasCopied && !lastSearchSession.abandonedTracked) {
+    if (lastSearchSession.query && !lastSearchSession.hasCopied && !lastSearchSession.abandonedTracked && currentInputSource !== 'history_card') {
       const elapsed = Date.now() - lastSearchSession.timestamp;
-      if (elapsed > 1000 && elapsed < 45000) {
+      if (elapsed >= 200 && elapsed < 45000) {
         trackClarityEvent('switch_after_unsuccessful_search');
         setClarityTag('switched_from_query', lastSearchSession.query.slice(0, 50));
         trackEvent('switch_after_unsuccessful_search', {
@@ -492,8 +558,8 @@
             service: state.currentService,
             status: '🟡 Перемикання після невдачі',
             resultsCount: lastSearchSession.resultsCount,
-            duration: Math.round(elapsed / 1000),
-            details: `Оператор перемкнувся на ${serviceName === 'novaposhta' ? 'Нову пошту' : 'Укрпошту'} після невдалого пошуку`
+            duration: Math.max(1, Math.round(elapsed / 1000)),
+            details: `Оператор перемкнувся на ${serviceName === 'novaposhta' ? 'Нову пошту' : 'Укрпошту'} після невдалого пошуку. Джерело: ${getSourceLabel(lastSearchSession.source || currentInputSource)}`
           });
         }
       }
@@ -1822,34 +1888,99 @@
     const svc = state.currentService === 'novaposhta' ? 'NP' : 'UKR';
     setClarityTag('service', svc);
 
-    // Завжди перевіряємо зміну/переписування попереднього запиту
-    checkSearchRefinementFriction(rawQuery);
+    const activeSource = currentInputSource || 'manual';
+    const svcName = state.currentService === 'novaposhta' ? 'Нова пошта' : 'Укрпошта';
 
-    // Оновлюємо стан сесії для відстеження конверсій, джерел та відвалів
-    lastSearchSession.query = rawQuery;
-    lastSearchSession.service = state.currentService;
-    lastSearchSession.timestamp = Date.now();
-    lastSearchSession.resultsCount = results.length;
-    lastSearchSession.source = currentInputSource;
-    lastSearchSession.hasCopied = false;
-    lastSearchSession.abandonedTracked = false;
+    // Оновлюємо стан сесії та перевіряємо переписування попереднього запиту
+    updateSearchSessionState(rawQuery, results.length, activeSource);
 
-    // Автоматична фіксація 0 результатів у Google Таблицю для будь-якого запиту від 2 символів
+    clearTimeout(zeroResultsDebounceTimer);
     if (results.length === 0 && rawQuery.length >= 2) {
       trackClarityEvent('search_zero_results');
       setClarityTag('last_zero_query', rawQuery.slice(0, 50));
       trackEvent('search_zero_results', { search_term: rawQuery, tab_type: svc });
-      logFailureTelemetry({
-        query: rawQuery,
-        service: state.currentService,
-        status: currentInputSource === 'paste' ? '🔴 0 результатів (Вставка)' : '🔴 0 результатів',
-        resultsCount: 0,
-        duration: 1,
-        details: `Жодного відділення не знайдено. Джерело: ${getSourceLabel(currentInputSource)}. Служба: ${state.currentService === 'novaposhta' ? 'Нова пошта' : 'Укрпошта'}`
-      });
+
+      const zeroStatus = activeSource === 'paste' ? '🔴 0 результатів (Вставка)' : '🔴 0 результатів';
+      const zeroDetails = `Жодного відділення не знайдено. Джерело: ${getSourceLabel(activeSource)}. Служба: ${svcName}`;
+      const sendZero = () => {
+        const curInput = dom.searchInput ? dom.searchInput.value.trim() : rawQuery;
+        if (!isExplicitSubmit && curInput !== rawQuery) return;
+        logFailureTelemetry({
+          query: rawQuery,
+          service: state.currentService,
+          status: zeroStatus,
+          resultsCount: 0,
+          duration: 1,
+          details: zeroDetails
+        });
+      };
+
+      if (isExplicitSubmit || activeSource === 'paste') {
+        sendZero();
+      } else {
+        zeroResultsDebounceTimer = setTimeout(sendZero, 500);
+      }
     } else if (results.length > 0) {
       trackClarityEvent('search_success');
       setClarityTag('last_success_query', rawQuery.slice(0, 50));
+
+      if (activeSource === 'paste') {
+        logFailureTelemetry({
+          query: rawQuery,
+          service: state.currentService,
+          status: '🔵 Пошук: Вставка з буфера',
+          resultsCount: results.length,
+          duration: 1,
+          details: `Оператор вставив запит з буфера обміну (знайдено ${results.length} рез.). Служба: ${svcName}`
+        });
+      } else if (shouldRecordAnalytics) {
+        if (activeSource === 'frequent_chip') {
+          logFailureTelemetry({
+            query: rawQuery,
+            service: state.currentService,
+            status: '🔵 Вибір: Швидкі міста (Чіп)',
+            resultsCount: results.length,
+            duration: 1,
+            details: `Клік по чіпу швидкого вибору міста (знайдено ${results.length} рез.).`
+          });
+        } else if (activeSource === 'history_card') {
+          logFailureTelemetry({
+            query: rawQuery,
+            service: state.currentService,
+            status: '🔵 Вибір: Історія пошуків',
+            resultsCount: results.length,
+            duration: 1,
+            details: `Повторний запуск із карток історії пошуків (знайдено ${results.length} рез.).`
+          });
+        } else if (activeSource === 'autocomplete') {
+          logFailureTelemetry({
+            query: rawQuery,
+            service: state.currentService,
+            status: '🔵 Вибір: Автокомпліт',
+            resultsCount: results.length,
+            duration: 1,
+            details: `Вибір міста/відділення з випадаючого списку (знайдено ${results.length} рез.).`
+          });
+        } else if (activeSource === 'smart_banner') {
+          logFailureTelemetry({
+            query: rawQuery,
+            service: state.currentService,
+            status: '🔵 Перехід: Розвилка служб',
+            resultsCount: results.length,
+            duration: 1,
+            details: `Перехід через розумний банер служб (знайдено ${results.length} рез.).`
+          });
+        } else if (isExplicitSubmit && rawQuery.length >= 2) {
+          logFailureTelemetry({
+            query: rawQuery,
+            service: state.currentService,
+            status: '🔵 Пошук (Enter / Кнопка)',
+            resultsCount: results.length,
+            duration: 1,
+            details: `Підтверджений ручний пошук (знайдено ${results.length} рез.).`
+          });
+        }
+      }
     }
 
     // Запис у найчастіші запити та історію
@@ -4274,6 +4405,8 @@
 
       chip.addEventListener('click', (e) => {
         e.preventDefault();
+        clearTimeout(settledQueryTimer);
+        clearTimeout(zeroResultsDebounceTimer);
         currentInputSource = 'frequent_chip';
         resetFrequentSession();
         const q = (item.query || '').trim();
@@ -4304,6 +4437,18 @@
         }
         closeAutocomplete();
         triggerAutocomplete(q);
+
+        const suggCount = (autocompleteItems && autocompleteItems.length) ? autocompleteItems.length : 1;
+        updateSearchSessionState(q, suggCount, 'frequent_chip');
+        logFailureTelemetry({
+          query: q,
+          service: state.currentService,
+          status: '🔵 Вибір: Швидкі міста (Чіп)',
+          resultsCount: suggCount,
+          duration: 1,
+          details: `Клік по чіпу швидкого вибору міста (показано підказок: ${suggCount}).`
+        });
+
         focusSearchInputAtEnd(true);
       });
 
@@ -4417,6 +4562,8 @@
 
       card.addEventListener('click', (e) => {
         e.preventDefault();
+        clearTimeout(settledQueryTimer);
+        clearTimeout(zeroResultsDebounceTimer);
         currentInputSource = 'history_card';
         switchService(item.service);
         dom.searchInput.value = item.query + ' ';
@@ -5342,15 +5489,22 @@
       isAutocompleteOpen = true;
       updateBottomBarVisibility();
 
-      if (query.trim().length >= 2) {
-        logFailureTelemetry({
-          query: query.trim(),
-          service: state.currentService,
-          status: '🔴 0 результатів (автокомпліт)',
-          resultsCount: 0,
-          duration: 1,
-          details: `Порожні підказки в автокомпліті: місто чи відділення не знайдено. Джерело: ${getSourceLabel(currentInputSource)}`
-        });
+      const cleanZeroQ = query.trim();
+      if (cleanZeroQ.length >= 2) {
+        clearTimeout(zeroResultsDebounceTimer);
+        zeroResultsDebounceTimer = setTimeout(() => {
+          const curVal = dom.searchInput ? dom.searchInput.value.trim() : cleanZeroQ;
+          if (curVal !== cleanZeroQ) return;
+          updateSearchSessionState(cleanZeroQ, 0, currentInputSource);
+          logFailureTelemetry({
+            query: cleanZeroQ,
+            service: state.currentService,
+            status: '🔴 0 результатів (автокомпліт)',
+            resultsCount: 0,
+            duration: 1,
+            details: `Порожні підказки в автокомпліті: місто чи відділення не знайдено. Джерело: ${getSourceLabel(currentInputSource)}`
+          });
+        }, 500);
       }
       return;
     }
@@ -5538,6 +5692,9 @@
         e.stopPropagation();
         if (selectHandled) return;
         selectHandled = true;
+        clearTimeout(settledQueryTimer);
+        clearTimeout(zeroResultsDebounceTimer);
+        currentInputSource = 'smart_banner';
 
         const isToNp = bridgeBtn.getAttribute('data-bridge-np') === 'true';
         const targetIndex = bridgeBtn.getAttribute('data-bridge-index');
@@ -5574,6 +5731,15 @@
             state.selectedSettlement = null;
             state.currentResults = [upBranch];
             renderSearchResults([upBranch], targetQuery, null, null);
+            updateSearchSessionState(targetQuery, 1, 'smart_banner');
+            logFailureTelemetry({
+              query: targetQuery,
+              service: state.currentService,
+              status: '🔵 Перехід: Розвилка служб',
+              resultsCount: 1,
+              duration: 1,
+              details: 'Перехід на Укрпошту через кнопку швидкого мосту в автокомпліті (знайдено 1 рез.).'
+            });
             if (state.isMapVisible && state.leafletMap && upBranch.lat && upBranch.lng) {
               updateMapMarkers([upBranch], upBranch);
               state.leafletMap.flyTo([upBranch.lat, upBranch.lng], 14, { duration: 1.2 });
@@ -5604,6 +5770,8 @@
   async function selectAutocompleteItem(item) {
     if (!item) return;
     currentInputSource = 'autocomplete';
+    clearTimeout(settledQueryTimer);
+    clearTimeout(zeroResultsDebounceTimer);
     clearTimeout(autocompleteDebounceTimer);
     clearTimeout(liveSearchDebounceTimer);
     if (activeAutocompleteAbortController) {
@@ -5676,6 +5844,7 @@
     if (item.branchObj) {
       const b = item.branchObj;
       if (item.isCrossService && item.service && item.service !== state.currentService) {
+        currentInputSource = 'smart_banner';
         await switchService(item.service, fill.trim(), b);
         return;
       }
@@ -5701,6 +5870,15 @@
       renderSearchResults([b], fill.trim(), null, null);
       recordFrequentQuery(b.city || fill.trim());
       recordSearchHistory(fill.trim(), 1);
+      updateSearchSessionState(fill.trim(), 1, 'autocomplete');
+      logFailureTelemetry({
+        query: fill.trim(),
+        service: state.currentService,
+        status: '🔵 Вибір: Автокомпліт',
+        resultsCount: 1,
+        duration: 1,
+        details: 'Обрано конкретне відділення зі списку автокомпліту (знайдено 1 рез.).'
+      });
       if (state.isMapVisible && state.leafletMap) {
         updateMapMarkers([b], b);
         if (b.lat && b.lng) {
@@ -5752,6 +5930,15 @@
         renderSearchResults([singleBranch], fill.trim(), null, null);
         recordFrequentQuery(singleBranch.city || fill.trim());
         recordSearchHistory(fill.trim(), 1);
+        updateSearchSessionState(fill.trim(), 1, 'autocomplete');
+        logFailureTelemetry({
+          query: fill.trim(),
+          service: state.currentService,
+          status: '🔵 Вибір: Автокомпліт',
+          resultsCount: 1,
+          duration: 1,
+          details: 'Обрано населений пункт з автокомпліту (автоматично знайдено єдине відділення).'
+        });
         if (state.isMapVisible && state.leafletMap) {
           updateMapMarkers([singleBranch], singleBranch);
           if (singleBranch.lat && singleBranch.lng) {
@@ -6007,6 +6194,8 @@
         return;
       }
 
+      clearTimeout(settledQueryTimer);
+      clearTimeout(zeroResultsDebounceTimer);
       closeAutocomplete();
       if (dom.searchInput) {
         dom.searchInput.blur();
@@ -6036,6 +6225,8 @@
 
     // Відстеження вставки з буфера обміну (Paste)
     dom.searchInput.addEventListener('paste', () => {
+      clearTimeout(settledQueryTimer);
+      clearTimeout(zeroResultsDebounceTimer);
       currentInputSource = 'paste';
       setTimeout(() => {
         const val = (dom.searchInput ? dom.searchInput.value : '').trim();
@@ -6047,6 +6238,8 @@
 
     // Автодоповнення та миттєвий живий пошук при введенні (LP-CRM City Mode <-> Branch Mode + дебаунс + AbortController)
     dom.searchInput.addEventListener('input', () => {
+      clearTimeout(settledQueryTimer);
+      clearTimeout(zeroResultsDebounceTimer);
       const val = dom.searchInput.value.trim();
       if (!val) resetFrequentSession();
       activeResultIndex = -1;
@@ -6173,6 +6366,27 @@
             });
           }, 180);
         }
+
+        // Фіксація стабілізованого запиту через 700 мс після зупинки друку
+        settledQueryTimer = setTimeout(() => {
+          if (currentSignal.aborted) return;
+          const settledVal = dom.searchInput ? dom.searchInput.value.trim() : val;
+          if (!settledVal || settledVal.length < 2) return;
+          const curCount = isAutocompleteOpen
+            ? autocompleteItems.length
+            : (state.searchQuery === settledVal ? state.currentResults.length : autocompleteItems.length);
+          updateSearchSessionState(settledVal, curCount, currentInputSource);
+          if (curCount > 0 && currentInputSource === 'manual') {
+            logFailureTelemetry({
+              query: settledVal,
+              service: state.currentService,
+              status: '🔵 Ручний ввід (живий пошук)',
+              resultsCount: curCount,
+              duration: 1,
+              details: `Стабілізований ручний ввід (знайдено ${curCount} варіантів/відділень).`
+            });
+          }
+        }, 700);
       } else {
         closeAutocomplete();
         if (dom.searchResultsSection) {
@@ -6184,7 +6398,7 @@
 
     // Навігація клавішами в autocomplete та списку карток (ArrowUp, ArrowDown, Enter, Esc, Cmd+A / Ctrl+A)
     dom.searchInput.addEventListener('keydown', (e) => {
-      if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+      if ((e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey) || e.key === 'Backspace' || e.key === 'Delete') {
         currentInputSource = 'manual';
       }
       const isSelectAll = (e.metaKey || e.ctrlKey) && (
@@ -6272,6 +6486,8 @@
           }
 
           e.preventDefault();
+          clearTimeout(settledQueryTimer);
+          clearTimeout(zeroResultsDebounceTimer);
           clearTimeout(autocompleteDebounceTimer);
           clearTimeout(liveSearchDebounceTimer);
           if (activeAutocompleteAbortController) {
@@ -6500,6 +6716,8 @@
     }
 
     dom.btnClearSearch.addEventListener('click', () => {
+      clearTimeout(settledQueryTimer);
+      clearTimeout(zeroResultsDebounceTimer);
       resetFrequentSession();
       if (
         lastSearchSession.query &&
@@ -6508,17 +6726,18 @@
         lastSearchSession.query.length >= 2
       ) {
         const elapsed = Date.now() - lastSearchSession.timestamp;
-        if (elapsed >= 1500 && elapsed <= 45000) {
+        if (elapsed >= 200 && elapsed <= 45000) {
           logFailureTelemetry({
             query: lastSearchSession.query,
             service: lastSearchSession.service,
             status: '🟠 Очищення поля без копіювання',
             resultsCount: lastSearchSession.resultsCount,
-            duration: Math.round(elapsed / 1000),
+            duration: Math.max(1, Math.round(elapsed / 1000)),
             details: `Оператор очистив поле пошуку без копіювання адреси. Джерело: ${getSourceLabel(lastSearchSession.source || currentInputSource)}`
           });
         }
       }
+      resetSearchSessionState();
       dom.searchInput.value = '';
       dom.btnClearSearch.classList.add('hidden');
       dom.searchResultsSection.classList.add('hidden');

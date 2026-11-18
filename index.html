@@ -70,7 +70,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.57">
+  <link rel="stylesheet" href="styles.css?v=1.6.58">
 </head>
 <body data-service="novaposhta">
 
@@ -298,7 +298,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.57</span>
+          <span class="version-tag">v1.6.58</span>
         </button>
       </div>
 
@@ -324,8 +324,23 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.57 -->
+        <!-- Версія 1.6.58 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.58</span>
+            <span class="version-state">Повна телеметрія всіх сценаріїв вводу &amp; живий дашборд Google Таблиці</span>
+            <span class="version-date">18 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Трекінг усіх сценаріїв без пропусків:</strong> Додано дебаунс-фіксацію живого ручного вводу, прямий лог вибору з чіпів, історії, вставки (Paste) та всіх гілок автокомпліту (включно з одиничними відділеннями та селами), а також фіксацію першого успішного копіювання («Успішний пошук»).</li>
+            <li><strong>Ізоляція пошукових циклів:</strong> Виправлено перенесення старого запиту після завершення копіювання — кожен новий пошук ведеться чисто, без склеювання з попередніми пошуками.</li>
+            <li><strong>Живі формули та оформлення:</strong> Налаштовано динамічні формули в реальному часі на дашборді «Зведена аналітика» та чисте біле оформлення всіх аркушів.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.58.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.57 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.57</span>
             <span class="version-state">Глибока аналітика джерел запитів, вставки з буфера (Paste) та ланцюжків переписування</span>
@@ -1663,22 +1678,22 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.fast.js?v=1.6.57"></script>
+  <script src="data/branches.fast.js?v=1.6.58"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.57"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.58"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.57"></script>
+  <script src="data/all_settlements.js?v=1.6.58"></script>
 
   <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
-  <script src="data/crm_settlements.js?v=1.6.57"></script>
+  <script src="data/crm_settlements.js?v=1.6.58"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.57"></script>
+  <script src="data/fuzzySearch.js?v=1.6.58"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.57"></script>
+  <script src="app.js?v=1.6.58"></script>
 
   <!-- Інтерактивний контролер для демо-прев'ю (about.html embed) -->
   <script>
