@@ -486,38 +486,6 @@ body[data-service="ukrposhta"] #btnNovaPoshta:hover {
   color: var(--text-muted);
 }
 
-.live-query-echo {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 12.5px;
-  color: var(--text-muted);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  animation: fadeIn 0.15s ease-out;
-}
-
-.live-query-echo .echo-icon {
-  font-size: 12px;
-}
-
-.live-query-echo .echo-label {
-  font-weight: 600;
-  color: var(--text-subtle);
-}
-
-.live-query-echo .echo-text {
-  font-weight: 700;
-  color: var(--text-main);
-  background: rgba(226, 44, 56, 0.08);
-  padding: 1px 6px;
-  border-radius: 4px;
-  letter-spacing: 0.01em;
-}
-
 .kbd-key {
   display: inline-flex;
   align-items: center;
@@ -2038,23 +2006,6 @@ html[data-theme="dark"] .btn-header-up-switch {
 .results-count-badge strong {
   color: var(--text-main);
   font-weight: 700;
-}
-
-.results-query-preview {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.results-query-preview .query-preview-label {
-  color: var(--text-muted);
-}
-
-.results-query-preview .query-preview-text {
-  color: var(--text-main);
-  font-weight: 600;
 }
 
 .results-type-pills {

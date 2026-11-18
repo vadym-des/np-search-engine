@@ -70,7 +70,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.55">
+  <link rel="stylesheet" href="styles.css?v=1.6.56">
 </head>
 <body data-service="novaposhta">
 
@@ -148,11 +148,6 @@
           <div class="search-hotkey-hint">
             <span class="hotkey-hint-prefix">Підказка:</span>
             <span class="hotkey-hint-body">натисніть <kbd class="kbd-key" title="Клікніть для виділення тексту">Esc</kbd> для миттєвої заміни запиту або <kbd class="kbd-key" title="Клікніть для фокусу"> / </kbd> для нового пошуку</span>
-          </div>
-          <div id="liveQueryEcho" class="live-query-echo hidden" data-clarity-unmask="true" aria-hidden="true">
-            <span class="echo-icon">🔍</span>
-            <span class="echo-label">Ввід:</span>
-            <span id="liveQueryEchoText" class="echo-text" data-clarity-unmask="true"></span>
           </div>
         </div>
 
@@ -245,10 +240,6 @@
             <div class="results-count-badge">
               <strong id="resultsCount">0</strong>
             </div>
-            <div class="results-query-preview" data-clarity-unmask="true">
-              <span class="query-preview-label">запитом:</span>
-              <strong id="resultsSearchQueryText" class="query-preview-text" data-clarity-unmask="true"></strong>
-            </div>
             <div class="results-type-pills" id="resultsTypeFilters" role="radiogroup" aria-label="Фільтр за типом">
               <button type="button" class="type-pill-btn active" data-type="all">Всі</button>
               <button type="button" class="type-pill-btn" data-type="cargo">Вантажні</button>
@@ -307,7 +298,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.55</span>
+          <span class="version-tag">v1.6.56</span>
         </button>
       </div>
 
@@ -333,17 +324,17 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.55 -->
+        <!-- Версія 1.6.56 -->
         <div class="changelog-item current">
           <div class="version-pill-header">
-            <span class="version-badge">v1.6.55</span>
-            <span class="version-state">Автоматичний лог проблемних запитів у Google Таблицю &amp; Дзеркало вводу Clarity</span>
+            <span class="version-badge">v1.6.56</span>
+            <span class="version-state">Автоматичний логер проблемних запитів у Google Таблицю &amp; чистий UI</span>
             <span class="version-date">18 Листопада 2026</span>
           </div>
           <ul class="version-features-list">
             <li><strong>Автоматичний логер проблемних запитів:</strong> Інтегровано вебхук Google Apps Script для автоматичного збору невдалих пошуків операторів (0 результатів, кинутий пошук без копіювання, перемикання служб після невдачі та швидка зміна запиту) у режимі реального часу в Google Таблицю без потреби ручного перегляду сотень відео.</li>
-            <li><strong>Живе дзеркало введення для Clarity:</strong> Додано відображення введеного запиту з атрибутом <code>data-clarity-unmask="true"</code>, що вирішує проблему маскування тексту крапочками у відеозаписах Microsoft Clarity.</li>
-            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.55.</li>
+            <li><strong>Очищення інтерфейсу:</strong> Видалено експериментальний бейдж дзеркалювання вводу для збереження лаконічного, чистого дизайну без візуального шуму.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.56.</li>
           </ul>
         </div>
 
@@ -1658,22 +1649,22 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.fast.js?v=1.6.55"></script>
+  <script src="data/branches.fast.js?v=1.6.56"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.55"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.56"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.55"></script>
+  <script src="data/all_settlements.js?v=1.6.56"></script>
 
   <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
-  <script src="data/crm_settlements.js?v=1.6.55"></script>
+  <script src="data/crm_settlements.js?v=1.6.56"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.55"></script>
+  <script src="data/fuzzySearch.js?v=1.6.56"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.55"></script>
+  <script src="app.js?v=1.6.56"></script>
 
   <!-- Інтерактивний контролер для демо-прев'ю (about.html embed) -->
   <script>

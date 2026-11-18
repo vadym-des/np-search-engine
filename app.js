@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.6.55';
+  const APP_VERSION = '1.6.56';
 
   // Вебхук автоматичного запису проблемних запитів у Google Таблицю
   const TELEMETRY_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzSV99G9gc9XEvyZRs1cxN3BU5Ka74EBPLJDO0n3R7JODWN3GAtumlIFOcj3VcDTI02/exec';
@@ -173,22 +173,6 @@
     }
   }
 
-  // Оновлення живого дзеркала запиту оператора (відображення відкритого тексту для Clarity)
-  function updateLiveQueryEcho(text) {
-    try {
-      const trimmed = (text || '').trim();
-      if (dom.liveQueryEcho && dom.liveQueryEchoText) {
-        if (trimmed.length > 0) {
-          dom.liveQueryEchoText.textContent = trimmed;
-          dom.liveQueryEcho.classList.remove('hidden');
-        } else {
-          dom.liveQueryEcho.classList.add('hidden');
-          dom.liveQueryEchoText.textContent = '';
-        }
-      }
-    } catch (e) {}
-  }
-
   // Детекція заміни/стирання запиту оператором без копіювання (Friction: пошук не з 1-ї спроби)
   function checkSearchRefinementFriction(newQuery) {
     try {
@@ -278,9 +262,6 @@
     btnSearchSubmit: document.getElementById('btnSearchSubmit'),
     btnQuickPostomat: document.getElementById('btnQuickPostomat'),
     autocompleteDropdown: document.getElementById('autocompleteDropdown'),
-    liveQueryEcho: document.getElementById('liveQueryEcho'),
-    liveQueryEchoText: document.getElementById('liveQueryEchoText'),
-    resultsSearchQueryText: document.getElementById('resultsSearchQueryText'),
     
     // Результати
     searchResultsSection: document.getElementById('searchResultsSection'),
@@ -542,7 +523,6 @@
 
       state.searchQuery = displayQuery;
       dom.searchInput.value = displayQuery;
-      updateLiveQueryEcho(displayQuery);
       state.lockedInputValue = displayQuery;
       dom.btnClearSearch.classList.remove('hidden');
 
@@ -662,13 +642,11 @@
     if (transferQuery) {
       state.searchQuery = transferQuery;
       dom.searchInput.value = transferQuery;
-      updateLiveQueryEcho(transferQuery);
       dom.btnClearSearch.classList.remove('hidden');
       await executeSearch(transferQuery, true, true);
     } else {
       state.searchQuery = '';
       dom.searchInput.value = '';
-      updateLiveQueryEcho('');
       dom.btnClearSearch.classList.add('hidden');
       if (dom.searchResultsSection) {
         dom.searchResultsSection.classList.add('hidden');
@@ -1818,12 +1796,6 @@
       lastSearchSession.resultsCount = results.length;
       lastSearchSession.hasCopied = false;
       lastSearchSession.abandonedTracked = false;
-
-      // Оновлюємо живі текстові індикатори для оператора та Clarity
-      updateLiveQueryEcho(rawQuery);
-      if (dom.resultsSearchQueryText) {
-        dom.resultsSearchQueryText.textContent = rawQuery;
-      }
 
       trackEvent('search_performed', {
         search_term: rawQuery,
@@ -4259,7 +4231,6 @@
         if (!q) return;
 
         dom.searchInput.value = q;
-        updateLiveQueryEcho(q);
         dom.btnClearSearch.classList.remove('hidden');
 
         // Якщо в запиті є цифри (наприклад, конкретне відділення або індекс), виконуємо прямий пошук
@@ -4399,7 +4370,6 @@
         e.preventDefault();
         switchService(item.service);
         dom.searchInput.value = item.query + ' ';
-        updateLiveQueryEcho(item.query);
         dom.btnClearSearch.classList.remove('hidden');
         executeSearch(item.query, true, true);
         focusSearchInputAtEnd(true);
@@ -5638,7 +5608,6 @@
     }
 
     dom.searchInput.value = fill;
-    updateLiveQueryEcho(fill);
     dom.btnClearSearch.classList.remove('hidden');
     closeAutocomplete();
 
@@ -6059,10 +6028,8 @@
 
       if (val.length > 0) {
         dom.btnClearSearch.classList.remove('hidden');
-        updateLiveQueryEcho(val);
       } else {
         dom.btnClearSearch.classList.add('hidden');
-        updateLiveQueryEcho('');
         closeAutocomplete();
         state.searchQuery = '';
         state.currentResults = [];
@@ -6477,7 +6444,6 @@
         }
       }
       dom.searchInput.value = '';
-      updateLiveQueryEcho('');
       dom.btnClearSearch.classList.add('hidden');
       dom.searchResultsSection.classList.add('hidden');
       closeAutocomplete();
