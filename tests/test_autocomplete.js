@@ -4186,6 +4186,84 @@ async function runTests() {
     console.error('  ✗ Провал Тесту 68:', err.message, '\n');
   }
 
+  // --------------------------------------------------------------------------
+  // ТЕСТ 69: Вставка (Paste) / історія / стирання регіону для "Березнегувате"
+  //          завжди відкриває поп-ап вибору з 2 варіантами (НП + Укрпошта), а не пропускає його
+  // --------------------------------------------------------------------------
+  totalTests++;
+  try {
+    console.log('▶ ТЕСТ 69: Вставка (Paste), Enter, історія та редагування для "Березнегувате" відкривають 2 варіанти в автокомпліті');
+    const searchInput = elementsById['searchInput'];
+    const dropdown = elementsById['autocompleteDropdown'];
+    const searchResultsSection = elementsById['searchResultsSection'];
+    const searchForm = elementsById['searchForm'];
+
+    if (window.hasFixedSettlementContext('Березнегувате') !== false) {
+      throw new Error('hasFixedSettlementContext("Березнегувате") має повертати false для голої назви без області/номера');
+    }
+
+    // 1. Симулюємо Вставку (Paste -> Input) значення "Березнегувате"
+    searchInput.value = '';
+    searchInput.dispatchEvent({ type: 'paste' });
+    searchInput.value = 'Березнегувате';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(120);
+
+    if (dropdown.classList.contains('hidden')) {
+      throw new Error('Поп-ап автокомпліту не відкрився після вставки "Березнегувате"!');
+    }
+    if (!searchResultsSection.classList.contains('hidden')) {
+      throw new Error('Секція результатів не повинна пробиватися замість поп-апу при вставці "Березнегувате"!');
+    }
+    const cityItems = dropdown.querySelectorAll('.autocomplete-item-city');
+    if (cityItems.length !== 2) {
+      throw new Error(`Очікувалося 2 варіанти "Березнегувате" (Миколаївська + Кіровоградська), отримано: ${cityItems.length}`);
+    }
+    if (!cityItems[0].innerHTML.includes('Баштанський') || !cityItems[1].innerHTML.includes('Компаніївський') || !cityItems[1].innerHTML.includes('28446')) {
+      throw new Error('У підказках відсутній Баштанський р-н (НП) або Компаніївський р-н (УП 28446)');
+    }
+
+    // 2. Натискання submit ("Шукати") або Enter не повинно закривати попап дезамбігуації
+    searchForm.dispatchEvent({ type: 'submit', preventDefault: () => {} });
+    if (dropdown.classList.contains('hidden')) {
+      throw new Error('Кнопка "Шукати" передчасно закрила поп-ап замість утримання вибору між 2 варіантами');
+    }
+
+    // 3. Обираємо перший варіант (Миколаївська обл.), а потім стираємо область назад до "Березнегувате"
+    cityItems[0].dispatchEvent({ type: 'click' });
+    await sleep(60);
+    if (!searchInput.value.includes('Березнегувате Баштанський Миколаївська')) {
+      throw new Error(`Очікувалося заповнення повної географії, отримано: "${searchInput.value}"`);
+    }
+
+    searchInput.value = 'Березнегувате';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(240);
+
+    if (dropdown.classList.contains('hidden')) {
+      throw new Error('Після стирання області/району назад до "Березнегувате" поп-ап вибору не відкрився повторно!');
+    }
+    if (dropdown.querySelectorAll('.autocomplete-item-city').length !== 2) {
+      throw new Error('Після стирання області назад до "Березнегувате" мають знову показуватися обидва варіанти');
+    }
+
+    // 4. Натискання Enter до завершення дебаунсу при закритому поп-апі також відкриває вибір 2 варіантів
+    searchInput.value = '';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(30);
+    searchInput.value = 'Березнегувате';
+    searchInput.dispatchEvent({ type: 'keydown', key: 'Enter', preventDefault: () => {} });
+    await sleep(40);
+    if (dropdown.classList.contains('hidden') || dropdown.querySelectorAll('.autocomplete-item-city').length !== 2) {
+      throw new Error('Enter по "Березнегувате" при закритому поп-апі не відкрив дезамбігуацію з 2 варіантами');
+    }
+
+    console.log('  ✓ Успіх: Вставка, стирання області, Enter та submit для "Березнегувате" стабільно відкривають поп-ап із 2 варіантами (НП + УП)!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 69:', err.message, '\n');
+  }
+
   console.log('===============================================================');
   console.log(`📊 РЕЗУЛЬТАТ: ${passedTests} / ${totalTests} ТЕСТІВ ПРОЙДЕНО УСПІШНО!`);
   console.timeEnd('⏱️ Час виконання тестів');

@@ -197,7 +197,9 @@ const testCases = [
   { q: 'тер 12', expectedCity: 'Тернопіль', expectedNum: '12', desc: 'Короткий префікс облцентру з логів: "тер 12" -> м. Тернопіль #12' },
   { q: 'тер 12', checkAutocomplete: true, expectedCity: 'Тернопіль', expectedNum: '12', desc: 'Автокомпліт для "тер 12" -> Відділення №12 (Тернопіль)' },
   { q: 'тер 2', expectedCity: 'Тернопіль', expectedNum: '2', desc: 'Короткий префікс облцентру: "тер 2" -> м. Тернопіль #2' },
-  { q: 'тер 2', checkAutocomplete: true, expectedCity: 'Тернопіль', expectedNum: '2', desc: 'Автокомпліт для "тер 2" -> Відділення №2 (Тернопіль)' }
+  { q: 'тер 2', checkAutocomplete: true, expectedCity: 'Тернопіль', expectedNum: '2', desc: 'Автокомпліт для "тер 2" -> Відділення №2 (Тернопіль)' },
+  // БАГ З ВІДЕО (v1.6.60): Вставка / пошук "Березнегувате" завжди показує обидва варіанти в автокомпліті (НП Миколаївська + УП Кіровоградська)
+  { q: 'Березнегувате', checkAutocomplete: true, expectedCity: 'Березнегувате', expectedOblast: 'Миколаївська', expectedVariantsCount: 2, expectedVariant1Branches: 5, expectedVariant2Branches: 0, expectedVariant2Postal: '28446', desc: 'Автокомпліт для "Березнегувате" -> 2 варіанти (Баштанський р-н 5 точок НП + Компаніївський р-н лише УП 28446)' }
 ];
 
 console.log('===============================================================');
@@ -211,9 +213,10 @@ for (let i = 0; i < testCases.length; i++) {
   const activePool = activeService === 'ukrposhta' ? ukrPool : pool;
   window.currentService = activeService;
   let top = null;
+  let sugg = null;
   if (tc.checkAutocomplete) {
-    const sugg = window.SmartSearchEngine.getAutocompleteSuggestions(tc.q, activeService, null, activePool);
-    top = sugg && sugg[0] && sugg[0].branchObj ? sugg[0].branchObj : (sugg && sugg[0] ? { city: sugg[0].value, number: sugg[0].title, street: sugg[0].subtitle } : null);
+    sugg = window.SmartSearchEngine.getAutocompleteSuggestions(tc.q, activeService, null, activePool);
+    top = sugg && sugg[0] && sugg[0].branchObj ? sugg[0].branchObj : (sugg && sugg[0] ? { city: sugg[0].value, number: sugg[0].title, street: sugg[0].subtitle, oblast: sugg[0].oblast } : null);
   } else {
     const res = window.SmartSearchEngine.searchBranches(tc.q, activePool, 3);
     top = res[0];
@@ -228,7 +231,11 @@ for (let i = 0; i < testCases.length; i++) {
   const okOblast = !tc.expectedOblast || (top && top.oblast === tc.expectedOblast);
   const okActualRaion = !tc.expectedActualRaion || (hInfo && hInfo.actualRaion === tc.expectedActualRaion);
   const okOldRaion = !tc.expectedOldRaion || (hInfo && hInfo.oldRaion === tc.expectedOldRaion);
-  const ok = okCity && okNum && okStreet && okType && okCrm && okOblast && okActualRaion && okOldRaion;
+  const okVariantsCount = !tc.expectedVariantsCount || (Array.isArray(sugg) && sugg.length === tc.expectedVariantsCount);
+  const okV1Branches = tc.expectedVariant1Branches === undefined || (Array.isArray(sugg) && sugg[0] && sugg[0].branchCount === tc.expectedVariant1Branches);
+  const okV2Branches = tc.expectedVariant2Branches === undefined || (Array.isArray(sugg) && sugg[1] && sugg[1].branchCount === tc.expectedVariant2Branches);
+  const okV2Postal = !tc.expectedVariant2Postal || (Array.isArray(sugg) && sugg[1] && sugg[1].postalCode === tc.expectedVariant2Postal);
+  const ok = okCity && okNum && okStreet && okType && okCrm && okOblast && okActualRaion && okOldRaion && okVariantsCount && okV1Branches && okV2Branches && okV2Postal;
 
   if (ok) {
     passed++;
