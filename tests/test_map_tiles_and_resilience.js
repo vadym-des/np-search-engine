@@ -94,6 +94,7 @@ assert(
 );
 
 assert(
+  (htmlContent.includes('v1.6.55') && htmlContent.includes('styles.css?v=1.6.55')) ||
   (htmlContent.includes('v1.6.54') && htmlContent.includes('styles.css?v=1.6.54')) ||
   (htmlContent.includes('v1.6.53') && htmlContent.includes('styles.css?v=1.6.53')) ||
   (htmlContent.includes('v1.6.52') && htmlContent.includes('styles.css?v=1.6.52')) ||
@@ -148,6 +149,7 @@ const swContent = fs.readFileSync(swJsPath, 'utf8');
 const changelogContent = fs.readFileSync(changelogPath, 'utf8');
 
 assert(
+  (swContent.includes("const CACHE_VERSION = 'v1.6.55';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v1.6.55';")) ||
   (swContent.includes("const CACHE_VERSION = 'v1.6.54';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v1.6.54';")) ||
   (swContent.includes("const CACHE_VERSION = 'v1.6.53';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v1.6.53';")) ||
   (swContent.includes("const CACHE_VERSION = 'v1.6.52';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v1.6.52';")) ||

@@ -433,18 +433,49 @@ async function runAll() {
       console.log('\n[1/9] Hero Showcase: 01_hero.mp4');
       await rec.startCleanScenario();
       await rec.callout('⚡ Блискавичний пошук за містом, вулицею чи номером');
-      await rec.hold(550);
+      await rec.hold(900);
+
+      // Запит 1: Київ 1
       await rec.typeInput('#searchInput', 'київ 1');
-      await rec.moveTo('#btnSearchSubmit', 380);
+      await rec.moveTo('#btnSearchSubmit', 450);
       await rec.clickAt('#btnSearchSubmit', async () => {
         await rec.setCleanSearchValue('київ 1');
       });
-      await rec.hold(850);
+      await rec.hold(1000);
 
       await rec.callout('✨ 1 клік — готовий чистий рядок для вашої CRM');
-      await rec.moveTo('.btn-copy-short', 460);
+      await rec.moveTo('.btn-copy-short', 520);
       await rec.clickAt('.btn-copy-short');
-      await rec.hold(2200);
+      // Даємо користувачу 3 секунди спокійно роздивитися результат і тост
+      await rec.hold(3000);
+
+      // Гаряча клавіша Esc: миттєва заміна запиту без мишки
+      await rec.callout('⌨️ Заміна запиту за 1 секунду: натисніть [ Esc ]');
+      await page.keyboard.press('Escape');
+      await page.evaluate(() => {
+        const inp = document.querySelector('#searchInput');
+        if (inp) {
+          inp.focus();
+          inp.select();
+        }
+        window.studioShowKeycap(true, '⌨️ [ Esc ] виділяє весь рядок');
+      });
+      // Пауза 2 секунди, щоб зареєструвати виділення рядка та клавішу Esc
+      await rec.hold(2000);
+
+      // Запит 2: Львів 1 без кліків мишкою та без Backspace
+      await page.evaluate(() => window.studioShowKeycap(false));
+      await rec.typeInput('#searchInput', 'львів 1', false);
+      await rec.moveTo('#btnSearchSubmit', 450);
+      await rec.clickAt('#btnSearchSubmit', async () => {
+        await rec.setCleanSearchValue('львів 1');
+      });
+      await rec.callout('✓ Будь-яке місто чи поштомат за 0.01 с — без помилок!');
+      await rec.moveTo('.btn-copy-short', 500);
+      await rec.clickAt('.btn-copy-short');
+      // Даємо 3.5 секунди спокійно прочитати картку другого міста
+      await rec.hold(3500);
+
       await rec.savePoster(path.join(SHOWCASE_DIR, '00_hero_retina.png'));
       await rec.savePoster(path.join(SHOWCASE_DIR, '00_hero_poster.png'));
       await rec.compile(path.join(VIDEO_DIR, '01_hero.mp4'));

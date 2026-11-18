@@ -7,7 +7,53 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.6.54';
+  const APP_VERSION = '1.6.55';
+
+  // Вебхук автоматичного запису проблемних запитів у Google Таблицю
+  const TELEMETRY_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzSV99G9gc9XEvyZRs1cxN3BU5Ka74EBPLJDO0n3R7JODWN3GAtumlIFOcj3VcDTI02/exec';
+  const loggedQueriesCache = new Set();
+
+  // Надійна відправка проблемних випадків пошуку в Google Таблицю операторів
+  function logFailureTelemetry(payload) {
+    try {
+      if (typeof window === 'undefined' || typeof location === 'undefined') return;
+      // Захист: не спамимо в робочу таблицю з localhost, 127.0.0.1 або автоматичних тестів
+      if (
+        location.hostname === 'localhost' ||
+        location.hostname === '127.0.0.1' ||
+        location.protocol === 'file:' ||
+        (navigator.userAgent && navigator.userAgent.includes('HeadlessChrome'))
+      ) {
+        return;
+      }
+
+      const q = (payload.query || '').trim().toLowerCase();
+      const statusKey = `${payload.status || ''}_${q}_${payload.service || ''}`;
+      // Дедуплікація: не записуємо однаковий статус для того ж запиту двічі за сесію
+      if (loggedQueriesCache.has(statusKey)) return;
+      loggedQueriesCache.add(statusKey);
+      if (loggedQueriesCache.size > 200) {
+        const firstKey = loggedQueriesCache.values().next().value;
+        loggedQueriesCache.delete(firstKey);
+      }
+
+      const bodyString = JSON.stringify(payload);
+      if (navigator.sendBeacon) {
+        const blob = new Blob([bodyString], { type: 'text/plain;charset=utf-8' });
+        navigator.sendBeacon(TELEMETRY_WEBHOOK_URL, blob);
+      } else {
+        fetch(TELEMETRY_WEBHOOK_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: bodyString,
+          keepalive: true
+        }).catch(() => {});
+      }
+    } catch (e) {
+      // Ізоляція від будь-яких мережевих збоїв
+    }
+  }
 
   // Відстеження активної пошукової сесії для розширеної воронки (Abandonment, Time-to-Copy, Friction)
   const lastSearchSession = {
@@ -66,6 +112,16 @@
             results_count: lastSearchSession.resultsCount,
             duration_sec: Math.round(elapsed / 1000)
           });
+          if (lastSearchSession.query.length >= 2) {
+            logFailureTelemetry({
+              query: lastSearchSession.query,
+              service: lastSearchSession.service,
+              status: '🟣 Кинутий пошук',
+              resultsCount: lastSearchSession.resultsCount,
+              duration: Math.round(elapsed / 1000),
+              details: 'Оператор залишив сторінку без копіювання адреси'
+            });
+          }
         }
       }
     } catch (e) {}
@@ -115,6 +171,50 @@
     } catch (e) {
       // Ізоляція від помилок
     }
+  }
+
+  // Оновлення живого дзеркала запиту оператора (відображення відкритого тексту для Clarity)
+  function updateLiveQueryEcho(text) {
+    try {
+      const trimmed = (text || '').trim();
+      if (dom.liveQueryEcho && dom.liveQueryEchoText) {
+        if (trimmed.length > 0) {
+          dom.liveQueryEchoText.textContent = trimmed;
+          dom.liveQueryEcho.classList.remove('hidden');
+        } else {
+          dom.liveQueryEcho.classList.add('hidden');
+          dom.liveQueryEchoText.textContent = '';
+        }
+      }
+    } catch (e) {}
+  }
+
+  // Детекція заміни/стирання запиту оператором без копіювання (Friction: пошук не з 1-ї спроби)
+  function checkSearchRefinementFriction(newQuery) {
+    try {
+      if (
+        lastSearchSession.query &&
+        !lastSearchSession.hasCopied &&
+        !lastSearchSession.abandonedTracked &&
+        lastSearchSession.query.length >= 2
+      ) {
+        const cleanOld = lastSearchSession.query.trim().toLowerCase();
+        const cleanNew = (newQuery || '').trim().toLowerCase();
+        if (cleanOld && cleanNew && cleanOld !== cleanNew) {
+          const elapsed = Date.now() - lastSearchSession.timestamp;
+          if (elapsed >= 1500 && elapsed <= 45000) {
+            logFailureTelemetry({
+              query: lastSearchSession.query,
+              service: lastSearchSession.service,
+              status: '🟠 Пошук не з 1-ї спроби',
+              resultsCount: lastSearchSession.resultsCount,
+              duration: Math.round(elapsed / 1000),
+              details: `Оператор змінив запит на «${(newQuery || '').trim()}» без копіювання попереднього результату`
+            });
+          }
+        }
+      }
+    } catch (e) {}
   }
 
   // ==========================================================================
@@ -178,6 +278,9 @@
     btnSearchSubmit: document.getElementById('btnSearchSubmit'),
     btnQuickPostomat: document.getElementById('btnQuickPostomat'),
     autocompleteDropdown: document.getElementById('autocompleteDropdown'),
+    liveQueryEcho: document.getElementById('liveQueryEcho'),
+    liveQueryEchoText: document.getElementById('liveQueryEchoText'),
+    resultsSearchQueryText: document.getElementById('resultsSearchQueryText'),
     
     // Результати
     searchResultsSection: document.getElementById('searchResultsSection'),
@@ -360,6 +463,16 @@
           to_service: serviceName === 'novaposhta' ? 'NP' : 'UKR',
           results_count: lastSearchSession.resultsCount
         });
+        if (lastSearchSession.query.length >= 2) {
+          logFailureTelemetry({
+            query: lastSearchSession.query,
+            service: state.currentService,
+            status: '🟡 Перемикання після невдачі',
+            resultsCount: lastSearchSession.resultsCount,
+            duration: Math.round(elapsed / 1000),
+            details: `Оператор перемкнувся на ${serviceName === 'novaposhta' ? 'Нову пошту' : 'Укрпошту'} після невдалого пошуку`
+          });
+        }
       }
     }
 
@@ -429,6 +542,7 @@
 
       state.searchQuery = displayQuery;
       dom.searchInput.value = displayQuery;
+      updateLiveQueryEcho(displayQuery);
       state.lockedInputValue = displayQuery;
       dom.btnClearSearch.classList.remove('hidden');
 
@@ -548,11 +662,13 @@
     if (transferQuery) {
       state.searchQuery = transferQuery;
       dom.searchInput.value = transferQuery;
+      updateLiveQueryEcho(transferQuery);
       dom.btnClearSearch.classList.remove('hidden');
       await executeSearch(transferQuery, true, true);
     } else {
       state.searchQuery = '';
       dom.searchInput.value = '';
+      updateLiveQueryEcho('');
       dom.btnClearSearch.classList.add('hidden');
       if (dom.searchResultsSection) {
         dom.searchResultsSection.classList.add('hidden');
@@ -1692,6 +1808,9 @@
       const svc = state.currentService === 'novaposhta' ? 'NP' : 'UKR';
       setClarityTag('service', svc);
 
+      // Перевіряємо тертя/зміну запиту перед оновленням поточної сесії
+      checkSearchRefinementFriction(rawQuery);
+
       // Оновлюємо стан сесії для відстеження конверсій та відвалів
       lastSearchSession.query = rawQuery;
       lastSearchSession.service = state.currentService;
@@ -1699,6 +1818,12 @@
       lastSearchSession.resultsCount = results.length;
       lastSearchSession.hasCopied = false;
       lastSearchSession.abandonedTracked = false;
+
+      // Оновлюємо живі текстові індикатори для оператора та Clarity
+      updateLiveQueryEcho(rawQuery);
+      if (dom.resultsSearchQueryText) {
+        dom.resultsSearchQueryText.textContent = rawQuery;
+      }
 
       trackEvent('search_performed', {
         search_term: rawQuery,
@@ -1711,6 +1836,16 @@
         trackClarityEvent('search_zero_results');
         setClarityTag('last_zero_query', rawQuery.slice(0, 50));
         trackEvent('search_zero_results', { search_term: rawQuery, tab_type: svc });
+        if (rawQuery.length >= 2) {
+          logFailureTelemetry({
+            query: rawQuery,
+            service: state.currentService,
+            status: '🔴 0 результатів',
+            resultsCount: 0,
+            duration: 1,
+            details: 'Жодного відділення не знайдено за запитом'
+          });
+        }
       } else {
         trackClarityEvent('search_success');
         setClarityTag('last_success_query', rawQuery.slice(0, 50));
@@ -2785,11 +2920,15 @@
 
     const oblDisplay = oblClean ? (oblClean.endsWith('область') ? oblClean : `${oblClean} область`) : '';
     const hlObl = oblDisplay ? highlightMatch(oblDisplay, query) : '';
-    const cityWithOblast = oblDisplay ? `${escapeHtml(sType)} ${hlCity}, ${hlObl}` : `${escapeHtml(sType)} ${hlCity}`;
+    const cityWithOblast = oblDisplay
+      ? `${escapeHtml(sType)} ${hlCity.trim()}, ${hlObl.trim()}`.replace(/\s+,/g, ',')
+      : `${escapeHtml(sType)} ${hlCity.trim()}`;
     const primaryLineText = `${sType} ${cleanCity}${oblDisplay ? ', ' + oblDisplay : ''} - ${typeDisplay} №${branchNumber}: ${cleanStreet}`;
 
     const fullSettlementText = `${sType} ${cleanCity}${geoSub ? ' ' + geoSub : ''}`;
-    const hlSettlement = `${escapeHtml(sType)} ${hlCity}${hlGeoSub ? ' ' + hlGeoSub : ''}`;
+    const hlSettlement = `${escapeHtml(sType)} ${hlCity.trim()}${hlGeoSub ? ' ' + hlGeoSub.trim() : ''}`
+      .replace(/\(\s+/g, '(')
+      .replace(/\s+,/g, ',');
 
     let historyHtml = '';
     if (histGeo && (histGeo.oldRaion || histGeo.oldName || histGeo.crmName)) {
@@ -4120,6 +4259,7 @@
         if (!q) return;
 
         dom.searchInput.value = q;
+        updateLiveQueryEcho(q);
         dom.btnClearSearch.classList.remove('hidden');
 
         // Якщо в запиті є цифри (наприклад, конкретне відділення або індекс), виконуємо прямий пошук
@@ -4259,6 +4399,7 @@
         e.preventDefault();
         switchService(item.service);
         dom.searchInput.value = item.query + ' ';
+        updateLiveQueryEcho(item.query);
         dom.btnClearSearch.classList.remove('hidden');
         executeSearch(item.query, true, true);
         focusSearchInputAtEnd(true);
@@ -5497,6 +5638,7 @@
     }
 
     dom.searchInput.value = fill;
+    updateLiveQueryEcho(fill);
     dom.btnClearSearch.classList.remove('hidden');
     closeAutocomplete();
 
@@ -5917,8 +6059,10 @@
 
       if (val.length > 0) {
         dom.btnClearSearch.classList.remove('hidden');
+        updateLiveQueryEcho(val);
       } else {
         dom.btnClearSearch.classList.add('hidden');
+        updateLiveQueryEcho('');
         closeAutocomplete();
         state.searchQuery = '';
         state.currentResults = [];
@@ -6314,7 +6458,26 @@
 
     dom.btnClearSearch.addEventListener('click', () => {
       resetFrequentSession();
+      if (
+        lastSearchSession.query &&
+        !lastSearchSession.hasCopied &&
+        !lastSearchSession.abandonedTracked &&
+        lastSearchSession.query.length >= 2
+      ) {
+        const elapsed = Date.now() - lastSearchSession.timestamp;
+        if (elapsed >= 1500 && elapsed <= 45000) {
+          logFailureTelemetry({
+            query: lastSearchSession.query,
+            service: lastSearchSession.service,
+            status: '🟠 Пошук не з 1-ї спроби',
+            resultsCount: lastSearchSession.resultsCount,
+            duration: Math.round(elapsed / 1000),
+            details: 'Оператор очистив поле пошуку без копіювання адреси'
+          });
+        }
+      }
       dom.searchInput.value = '';
+      updateLiveQueryEcho('');
       dom.btnClearSearch.classList.add('hidden');
       dom.searchResultsSection.classList.add('hidden');
       closeAutocomplete();

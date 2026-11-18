@@ -838,27 +838,29 @@ async function runAboutTourDirector() {
     console.log('\n--- [Scene 1/5] Main Search Engine & Transition to About ---');
     await page.goto(`http://localhost:${PORT}/index.html?theme=light`, { waitUntil: 'networkidle0' });
     await page.evaluate(STUDIO_INJECT);
-    await rec.hold(550);
+    await rec.hold(800);
 
     await rec.showCallout('Пошук', '⚡ Миттєвий пошук Нової пошти та Укрпошти в одному вікні');
     await rec.typeText('#searchInput', 'київ 1');
     await rec.moveTo('#btnSearchSubmit', 420);
     await rec.clickAt('#btnSearchSubmit');
-    await rec.hold(950);
+    // Даємо 2.6 секунди роздивитися результат пошуку
+    await rec.hold(2600);
 
     const copyBtnSel = '.btn-copy-short, .btn-copy-action';
     if (await page.$(copyBtnSel)) {
       await rec.moveTo(copyBtnSel, 520);
       await rec.clickAt(copyBtnSel, null, 'chime');
-      await rec.hold(950);
+      // Даємо 2 секунди побачити тост успішного копіювання
+      await rec.hold(2000);
     }
 
     await rec.showCallout('Про проєкт', '🧭 Дізнайтесь про всі інструменти — розділ «Про проєкт»');
-    await rec.hold(450);
+    await rec.hold(1200);
 
     await rec.moveTo('#btnHeaderAbout', 750);
     await page.evaluate(() => window.studioHighlight('#btnHeaderAbout', true));
-    await rec.hold(550);
+    await rec.hold(700);
     await rec.clickAt('#btnHeaderAbout', async () => {
       // Prevent opening new tab; keep visual click feedback and fade cleanly
       await page.evaluate(() => {
@@ -866,7 +868,7 @@ async function runAboutTourDirector() {
         if (b) b.style.transform = 'scale(0.96)';
       });
     }, 'chime');
-    await rec.fadeOutCurtain(260, '#f8fafc');
+    await rec.fadeOutCurtain(280, '#f8fafc');
 
     // =========================================================================
     // SCENE 2 (0:10 - 0:17): Головний екран «Про проєкт» (about.html)
@@ -886,12 +888,13 @@ async function runAboutTourDirector() {
     await rec.fadeInCurtain(300, '#f8fafc');
 
     await rec.showCallout('Знайомство', '🚀 Оформлюйте доставку вдвічі швидше без перемикання вкладок');
-    await rec.hold(2400);
+    // Даємо 4 секунди роздивитися перший екран та нове фонове відео на вітрині
+    await rec.hold(4000);
 
     const exploreBtnSel = '.ds-hero-ctas a[href="#features"]';
     await rec.moveTo(exploreBtnSel, 700);
     await page.evaluate((sel) => window.studioHighlight(sel, true), exploreBtnSel);
-    await rec.hold(350);
+    await rec.hold(450);
     await rec.clickAt(exploreBtnSel, async () => {}, 'click');
     await page.evaluate((sel) => window.studioHighlight(sel, false), exploreBtnSel);
     await rec.smoothScrollToElement('#feature-branch-range-hint', 150, 1000);
@@ -901,50 +904,50 @@ async function runAboutTourDirector() {
     // =========================================================================
     console.log('\n--- [Scene 3/5] Features Walkthrough ---');
 
-    // Block 01: Smart Branch Range Hint
+    // Block 01: Smart Branch Range Hint (анімація завершується + 3.5 с пауза на осмислення)
     await rec.focusBlockVideo('#feature-branch-range-hint');
     await rec.showCallout('01 / 04', 'Розумна підказка номерів відділень без спаму поштоматами');
     await rec.moveTo('#feature-branch-range-hint .ds-zigzag-media', 600);
-    await rec.hold(3600);
+    await rec.hold(8500);
 
-    // Block 02: LP-CRM Hint
-    await rec.smoothScrollToElement('#feature-lpcrm-tg', 150, 850);
+    // Block 02: LP-CRM Hint (анімація завершується + 3.5 с пауза на осмислення)
+    await rec.smoothScrollToElement('#feature-lpcrm-tg', 150, 950);
     await rec.focusBlockVideo('#feature-lpcrm-tg');
     await rec.showCallout('02 / 04', 'Підказка «В LP-CRM»: показує, як населений пункт записаний у базі CRM');
     await rec.moveTo('#feature-lpcrm-tg .ds-zigzag-media', 600);
-    await rec.hold(3400);
+    await rec.hold(8500);
 
     // Block 03 & 04: Hotkeys Esc + Postomat Landmarks
-    await rec.smoothScrollToElement('#feature-hotkeys', 150, 850);
+    await rec.smoothScrollToElement('#feature-hotkeys', 150, 950);
     await rec.focusBlockVideo('#feature-hotkeys');
     await rec.showCallout('03 / 04', 'Швидка заміна замовлення за Esc: руки на клавіатурі без кліків по (×)');
     await rec.moveTo('#feature-hotkeys .ds-zigzag-media', 500);
-    await rec.hold(1700);
+    await rec.hold(8500);
 
-    await rec.smoothScrollToElement('[data-media-slot="postomats"]', 160, 800);
+    await rec.smoothScrollToElement('[data-media-slot="postomats"]', 160, 900);
     await rec.focusBlockVideo('[data-media-slot="postomats"]');
     await rec.moveTo('[data-media-slot="postomats"]', 500);
-    await rec.hold(1900);
+    await rec.hold(7500);
 
     // Block 06 & 07: Fuzzy Topo-Engine + Ukrposhta Bridge
     await rec.smoothScrollToElement('[data-media-slot="fuzzy"]', 160, 950);
     await rec.focusBlockVideo('[data-media-slot="fuzzy"]');
     await rec.showCallout('04 / 04', 'Виправлення одруків та автоперехід на Укрпошту');
     await rec.moveTo('[data-media-slot="fuzzy"]', 500);
-    await rec.hold(1700);
+    await rec.hold(7500);
 
-    await rec.smoothScrollToElement('[data-media-slot="bridge"]', 160, 800);
+    await rec.smoothScrollToElement('[data-media-slot="bridge"]', 160, 900);
     await rec.focusBlockVideo('[data-media-slot="bridge"]');
     await rec.moveTo('[data-media-slot="bridge"]', 500);
-    await rec.hold(1900);
+    await rec.hold(8000);
 
     // =========================================================================
     // SCENE 4 (0:36 - 0:46): Інтерактивний конструктор CRM та ROI калькулятор
     // =========================================================================
     console.log('\n--- [Scene 4/5] Interactive CRM Constructor & ROI ---');
-    await rec.smoothScrollToElement('#calculator', 85, 950);
+    await rec.smoothScrollToElement('#calculator', 85, 1000);
     await rec.showCallout('CRM-конструктор', '⚙️ Налаштуйте формат рядка під вашу CRM та порахуйте економію часу');
-    await rec.hold(500);
+    await rec.hold(1200);
 
     // Toggle rule #2 ("«смт» замість селища")
     const switchSel = '.crm-switches-row .crm-toggle-pill:nth-child(2)';
@@ -958,7 +961,7 @@ async function runAboutTourDirector() {
         }
       });
     }, 'click');
-    await rec.hold(650);
+    await rec.hold(2000);
 
     // Click copy button
     await rec.moveTo('#btnLandingCopyCrm', 550);
@@ -971,42 +974,46 @@ async function runAboutTourDirector() {
         }
       });
     }, 'chime');
-    await rec.hold(850);
+    // Даємо 3 секунди спокійно побачити статус «✓ Скопійовано!»
+    await rec.hold(3000);
 
     // Frame ROI box comfortably and drag slider 50 -> 150
-    await rec.smoothScrollToElement('.ds-roi-box', 210, 550);
-    await rec.dragSlider('.roi-slider', 50, 150, 1250);
-    await rec.hold(1100);
+    await rec.smoothScrollToElement('.ds-roi-box', 210, 750);
+    await rec.dragSlider('.roi-slider', 50, 150, 1400);
+    // Даємо 3.5 секунди спокійно прочитати заощаджений час
+    await rec.hold(3500);
 
     // =========================================================================
     // SCENE 5 (0:46 - 0:54): FAQ, Темна тема (Dark Mode) та фінал
     // =========================================================================
     console.log('\n--- [Scene 5/5] FAQ, Dark Mode & Finale ---');
-    await rec.smoothScrollToElement('#faq', 90, 850);
+    await rec.smoothScrollToElement('#faq', 90, 950);
     await rec.hideCallout();
 
     const faq2Sel = '.ds-faq-item:nth-child(2) .ds-faq-btn';
     await rec.moveTo(faq2Sel, 550);
     await rec.clickAt(faq2Sel, null, 'click');
-    await rec.hold(1100);
+    // Даємо 3.5 секунди спокійно прочитати відповідь на питання
+    await rec.hold(3500);
 
     // Scroll back to Hero top
-    await rec.smoothScrollToY(0, 1000);
+    await rec.smoothScrollToY(0, 1200);
     await rec.showCallout('Фінал', '🌙 Світла й темна теми • Спробуйте в роботі просто зараз!');
 
     // Toggle Dark Mode
     await rec.moveTo('#btnAboutThemeToggle', 650);
     await page.evaluate(() => window.studioHighlight('#btnAboutThemeToggle', true));
-    await rec.hold(300);
+    await rec.hold(500);
     await rec.clickAt('#btnAboutThemeToggle', null, 'chime');
     await page.evaluate(() => window.studioHighlight('#btnAboutThemeToggle', false));
-    await rec.hold(1100);
+    // Даємо 3.5 секунди побачити інтерфейс у темній темі
+    await rec.hold(3500);
 
     // Hover CTA "Спробувати в роботі ->"
     const ctaPrimarySel = '.ds-hero-ctas a[href="index.html"]';
     await rec.moveTo(ctaPrimarySel, 700);
     await page.evaluate((sel) => window.studioHighlight(sel, true), ctaPrimarySel);
-    await rec.hold(1500);
+    await rec.hold(3000);
 
     const totalSec = rec.frameIndex / FPS;
     console.log(`\n[Capture Complete] Recorded ${rec.frameIndex} frames (${totalSec.toFixed(2)}s @ ${FPS} FPS)`);

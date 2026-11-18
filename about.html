@@ -371,6 +371,14 @@
       overflow-x: hidden;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
+    section[id] {
+      scroll-margin-top: 85px;
+    }
+
     a {
       color: inherit;
       text-decoration: none;
@@ -1597,6 +1605,339 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* ==========================================================================
+       2.5. СЕКЦІЯ ПОРІВНЯННЯ: ЧОМУ НЕ GOOGLE
+       ========================================================================== */
+    .ds-comparison-section {
+      padding: 70px 0 85px;
+      background: var(--bg-page-alt);
+      border-top: 1px solid var(--border-light);
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .ds-comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-top: 40px;
+    }
+
+    .ds-comparison-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 26px 24px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .ds-comparison-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .ds-comp-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .ds-comp-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-pill);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      font-weight: 700;
+    }
+
+    .ds-comp-icon.bad {
+      background: rgba(239, 68, 68, 0.12);
+      color: #dc2626;
+    }
+
+    .ds-comp-icon.good {
+      background: rgba(22, 163, 74, 0.12);
+      color: #16a34a;
+    }
+
+    .ds-comp-text-bad {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .ds-comp-text-bad strong {
+      color: #b91c1c;
+      display: block;
+      font-size: 0.96rem;
+      margin-bottom: 3px;
+    }
+
+    .ds-comp-text-good {
+      font-size: 0.94rem;
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
+    .ds-comp-text-good strong {
+      color: var(--text-main);
+      display: block;
+      font-size: 0.98rem;
+      margin-bottom: 3px;
+    }
+
+    .ds-comp-divider {
+      height: 1px;
+      background: var(--border-light);
+      width: 100%;
+    }
+
+    /* Компактна сітка додаткових інструментів */
+    .ds-mini-features-wrap {
+      margin-top: 90px;
+      padding-top: 60px;
+      border-top: 1px dashed var(--border-light);
+    }
+
+    .ds-mini-features-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .ds-mini-features-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    .ds-mini-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 22px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .ds-mini-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-focus);
+    }
+
+    .ds-mini-icon {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .ds-mini-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0;
+    }
+
+    .ds-mini-desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    /* ==========================================================================
+       MOLE.FIT STYLE HERO SHOWCASE
+       Піксель-перфектна копія рідного інтерфейсу index.html у Mac-вікні + автотаймер
+       ========================================================================== */
+    .ds-mole-hero-container {
+      max-width: 980px;
+      margin: 28px auto 0;
+      position: relative;
+      text-align: left;
+    }
+
+    .ds-mole-window {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+      box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.12), 0 4px 14px rgba(15, 23, 42, 0.05);
+      overflow: hidden;
+      position: relative;
+    }
+
+    [data-theme="dark"] .ds-mole-window {
+      background: #111622;
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Верхній macOS-бар */
+    .ds-mole-header {
+      height: 38px;
+      background: var(--bg-card-subtle);
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      user-select: none;
+    }
+
+    .ds-mole-dots {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+    }
+    .ds-mole-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .ds-mole-dot.red { background: #ff5f56; }
+    .ds-mole-dot.yellow { background: #ffbd2e; }
+    .ds-mole-dot.green { background: #27c93f; }
+
+    .ds-mole-win-title {
+      font-size: 0.74rem;
+      font-family: var(--font-mono);
+      color: var(--text-subtle);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Інтерактивний iframe додатку всередині вікна */
+    .ds-mole-iframe-container {
+      width: 100%;
+      height: 590px;
+      background: var(--bg-page);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #moleAppFrame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      background: transparent;
+    }
+
+    .ds-mole-header-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ds-mole-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #16a34a;
+      background: rgba(22, 163, 74, 0.12);
+      padding: 3px 8px;
+      border-radius: 9999px;
+    }
+
+    .ds-mole-live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #16a34a;
+      animation: pulseLiveDot 1.8s infinite ease-in-out;
+    }
+
+    @keyframes pulseLiveDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.8); }
+    }
+
+    /* Нижня панель mole.fit під вікном */
+    .ds-mole-bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 18px;
+      padding: 0 4px;
+      flex-wrap: wrap;
+    }
+
+    .ds-mole-tagline {
+      font-size: 0.94rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: -0.01em;
+      min-height: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.25s ease;
+    }
+    .ds-mole-tagline-bullet {
+      color: #d92534;
+      font-weight: 800;
+    }
+
+    .ds-mole-pills {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .ds-mole-pill {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 9999px;
+      padding: 7px 15px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      overflow: hidden;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+
+    .ds-mole-pill:hover {
+      color: var(--text-main);
+      border-color: var(--border-focus);
+      transform: translateY(-1px);
+    }
+
+    .ds-mole-pill.active {
+      background: var(--text-main);
+      color: var(--bg-card);
+      border-color: var(--text-main);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+    }
+
+    /* Індикатор прогресу таймера на активній кнопці */
+    .ds-mole-pill-progress {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      height: 2.5px;
+      background: #d92534;
+      width: 0%;
+      border-radius: 2px;
+      pointer-events: none;
+    }
+
     /* Responsive */
     @media (max-width: 960px) {
       .ds-nav-links { display: none; }
@@ -1608,11 +1949,49 @@
       .ds-zigzag-row.reverse .ds-zigzag-media { order: 2; }
       .ds-interactive-wrap { padding: 30px 20px; }
       .ds-zigzag-list { gap: 80px; }
+      .ds-comparison-grid { grid-template-columns: 1fr; }
+      .ds-mini-features-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+      .ds-mole-bottom-bar { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .ds-mole-pills { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 6px; }
+      .ds-mole-pill { white-space: nowrap; flex-shrink: 0; }
+    }
+
+    @media (max-width: 768px) {
+      .mock-chips-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .mock-top-nav-center {
+        position: static;
+        transform: none;
+      }
+      .mock-top-nav {
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+      }
+      .mock-nav-actions {
+        display: none;
+      }
+      .ds-mock-site-wrap {
+        padding: 14px 12px 18px;
+      }
+      .mock-card-result {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .mock-copy-btn {
+        width: 100%;
+        justify-content: center;
+      }
     }
 
     @media (max-width: 600px) {
       .crm-preview-box { flex-direction: column; align-items: stretch; }
       .btn-copy-crm { width: 100%; text-align: center; }
+      .ds-mini-features-grid { grid-template-columns: 1fr; }
+      .ds-mole-stage { padding: 18px 16px 22px; min-height: 250px; }
+      .ds-mole-card { flex-direction: column; align-items: stretch; }
+      .btn-mole-copy { width: 100%; justify-content: center; }
     }
   </style>
 </head>
@@ -1634,7 +2013,8 @@
       <nav>
         <ul class="ds-nav-links">
           <li><a href="#top" class="nav-link-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">Головна</a></li>
-          <li><a href="#features">Можливості</a></li>
+          <li><a href="#why-not-google">Чому не Google?</a></li>
+          <li><a href="#features">Кілер-фічі</a></li>
           <li><a href="#calculator">Конструктор CRM</a></li>
           <li><a href="#faq">FAQ</a></li>
         </ul>
@@ -1677,17 +2057,17 @@
   <section class="ds-hero">
     <div class="container">
       <div class="ds-eyebrow">
-        <span>🔥 Для операторів кол-центрів та e-commerce</span>
+        <span>🔥 ДЛЯ ОПЕРАТОРІВ КОЛ-ЦЕНТРІВ ТА E-COMMERCE</span>
         <span class="ds-eyebrow-sep">•</span>
-        <span class="ds-eyebrow-highlight">Готово до копіювання в CRM</span>
+        <span class="ds-eyebrow-highlight">Втричі швидше за звичайний пошук</span>
       </div>
 
       <h1 class="ds-hero-title">
-        Оформлюйте доставку вдвічі швидше без перемикання між вкладками
+        Оформлюйте доставку втричі швидше, ніж через Google
       </h1>
 
       <p class="ds-hero-subtitle">
-        Миттєвий пошук за містом, вулицею чи номером і автоматичний формат для вашої CRM-системи.
+        Єдиний спеціалізований рушій, який миттєво розуміє суржик клієнтів, села-тезки, ліквідовані райони та формує чистий запис для вашої CRM за 0.1 секунди.
       </p>
 
       <div class="ds-hero-ctas">
@@ -1695,30 +2075,167 @@
           <span>Спробувати в роботі</span>
           <span>→</span>
         </a>
-        <a href="#features" class="btn-pill btn-pill-secondary">
-          <span>Оглянути можливості</span>
+        <a href="#why-not-google" class="btn-pill btn-pill-secondary">
+          <span>Чому саме цей сайт ↓</span>
         </a>
       </div>
 
-      <!-- Чиста Hero-вітрина у стилі карток функціоналу (без зайвих рамок) -->
-      <div class="ds-hero-aura-wrap">
-        <div class="ds-hero-frameless-wrap" id="heroFramelessWrap">
-          <div class="ds-media-inner">
-            <video class="ds-media-asset" autoplay loop muted playsinline preload="auto" poster="assets/showcase/00_hero_retina.png">
-              <source src="assets/video/01_hero.mp4" type="video/mp4">
-            </video>
-            <!-- Hero Action: кнопка перегляду повного відеотуру -->
-            <button type="button" class="ds-hero-watch-full-btn" id="btnWatchFullTour" onclick="openFullTourModal()" aria-label="Подивитися відеоогляд повністю">
-              <span class="ds-watch-play-pulse" aria-hidden="true">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
+      <!-- MOLE.FIT СТИЛЬ: ДИНАМІЧНИЙ СИМУЛЯТОР З АВТОПЕРЕМИКАННЯМ ТАБАХ І СЛОГАНІВ -->
+      <div class="ds-mole-hero-container" id="moleHeroContainer" onmouseenter="pauseMoleTimer()" onmouseleave="resumeMoleTimer()">
+        
+        <!-- Головне вікно додатку (macOS Style з живим вбудованим додатком) -->
+        <div class="ds-mole-window">
+          
+          <!-- Верхній macOS-бар вікна -->
+          <div class="ds-mole-header">
+            <div class="ds-mole-dots">
+              <span class="ds-mole-dot red" title="Закрити"></span>
+              <span class="ds-mole-dot yellow" title="Згорнути"></span>
+              <span class="ds-mole-dot green" title="Розгорнути"></span>
+            </div>
+            
+            <div class="ds-mole-win-title">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              <span>np-search.in.ua — Інтерактивне вікно пошуку</span>
+            </div>
+
+            <div class="ds-mole-header-meta">
+              <span class="ds-mole-live-badge">
+                <span class="ds-mole-live-dot"></span>
+                <span>LIVE INTERACTIVE</span>
               </span>
-              <span class="ds-watch-text-group">
-                <span class="ds-watch-title">Подивитися повністю</span>
-                <span class="ds-watch-meta">53 сек • Відеотур з музикою</span>
-              </span>
+            </div>
+          </div>
+
+          <!-- Контейнер реального працюючого додатку (100% нативний функціонал) -->
+          <div class="ds-mole-iframe-container">
+            <iframe id="moleAppFrame" src="index.html?embed=1" title="Інтерактивний пошуковий рушій" frameborder="0"></iframe>
+          </div>
+
+        </div>
+
+        <!-- Нижня панель mole.fit (Слоган зліва + Таби з автотаймером справа) -->
+        <div class="ds-mole-bottom-bar">
+          <div class="ds-mole-tagline" id="moleTagline">
+            <span class="ds-mole-tagline-bullet">●</span>
+            <span id="moleTaglineText">Головний екран: миттєвий доступ до найчастіших міст та історії в 1 клік.</span>
+          </div>
+
+          <div class="ds-mole-pills" id="molePills">
+            <button type="button" class="ds-mole-pill active" id="molePill0" onclick="setMoleScene(0)">
+              <span>01. Дефолтна сторінка</span>
+              <div class="ds-mole-pill-progress" id="moleProgress0"></div>
             </button>
+            <button type="button" class="ds-mole-pill" id="molePill1" onclick="setMoleScene(1)">
+              <span>02. Забута розкладка</span>
+              <div class="ds-mole-pill-progress" id="moleProgress1"></div>
+            </button>
+            <button type="button" class="ds-mole-pill" id="molePill2" onclick="setMoleScene(2)">
+              <span>03. Номер поштомату</span>
+              <div class="ds-mole-pill-progress" id="moleProgress2"></div>
+            </button>
+            <button type="button" class="ds-mole-pill" id="molePill3" onclick="setMoleScene(3)">
+              <span>04. Індекс Укрпошти</span>
+              <div class="ds-mole-pill-progress" id="moleProgress3"></div>
+            </button>
+            <button type="button" class="ds-mole-pill" id="molePill4" onclick="setMoleScene(4)">
+              <span>05. Стара назва (Вараш)</span>
+              <div class="ds-mole-pill-progress" id="moleProgress4"></div>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       2.5. СЕКЦІЯ ПОРІВНЯННЯ: ЧОМУ НЕ GOOGLE
+       ======================================================================== -->
+  <section id="why-not-google" class="ds-comparison-section">
+    <div class="container">
+      <div class="ds-section-header">
+        <span class="ds-section-eyebrow">КОНТРАСТ ІЗ ЗВИЧНИМ ПОШУКОМ</span>
+        <h2 class="ds-section-title">Чому шукати доставку в Google — це біль</h2>
+        <p class="ds-section-subtitle">
+          Google створений для загального пошуку в інтернеті, а не для щоденної швидкості оператора чи e-commerce. Порівняйте:
+        </p>
+      </div>
+
+      <div class="ds-comparison-grid">
+        <!-- КАРТКА 1: СЕЛА ТЕЗКИ -->
+        <div class="ds-comparison-card">
+          <div class="ds-comp-row">
+            <div class="ds-comp-icon bad">✕</div>
+            <div class="ds-comp-text-bad">
+              <strong>Google & Карти: хаос у селах-тезках</strong>
+              Вводите «Павлів» чи «Іванівка» — Google пропонує десятки сіл навмання або веде на закриті відділення 2018 року. Якщо написати «львів павлів 1», шукає вулицю Павліва у Львові.
+            </div>
+          </div>
+          <div class="ds-comp-divider"></div>
+          <div class="ds-comp-row">
+            <div class="ds-comp-icon good">✓</div>
+            <div class="ds-comp-text-good">
+              <strong>Наш рушій: пріоритет робочої пошти</strong>
+              Фільтрує «мертві» села без відділень. Розуміє, що Львів — це область, а Павлів — село. Завжди знаходить діючу точку без додаткових питань.
+            </div>
+          </div>
+        </div>
+
+        <!-- КАРТКА 2: ПОМИЛКА В НОМЕРІ -->
+        <div class="ds-comparison-card">
+          <div class="ds-comp-row">
+            <div class="ds-comp-icon bad">✕</div>
+            <div class="ds-comp-text-bad">
+              <strong>Google & Карти: помилка клієнта = глухий кут</strong>
+              Клієнт каже: «Білгород-Дністровський 12». У місті лише 5 відділень. Google показує житлові будинки або поштомати, а оператор зависає на слухавці.
+            </div>
+          </div>
+          <div class="ds-comp-divider"></div>
+          <div class="ds-comp-row">
+            <div class="ds-comp-icon good">✓</div>
+            <div class="ds-comp-text-good">
+              <strong>Наш рушій: адаптивний помічник Smart Range</strong>
+              Плашка миттєво підказує: «У місті діють відділення №1–№5» і виводить кнопки [№1]–[№5] для перемикання в 1 клік. Нуль незручного мовчання.
+            </div>
+          </div>
+        </div>
+
+        <!-- КАРТКА 3: ДЛЯ CRM -->
+        <div class="ds-comparison-card">
+          <div class="ds-comp-row">
+            <div class="ds-comp-icon bad">✕</div>
+            <div class="ds-comp-text-bad">
+              <strong>Google & Карти: нуль сумісності з CRM</strong>
+              Щоб внести дані в LP-CRM чи KeyCRM, оператор вручну з'ясовує назву громади або старий район, потім видаляє слово «відділення». На це йде 2–3 хвилини.
+            </div>
+          </div>
+          <div class="ds-comp-divider"></div>
+          <div class="ds-comp-row">
+            <div class="ds-comp-icon good">✓</div>
+            <div class="ds-comp-text-good">
+              <strong>Наш рушій: готова підказка для CRM в 1 клік</strong>
+              У кожній картці видно точний запис: «В LP-CRM: Олександрія (м.Кіровогр.обл.райц)». Одне натискання — і чистий рядок уже у буфері обміну.
+            </div>
+          </div>
+        </div>
+
+        <!-- КАРТКА 4: НЕМАЄ НП -->
+        <div class="ds-comparison-card">
+          <div class="ds-comp-row">
+            <div class="ds-comp-icon bad">✕</div>
+            <div class="ds-comp-text-bad">
+              <strong>Google & Карти: села без Нової пошти</strong>
+              Якщо в селі покупця немає НП, треба відкривати повільний сайт Укрпошти, шукати 5-значний індекс або втрачати замовлення.
+            </div>
+          </div>
+          <div class="ds-comp-divider"></div>
+          <div class="ds-comp-row">
+            <div class="ds-comp-icon good">✓</div>
+            <div class="ds-comp-text-good">
+              <strong>Наш рушій: крос-міст на Укрпошту</strong>
+              Якщо Нової пошти немає — рушій автоматично пропонує діюче відділення Укрпошти з точним поштовим індексом у тому ж вікні за 1 клік.
+            </div>
           </div>
         </div>
       </div>
@@ -1726,28 +2243,49 @@
   </section>
 
   <!-- ========================================================================
-       3. ФУНКЦІОНАЛ, ЯКИЙ ВАРТО ЗНАТИ (ZIG-ZAG LIST)
+       3. ЗОЛОТЕ ТРІО: КІЛЕР-ФІЧІ РУШІЯ
        ======================================================================== -->
   <section id="features" class="ds-zigzag-section">
     <div class="container">
       
       <div class="ds-section-header">
-        <span class="ds-section-eyebrow">МОЖЛИВОСТІ РУШІЯ</span>
-        <h2 class="ds-section-title">Функціонал, який варто знати</h2>
+        <span class="ds-section-eyebrow">ГОЛОВНІ ПЕРЕВАГИ</span>
+        <h2 class="ds-section-title">3 причини назавжди забути про пошук у Google</h2>
         <p class="ds-section-subtitle">
-          Ключові інструменти для швидкої та безпомилкової роботи з поштовими адресами.
+          Сфокусовано на трьох речах: швидкість вводу, порятунок від людських помилок та готовність для замовлення.
         </p>
       </div>
 
       <div class="ds-zigzag-list">
 
-        <!-- РЯДОК 1 (НАЙНОВІША v1.6.49): АДАПТИВНИЙ ПОМІЧНИК ДІАПАЗОНУ ВІДДІЛЕНЬ -->
-        <div class="ds-zigzag-row" id="feature-branch-range-hint">
+        <!-- КІЛЕР-ФІЧА 1: РОЗУМНИЙ ВВІД ОДНИМ РЯДКОМ -->
+        <div class="ds-zigzag-row" id="feature-fuzzy-topo">
           <div class="ds-zigzag-content">
-            <span class="ds-feature-badge" style="color: var(--brand-red); background: rgba(217, 37, 52, 0.08);">01 • Нове в v1.6.49 • Розумна підказка відділень</span>
-            <h3 class="ds-zigzag-title">Підказка діючих відділень при помилці в номері</h3>
+            <span class="ds-feature-badge" style="color: var(--accent-purple); background: rgba(124, 58, 237, 0.08);">Кілер-фіча 01 • Топоніміка без помилок</span>
+            <h3 class="ds-zigzag-title">Пишіть як чуєте: Область, село-тезка, вулиця та номер в один рядок</h3>
             <p class="ds-zigzag-desc">
-              Якщо клієнт назвав неіснуючий номер (наприклад, <code>Білгород-Дністровський 12</code> або <code>Київ 999</code>), плашка над видачею миттєво показує реальну картину по місту без поштоматного спаму. У малих містах (до 6 відділень) з'являються інтерактивні кнопки <code>[№1]</code>–<code>[№5]</code> для перемикання в 1 клік, а у мегаполісах — точна межа діючих номерів (<code>№1–822</code>).
+              Забудьте про заповнення 5 випадаючих списків. Введіть усе разом у єдине поле — наприклад, <code>культури 6 слобожанське 1</code> або <code>львів павлів 1</code>. Рушій миттєво відрізнить номер будинку від номера відділення, зрозуміє вулицю і не сплутає її з однойменним селом, виправить одруки та розкладку клавіатури.
+            </p>
+            <div class="ds-feature-pills">
+              <span class="ds-pill-metric">🎯 Пріоритет діючої пошти</span>
+              <span class="ds-pill-metric">🔍 Будинок + Відділення</span>
+              <span class="ds-pill-metric">🛡️ Захист від тезок</span>
+            </div>
+          </div>
+          <div class="ds-zigzag-media" data-media-slot="fuzzy" data-slot-title="01 • Топоніміка без помилок">
+            <div class="ds-media-inner">
+              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/07_homonym_disambiguation.png" data-src="assets/video/03_fuzzy.mp4"></video>
+            </div>
+          </div>
+        </div>
+
+        <!-- КІЛЕР-ФІЧА 2: АДАПТИВНА ПІДКАЗКА ПРИ ПОМИЛЦІ В НОМЕРІ -->
+        <div class="ds-zigzag-row reverse" id="feature-branch-range-hint">
+          <div class="ds-zigzag-content">
+            <span class="ds-feature-badge" style="color: var(--brand-red); background: rgba(217, 37, 52, 0.08);">Кілер-фіча 02 • Smart Range Hint</span>
+            <h3 class="ds-zigzag-title">Адаптивна підказка відділень: порятунок від помилки клієнта</h3>
+            <p class="ds-zigzag-desc">
+              Клієнт на телефоні назвав неіснуючий номер відділення (наприклад, <code>Білгород-Дністровський 12</code> або <code>Київ 999</code>)? Замість розгубленості та порожнього екрану плашка над видачею показує реальну межу діючих номерів по місту, а для міст до 6 відділень дає інтерактивні кнопки <code>[№1]</code>–<code>[№5]</code> для вибору в 1 клік.
             </p>
             <div class="ds-feature-pills">
               <span class="ds-pill-metric">⚡ Кнопки [№1..№5] в 1 клік</span>
@@ -1755,157 +2293,73 @@
               <span class="ds-pill-metric">🛡️ Без спаму поштоматами</span>
             </div>
           </div>
-          <div class="ds-zigzag-media" data-media-slot="branch_range_hint" data-slot-title="01 • Адаптивна підказка діапазону відділень">
+          <div class="ds-zigzag-media" data-media-slot="branch_range_hint" data-slot-title="02 • Адаптивна підказка діапазону відділень">
             <div class="ds-media-inner">
               <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/10_branch_range_hint.png" data-src="assets/video/10_branch_range_hint.mp4"></video>
             </div>
           </div>
         </div>
 
-        <!-- РЯДОК 2 (v8.30): ПІДКАЗКА ЗАПИСУ ДЛЯ LP-CRM -->
-        <div class="ds-zigzag-row reverse" id="feature-lpcrm-tg">
+        <!-- КІЛЕР-ФІЧА 3: СТВОРЕНО ДЛЯ CRM ТА СІЛ -->
+        <div class="ds-zigzag-row" id="feature-lpcrm-tg">
           <div class="ds-zigzag-content">
-            <span class="ds-feature-badge" style="color: var(--brand-red); background: rgba(217, 37, 52, 0.08);">02 • v8.30 • Підказка для LP-CRM</span>
-            <h3 class="ds-zigzag-title">Підказка, як населений пункт записаний в LP-CRM</h3>
+            <span class="ds-feature-badge" style="color: var(--accent-orange); background: rgba(234, 88, 12, 0.08);">Кілер-фіча 03 • CRM-сумісність та Укрпошта</span>
+            <h3 class="ds-zigzag-title">Підказка запису для LP-CRM та крос-міст на Укрпошту</h3>
             <p class="ds-zigzag-desc">
-              Не можете знайти потрібне село чи місто у випадаючому списку LP-CRM, бо там воно записане через громаду, старий район або скорочення (наприклад, <code>Олександрія (м.Кіровогр.обл.райц)</code> чи <code>Калинівка (Калинівська територіальна громада)</code>)? Просто знайдіть відділення на сайті — прямо в картці є підказка <strong>«В LP-CRM: ...»</strong>. Подивіться, як саме цей пункт виглядає в базі CRM, або скопіюйте точний запис в 1 клік.
+              Не можете знайти село у CRM через складну назву громади чи району? Картка одразу показує точний запис: <strong>«В LP-CRM: ...»</strong> для копіювання в 1 клік. А якщо в селі покупця немає Нової пошти — рушій автоматично запропонує найближче діюче відділення Укрпошти з точним 5-значним індексом.
             </p>
             <div class="ds-feature-pills">
-              <span class="ds-pill-metric">👁️ Видно точний запис в LP-CRM</span>
-              <span class="ds-pill-metric">📋 Копіювання підказки в 1 клік</span>
-              <span class="ds-pill-metric">🛡️ Без плутанини в селах-тезках</span>
+              <span class="ds-pill-metric">👁️ Видно точний запис в CRM</span>
+              <span class="ds-pill-metric">📮 26 500+ індексів Укрпошти</span>
+              <span class="ds-pill-metric">📋 Копіювання в 1 клік</span>
             </div>
           </div>
-          <div class="ds-zigzag-media" data-media-slot="lpcrm_tg" data-slot-title="02 • Підказка запису для LP-CRM">
+          <div class="ds-zigzag-media" data-media-slot="lpcrm_tg" data-slot-title="03 • Підказка для LP-CRM та крос-міст">
             <div class="ds-media-inner">
               <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/promo/lpcrm-demo.webp" data-src="assets/promo/lpcrm-demo.mp4"></video>
             </div>
           </div>
         </div>
 
-        <!-- РЯДОК 3 (v8.28): РОЗУМНІ КЛАВІШІ ESC / COMMAND+A -->
-        <div class="ds-zigzag-row" id="feature-hotkeys">
-          <div class="ds-zigzag-content">
-            <span class="ds-feature-badge" style="color: #0284c7; background: rgba(2, 132, 199, 0.08);">03 • v8.28 • Швидкість без мишки</span>
-            <h3 class="ds-zigzag-title">Швидке виділення та заміна запиту клавішею Esc</h3>
-            <p class="ds-zigzag-desc">
-              Більше не потрібно тягнутися мишкою до хрестика (×) або затискати Backspace, щоб очистити поле для наступного клієнта. Натисніть <code>Esc</code> (або <code>Cmd+A</code> / <code>Ctrl+A</code>) — рядок миттєво виділяється, і ви одразу вводите нове місто чи номер відділення. Руки залишаються на клавіатурі.
-            </p>
-            <div class="ds-feature-pills">
-              <span class="ds-pill-metric">⌨️ [ Esc ] або [ Cmd+A ]</span>
-              <span class="ds-pill-metric">⚡ Без кліків по хрестику (×)</span>
-              <span class="ds-pill-metric">🚀 Нове місто за 1 секунду</span>
-            </div>
-          </div>
-          <div class="ds-zigzag-media" data-media-slot="escape_hotkey" data-slot-title="03 • Миттєве виділення та заміна за Esc">
-            <div class="ds-media-inner">
-              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/09_esc_hotkey_demo.png" data-src="assets/video/00_esc_hotkey.mp4"></video>
-            </div>
-          </div>
+      </div>
+
+      <!-- КОМПАКТНА СІТКА ДОДАТКОВИХ СУПЕРСИЛ -->
+      <div class="ds-mini-features-wrap">
+        <div class="ds-mini-features-header">
+          <span class="ds-section-eyebrow">ПІД КАПОТОМ</span>
+          <h3 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin: 6px 0 8px;">Ще 4 інструменти для щоденної швидкості</h3>
+          <p style="font-size: 0.95rem; color: var(--text-muted); max-width: 520px; margin: 0 auto;">Дрібниці, які заощаджують до 2 годин робочого часу оператора на день.</p>
         </div>
 
-        <!-- РЯДОК 4 (v8.27): ОРІЄНТИРИ ПОШТОМАТІВ -->
-        <div class="ds-zigzag-row reverse">
-          <div class="ds-zigzag-content">
-            <span class="ds-feature-badge" style="color: var(--brand-red); background: rgba(217, 37, 52, 0.08);">04 • v8.27 • Захист від повернень</span>
-            <h3 class="ds-zigzag-title">Орієнтири та доступ до під'їзду</h3>
-            <p class="ds-zigzag-desc">
-              Попередження <code>«підʼїзд №1 (тільки для мешканців)»</code> або код домофону видно ДО відправки — клієнт гарантовано забере посилку без повернень.
-            </p>
-            <div class="ds-feature-pills">
-              <span class="ds-pill-metric">🚪 Під'їзди та закриті ЖК</span>
-              <span class="ds-pill-metric">🛡️ 0% завислих посилок</span>
-            </div>
+        <div class="ds-mini-features-grid">
+          <!-- МІНІ 1: ESC -->
+          <div class="ds-mini-card">
+            <div class="ds-mini-icon">⌨️</div>
+            <h4 class="ds-mini-title">Миттєвий Esc / Cmd+A</h4>
+            <p class="ds-mini-desc">Натисніть <code>Esc</code> — рядок виділяється і готовий до наступного клієнта без кліків по хрестику (×).</p>
           </div>
-          <div class="ds-zigzag-media" data-media-slot="postomats" data-slot-title="04 • Орієнтири поштоматів">
-            <div class="ds-media-inner">
-              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/06_postomats_landmarks.png" data-src="assets/video/05_postomats.mp4"></video>
-            </div>
+
+          <!-- МІНІ 2: ПІД'ЇЗДИ -->
+          <div class="ds-mini-card">
+            <div class="ds-mini-icon">🚪</div>
+            <h4 class="ds-mini-title">Орієнтири та під'їзди</h4>
+            <p class="ds-mini-desc">Попередження «тільки для мешканців» або код домофону видно ДО відправки. 0% повернень із поштоматів.</p>
+          </div>
+
+          <!-- МІНІ 3: СТАРІ РАЙОНИ -->
+          <div class="ds-mini-card">
+            <div class="ds-mini-icon">🏷️</div>
+            <h4 class="ds-mini-title">490+ старих районів</h4>
+            <p class="ds-mini-desc">Розуміє ліквідовані райони до 2020 року та декомунізовані вулиці, показуючи сучасну офіційну назву.</p>
+          </div>
+
+          <!-- МІНІ 4: КОНТРОЛЬ ВАГИ -->
+          <div class="ds-mini-card">
+            <div class="ds-mini-icon">⚖️</div>
+            <h4 class="ds-mini-title">Контроль ваги та габаритів</h4>
+            <p class="ds-mini-desc">Чіткий бейдж: вантажні хаби до 1100 кг vs міні-відділення до 30 кг чи поштомати до 20 кг.</p>
           </div>
         </div>
-
-        <!-- РЯДОК 5 (v8.25): СТАРІ РАЙОНИ ТА ДЕКОМУНІЗАЦІЯ -->
-        <div class="ds-zigzag-row">
-          <div class="ds-zigzag-content">
-            <span class="ds-feature-badge" style="color: var(--accent-orange); background: rgba(234, 88, 12, 0.08);">05 • v8.25 • Старі райони та декомунізація</span>
-            <h3 class="ds-zigzag-title">Райони до адмінреформи 2020 та старі вулиці</h3>
-            <p class="ds-zigzag-desc">
-              Клієнти часто називають старі ліквідовані райони (наприклад, Києво-Святошинський чи Березанський), а в замовленнях вказують вулиці до декомунізації. Рушій знаходить потрібне відділення за будь-якою з назв і показує сучасний офіційний район.
-            </p>
-            <div class="ds-feature-pills">
-              <span class="ds-pill-metric">🏷️ 490+ ліквідованих районів</span>
-              <span class="ds-pill-metric">🏛️ Декомунізовані вулиці</span>
-              <span class="ds-pill-metric">✓ Подвійна сумісність</span>
-            </div>
-          </div>
-          <div class="ds-zigzag-media" data-media-slot="crm_history" data-slot-title="05 • Старі райони та декомунізація">
-            <div class="ds-media-inner">
-              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/08_lpcrm_historical_index.png" data-src="assets/video/04_crm_history.mp4"></video>
-            </div>
-          </div>
-        </div>
-
-        <!-- РЯДОК 6 (v8.20): FUZZY TOPO-ENGINE -->
-        <div class="ds-zigzag-row reverse">
-          <div class="ds-zigzag-content">
-            <span class="ds-feature-badge" style="color: var(--accent-purple); background: rgba(124, 58, 237, 0.08);">06 • v8.20 • Fuzzy Topo-Engine</span>
-            <h3 class="ds-zigzag-title">Розуміє одруки та села-тезки</h3>
-            <p class="ds-zigzag-desc">
-              Виправляє одруки (<code>«брвари 2»</code>) та розкладку (<code>retd 1</code> ➔ Київ), розрізняє однойменні села та ставить пріоритет діючої пошти.
-            </p>
-            <div class="ds-feature-pills">
-              <span class="ds-pill-metric">🎯 Пріоритет діючої пошти</span>
-              <span class="ds-pill-metric">🔍 Стійкість до помилок</span>
-            </div>
-          </div>
-          <div class="ds-zigzag-media" data-media-slot="fuzzy" data-slot-title="06 • Fuzzy Topo-Engine">
-            <div class="ds-media-inner">
-              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/07_homonym_disambiguation.png" data-src="assets/video/03_fuzzy.mp4"></video>
-            </div>
-          </div>
-        </div>
-
-        <!-- РЯДОК 7 (v8.0): КРОС-СЕРВІСНИЙ МІСТ -->
-        <div class="ds-zigzag-row">
-          <div class="ds-zigzag-content">
-            <span class="ds-feature-badge" style="color: var(--accent-cyan); background: rgba(8, 145, 178, 0.08);">07 • v8.0 • Крос-міст НП ➔ УКР</span>
-            <h3 class="ds-zigzag-title">Автопідказка Укрпошти в селах</h3>
-            <p class="ds-zigzag-desc">
-              Якщо в селі покупця немає Нової пошти, рушій автоматично пропонує найближче діюче відділення Укрпошти з точним 5-значним поштовим індексом.
-            </p>
-            <div class="ds-feature-pills">
-              <span class="ds-pill-metric">📮 26 500+ індексів Укрпошти</span>
-              <span class="ds-pill-metric">⚡ Перехід в 1 клік</span>
-            </div>
-          </div>
-          <div class="ds-zigzag-media" data-media-slot="bridge" data-slot-title="07 • Крос-міст Укрпошти">
-            <div class="ds-media-inner">
-              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/03_cross_service_bridge.png" data-src="assets/video/02_bridge.mp4"></video>
-            </div>
-          </div>
-        </div>
-
-        <!-- РЯДОК 8 (ФУНДАМЕНТ): ТОП-МІСТА ТА ІСТОРІЯ -->
-        <div class="ds-zigzag-row reverse">
-          <div class="ds-zigzag-content">
-            <span class="ds-feature-badge" style="color: var(--accent-green); background: rgba(22, 163, 74, 0.08);">08 • Фундамент • Розумний гібрид v1.6.49</span>
-            <h3 class="ds-zigzag-title">Топ-міста та локальна пам'ять за 14 днів</h3>
-            <p class="ds-zigzag-desc">
-              Чесний старт із <code>0</code> без штучних накруток: будь-яке ваше робоче місто чи село з першого пошуку піднімається в топ. Ковзна пам'ять за 14 днів із дедуплікацією сесій зберігається виключно на вашому пристрої.
-            </p>
-            <div class="ds-feature-pills">
-              <span class="ds-pill-metric">📊 Чесний старт з 0</span>
-              <span class="ds-pill-metric">🗓️ Ковзна пам'ять 14 днів</span>
-              <span class="ds-pill-metric">🔒 100% офлайн-приватність</span>
-            </div>
-          </div>
-          <div class="ds-zigzag-media" data-media-slot="popular" data-slot-title="08 • Топ-міста та історія">
-            <div class="ds-media-inner">
-              <video class="ds-media-asset ds-lazy-video" preload="none" loop muted playsinline poster="assets/showcase/01_popular_queries.png" data-src="assets/video/06_popular.mp4"></video>
-            </div>
-          </div>
-        </div>
-
       </div>
 
     </div>
@@ -2066,13 +2520,13 @@
   </footer>
 
   <!-- ========================================================================
-       MODAL: ПОВНИЙ ВІДЕООГЛЯД ПРОЄКТУ (53 СЕК З МУЗИКОЮ ТА ЕФЕКТАМИ)
+       MODAL: ПОВНИЙ ВІДЕООГЛЯД ПРОЄКТУ (ДЕТАЛЬНИЙ ТУР З МУЗИКОЮ ТА ЕФЕКТАМИ)
        ======================================================================== -->
   <div id="dsTourModalBackdrop" class="ds-tour-modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-label="Повний відеоогляд сервісу">
     <div class="ds-tour-modal-card">
       <div class="ds-tour-modal-header">
         <div class="ds-tour-modal-info">
-          <span class="ds-tour-pill">⚡ ПОВНИЙ ОГЛЯД • 53 СЕК</span>
+          <span class="ds-tour-pill">⚡ ПОВНИЙ ОГЛЯД • 1.5 ХВ</span>
           <h3 class="ds-tour-modal-title">Як працює пошуковий рушій NP + УКР</h3>
         </div>
         <button type="button" class="ds-tour-modal-close" onclick="closeFullTourModal()" aria-label="Закрити відео">✕</button>
@@ -2161,6 +2615,152 @@
        SCRIPTS: CRM NORMALIZER, ROI CALCULATOR, ACCORDION & LAZY MEDIA OBSERVER
        ======================================================================== -->
   <script>
+    // ========================================================================
+    // MOLE.FIT DYNAMIC SCENARIO ENGINE (LIVE IFRAME INTERACTION & AUTO-TIMER)
+    // ========================================================================
+    const MOLE_SCENARIOS = [
+      {
+        id: 0,
+        tagline: 'Головний екран: миттєвий доступ до найчастіших міст та історії в 1 клік.'
+      },
+      {
+        id: 1,
+        tagline: 'Забули перемкнути розкладку? Рушій сам зрозуміє "retd 1" як "Київ Відділення №1".'
+      },
+      {
+        id: 2,
+        tagline: 'Клієнт назвав тільки номер? Рушій знаходить потрібний поштомат із 15 000+ за 5 цифрами.'
+      },
+      {
+        id: 3,
+        tagline: 'Пошук за 5-значним індексом: миттєва видача адреси відділення без розпитування міста.'
+      },
+      {
+        id: 4,
+        tagline: 'Клієнт назвав стару назву міста чи ліквідований район? Повна база реформ та синонімів.'
+      }
+    ];
+
+    let currentMoleIdx = 0;
+    let moleTimer = null;
+    let moleProgress = 0;
+    let isMolePaused = false;
+    const MOLE_DURATION = 7500; // 7.5 секунд на демонстрацію сценарію (друк запиту + огляд результату)
+    const MOLE_TICK = 50; // оновлення кожні 50 мс
+
+    function setMoleScene(idx) {
+      currentMoleIdx = idx;
+      moleProgress = 0;
+
+      // 1. Оновлення кнопок та скидання прогрес-барів
+      for (let i = 0; i < 5; i++) {
+        const pill = document.getElementById('molePill' + i);
+        const prog = document.getElementById('moleProgress' + i);
+        if (pill) pill.classList.toggle('active', i === idx);
+        if (prog) prog.style.width = '0%';
+      }
+
+      // 2. Відправка команди в реальний працюючий iframe
+      const frame = document.getElementById('moleAppFrame');
+      if (frame && frame.contentWindow) {
+        try {
+          frame.contentWindow.postMessage({ type: 'RUN_SCENARIO', scenario: idx }, '*');
+        } catch (e) {
+          console.warn('Помилка відправки сценарію у фрейм:', e);
+        }
+      }
+
+      // 3. Плавна зміна маркетингового слогану зліва
+      const sc = MOLE_SCENARIOS[idx];
+      const taglineText = document.getElementById('moleTaglineText');
+      const taglineWrap = document.getElementById('moleTagline');
+      if (taglineText && taglineWrap && sc) {
+        taglineWrap.style.opacity = '0';
+        setTimeout(() => {
+          taglineText.textContent = sc.tagline;
+          taglineWrap.style.opacity = '1';
+        }, 150);
+      }
+    }
+
+    // Слухач подій від інтерактивного iframe
+    window.addEventListener('message', (ev) => {
+      if (!ev.data) return;
+      if (ev.data.type === 'DEMO_USER_INTERACTION') {
+        // Користувач взаємодіє з реальним пошуком вручну — ставимо автотур на паузу
+        pauseMoleTimer();
+        const taglineText = document.getElementById('moleTaglineText');
+        if (taglineText) {
+          taglineText.textContent = '✨ Вільний режим: ви тестуєте реальний рушій прямо тут (клікніть сценарій знизу для запуску туру).';
+        }
+      } else if (ev.data.type === 'DEMO_IFRAME_READY') {
+        // Коли iframe завантажився — оновлюємо стартовий дефолтний екран
+        setMoleScene(0);
+      }
+    });
+
+    function startMoleLoop() {
+      if (moleTimer) clearInterval(moleTimer);
+      moleTimer = setInterval(() => {
+        if (isMolePaused) return;
+
+        moleProgress += (MOLE_TICK / MOLE_DURATION) * 100;
+        const currentProgBar = document.getElementById('moleProgress' + currentMoleIdx);
+        if (currentProgBar) {
+          currentProgBar.style.width = Math.min(100, moleProgress) + '%';
+        }
+
+        if (moleProgress >= 100) {
+          const nextIdx = (currentMoleIdx + 1) % MOLE_SCENARIOS.length;
+          setMoleScene(nextIdx);
+        }
+      }, MOLE_TICK);
+    }
+
+    function pauseMoleTimer() {
+      isMolePaused = true;
+    }
+
+    function resumeMoleTimer() {
+      isMolePaused = false;
+    }
+
+    function copyMoleText(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        if (btn) {
+          const oldHtml = btn.innerHTML;
+          btn.innerHTML = '<span>✓ Скопійовано!</span>';
+          btn.classList.add('copied');
+          setTimeout(() => {
+            btn.innerHTML = oldHtml;
+            btn.classList.remove('copied');
+          }, 1600);
+        }
+      }).catch(() => {
+        if (btn) {
+          btn.innerHTML = '<span>✓ Готово!</span>';
+          setTimeout(() => { btn.innerHTML = '<span>📋 Скопіювати</span>'; }, 1200);
+        }
+      });
+    }
+
+    // Запуск при завантаженні сторінки
+    function initMoleSimulator() {
+      const moleFrame = document.getElementById('moleAppFrame');
+      if (moleFrame && !moleFrame.getAttribute('data-src-set')) {
+        const theme = document.documentElement.getAttribute('data-theme') || 'light';
+        moleFrame.src = 'index.html?embed=1&theme=' + encodeURIComponent(theme);
+        moleFrame.setAttribute('data-src-set', 'true');
+      }
+      setMoleScene(0);
+      startMoleLoop();
+    }
+
+    document.addEventListener('DOMContentLoaded', initMoleSimulator);
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+      initMoleSimulator();
+    }
+
     // 1. Інтерактивний CRM Нормалізатор
     const chkNoWord = document.getElementById('chkNoWord');
     const chkSmt = document.getElementById('chkSmt');
@@ -2795,6 +3395,14 @@
       }
 
       syncIndexLinks(theme);
+
+      // Синхронізація теми з інтерактивним демо-вікном iframe
+      const moleFrame = document.getElementById('moleAppFrame');
+      if (moleFrame && moleFrame.contentWindow) {
+        try {
+          moleFrame.contentWindow.postMessage({ type: 'SET_THEME', theme: theme }, '*');
+        } catch (e) {}
+      }
 
       if (saveToStorage) {
         try {

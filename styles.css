@@ -203,6 +203,29 @@ body {
   position: relative;
 }
 
+/* Режим інтерактивного вбудовування (embed preview для about.html) */
+html.is-embedded body {
+  background-color: var(--bg-page);
+  overflow-x: hidden;
+}
+
+html.is-embedded .app-layout {
+  min-height: auto !important;
+  max-width: 980px !important;
+  padding: 14px 18px 24px 18px !important;
+}
+
+html.is-embedded .bottom-bar,
+html.is-embedded .corner-left,
+html.is-embedded .corner-right,
+html.is-embedded #btnHeaderAbout {
+  display: none !important;
+}
+
+html.is-embedded .top-nav {
+  margin-bottom: 14px !important;
+}
+
 /* ==========================================================================
    1. ВЕРХНЯ НАВІГАЦІЯ ТА КНОПКИ ПЕРЕМИКАННЯ СЛУЖБИ
    ========================================================================== */
@@ -461,6 +484,38 @@ body[data-service="ukrposhta"] #btnNovaPoshta:hover {
 
 .hotkey-hint-body {
   color: var(--text-muted);
+}
+
+.live-query-echo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.live-query-echo .echo-icon {
+  font-size: 12px;
+}
+
+.live-query-echo .echo-label {
+  font-weight: 600;
+  color: var(--text-subtle);
+}
+
+.live-query-echo .echo-text {
+  font-weight: 700;
+  color: var(--text-main);
+  background: rgba(226, 44, 56, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.01em;
 }
 
 .kbd-key {
@@ -1983,6 +2038,23 @@ html[data-theme="dark"] .btn-header-up-switch {
 .results-count-badge strong {
   color: var(--text-main);
   font-weight: 700;
+}
+
+.results-query-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.results-query-preview .query-preview-label {
+  color: var(--text-muted);
+}
+
+.results-query-preview .query-preview-text {
+  color: var(--text-main);
+  font-weight: 600;
 }
 
 .results-type-pills {
