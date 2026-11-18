@@ -162,29 +162,73 @@
       box-shadow: var(--shadow-lg);
     }
 
-    [data-theme="dark"] .crm-toggle-pill {
-      background: var(--bg-card-subtle);
+    [data-theme="dark"] .ds-preset-card {
+      --border-subtle: rgba(255, 255, 255, 0.12);
+      --bg-chip: #1e293b;
+      --brand-bg-subtle: rgba(217, 37, 52, 0.14);
+      --brand-glow: rgba(217, 37, 52, 0.3);
+      --brand-border: rgba(217, 37, 52, 0.45);
+      background: #0f1420;
       border-color: var(--border-light);
+    }
+
+    [data-theme="dark"] .ab-preset-header {
+      border-bottom-color: var(--border-light);
+    }
+
+    [data-theme="dark"] .copy-preset-tabs {
+      background: #151b29;
+      border-color: var(--border-light);
+    }
+
+    [data-theme="dark"] .copy-preset-tab.active,
+    [data-theme="dark"] .preset-card-btn,
+    [data-theme="dark"] .preset-preview-box,
+    [data-theme="dark"] .preset-rule-pill {
+      background: #131926;
+      border-color: var(--border-subtle);
       color: var(--text-main);
     }
 
-    [data-theme="dark"] .crm-toggle-pill:hover {
+    [data-theme="dark"] .preset-card-btn:hover,
+    [data-theme="dark"] .preset-rule-pill:hover {
       background: #1b2336;
     }
 
-    [data-theme="dark"] .crm-preview-box {
-      background: #090c13;
+    [data-theme="dark"] .preset-preview-section,
+    [data-theme="dark"] .preset-active-chips,
+    [data-theme="dark"] .preset-modal-footer {
+      background: #111622;
       border-color: var(--border-light);
-      color: var(--text-main);
     }
 
-    [data-theme="dark"] .btn-copy-crm {
-      background: var(--brand-red);
+    [data-theme="dark"] .preset-chip {
+      background: rgba(244, 63, 94, 0.14);
+      border-color: rgba(244, 63, 94, 0.4);
+      color: #fda4af;
+    }
+
+    [data-theme="dark"] .chip-del-btn {
+      background: rgba(244, 63, 94, 0.2);
+      color: #fda4af;
+    }
+
+    [data-theme="dark"] .preset-palette-item {
+      background: #151b29;
+      border-color: rgba(255, 255, 255, 0.16);
+      color: var(--text-muted);
+    }
+
+    [data-theme="dark"] .preset-palette-item:hover,
+    [data-theme="dark"] .preset-palette-item.demo-action-pulse {
+      background: rgba(244, 63, 94, 0.16);
+      border-color: #fb7185;
+      color: #fb7185;
+    }
+
+    [data-theme="dark"] .btn-preset-reset:hover {
+      background: #1e263a;
       color: #ffffff;
-    }
-
-    [data-theme="dark"] .btn-copy-crm:hover {
-      background: var(--btn-primary-hover);
     }
 
     [data-theme="dark"] .ds-scroll-top-btn {
@@ -974,80 +1018,686 @@
       margin-bottom: 10px;
     }
 
-    .crm-switches-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 22px;
-    }
-
-    .crm-toggle-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      border-radius: var(--radius-pill);
-      background: var(--bg-card-subtle);
+    /* ==========================================================================
+       1-В-1 ВБУДОВАНИЙ КОНСТРУКТОР ШАБЛОНУ КОПІЮВАННЯ (ЯК У МОДАЛЦІ НА САЙТІ)
+       ========================================================================== */
+    .ds-preset-card {
+      --brand-color: #d92534;
+      --brand-hover: #b91c1c;
+      --brand-contrast-text: #ffffff;
+      --brand-bg-subtle: rgba(217, 37, 52, 0.06);
+      --brand-glow: rgba(217, 37, 52, 0.22);
+      --brand-border: rgba(217, 37, 52, 0.35);
+      --border-subtle: rgba(15, 23, 42, 0.12);
+      --bg-chip: #e2e8f0;
+      background: var(--bg-card);
       border: 1px solid var(--border-light);
-      font-size: 0.88rem;
-      font-weight: 500;
-      color: var(--text-main);
-      cursor: pointer;
-      user-select: none;
-      transition: all 0.15s ease;
+      border-radius: 16px;
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      text-align: left;
     }
 
-    .crm-toggle-pill:hover {
-      background: #e2e8f0;
-    }
-
-    .crm-toggle-pill input[type="checkbox"] {
-      accent-color: var(--brand-red);
-      width: 15px;
-      height: 15px;
-      cursor: pointer;
-    }
-
-    .crm-preview-box {
-      background: var(--bg-page);
-      border: 1px solid var(--border-light);
-      border-radius: 12px;
-      padding: 14px 18px;
+    .ab-preset-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      font-family: var(--font-mono);
-      font-size: 0.90rem;
+      gap: 12px;
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border-light);
+      flex-wrap: wrap;
+    }
+
+    .ab-preset-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ab-preset-title {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 700;
       color: var(--text-main);
+      margin: 0;
     }
 
-    .crm-preview-text {
-      flex: 1;
-      word-break: break-word;
+    .ab-badge-accent {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 9999px;
+      background: rgba(217, 37, 52, 0.1);
+      color: var(--brand-color);
     }
 
-    .btn-copy-crm {
-      background: var(--text-main);
-      color: #FFFFFF;
-      border: none;
-      padding: 10px 20px;
-      border-radius: var(--radius-pill);
-      font-family: var(--font-sans);
-      font-size: 0.88rem;
+    .ab-demo-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
       font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
+      color: var(--text-muted);
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-light);
+      padding: 4px 10px;
+      border-radius: 9999px;
       transition: all 0.2s ease;
     }
 
-    .btn-copy-crm:hover {
-      background: var(--brand-red);
+    .ab-demo-status-badge.manual {
+      color: #0284c7;
+      border-color: rgba(2, 132, 199, 0.3);
+      background: rgba(2, 132, 199, 0.08);
     }
 
-    .btn-copy-crm.copied {
-      background: var(--accent-green);
+    .ab-demo-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #16a34a;
+      animation: pulseLiveDot 1.8s infinite ease-in-out;
+    }
+
+    .ab-demo-status-badge.manual .ab-demo-status-dot {
+      background: #0284c7;
+      animation: none;
+    }
+
+    .ab-preset-body {
+      padding: 16px 20px 18px;
+    }
+
+    .copy-preset-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-card-subtle);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border-light);
+      margin-bottom: 16px;
+    }
+
+    .copy-preset-tab {
+      flex: 1;
+      padding: 8px 14px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      text-align: center;
+    }
+
+    .copy-preset-tab:hover {
+      color: var(--text-main);
+    }
+
+    .copy-preset-tab.active {
+      background: var(--bg-card);
+      color: var(--text-main);
+      font-weight: 700;
+      border-color: var(--border-light);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .preset-level-one {
+      margin-bottom: 16px;
+    }
+
+    .preset-step-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 10px;
+    }
+
+    .preset-step-label .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--brand-bg-subtle);
+      color: var(--brand-color);
+      font-size: 11px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .preset-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 720px) {
+      .preset-cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .preset-card-btn {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 7px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border-subtle);
+      background: var(--bg-card);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      text-align: left;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      outline: none;
+      min-height: 82px;
+      font-family: var(--font-sans);
+    }
+
+    .preset-card-btn:hover {
+      border-color: var(--brand-color);
+      background: var(--bg-card-subtle);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .preset-card-btn.active {
+      border-color: var(--brand-color);
+      border-width: 2px;
+      background: var(--brand-bg-subtle);
+      box-shadow: 0 0 0 1px var(--brand-color), var(--shadow-sm);
+    }
+
+    .preset-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      gap: 6px;
+    }
+
+    .preset-card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .preset-card-icon {
+      font-size: 16px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .preset-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .preset-card-btn.active .preset-card-title {
+      color: var(--brand-color);
+    }
+
+    .preset-card-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--brand-color);
+      color: #FFFFFF;
+      line-height: 1.2;
+      white-space: nowrap;
+      display: none;
+      flex-shrink: 0;
+    }
+
+    .preset-card-btn.active .preset-card-badge {
+      display: inline-flex;
+    }
+
+    .preset-card-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .preset-card-btn.active .preset-card-sub {
+      color: var(--text-main);
+    }
+
+    .preset-preview-section {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-left: 3.5px solid var(--brand-color);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+
+    .preset-preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .preset-preview-header .preset-step-label {
+      margin-bottom: 0;
+    }
+
+    .preset-preview-row {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    .preset-preview-box {
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.55;
+      font-weight: 600;
+      color: var(--text-main);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 14px;
+      word-break: break-word;
+      white-space: pre-wrap;
+      user-select: all;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-preset-test-copy {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1.5px solid var(--brand-color);
+      background: var(--brand-color);
+      color: #FFFFFF;
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 6px rgba(217, 37, 52, 0.2);
+    }
+
+    .btn-preset-test-copy:hover {
+      background: var(--brand-hover);
+      border-color: var(--brand-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(217, 37, 52, 0.3);
+    }
+
+    .btn-preset-test-copy.copied {
+      background: #16a34a;
+      border-color: #16a34a;
+      box-shadow: 0 3px 10px rgba(22, 163, 74, 0.3);
+    }
+
+    @keyframes abPreviewFlash {
+      0% {
+        background-color: var(--brand-color);
+        color: var(--brand-contrast-text);
+        box-shadow: 0 0 10px var(--brand-glow);
+        border-radius: 4px;
+        padding: 1px 5px;
+      }
+      100% {
+        background-color: transparent;
+        color: inherit;
+        box-shadow: none;
+        padding: 0;
+      }
+    }
+
+    .preview-flash-highlight {
+      display: inline;
+      font-weight: 700;
+      white-space: pre-wrap;
+      animation: abPreviewFlash 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes abBoxPulse {
+      0% {
+        border-color: var(--brand-color);
+        box-shadow: 0 0 10px var(--brand-border);
+      }
+      100% {
+        border-color: var(--border-subtle);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.04);
+      }
+    }
+
+    .preview-box-pulse {
+      animation: abBoxPulse 0.55s ease-out;
+    }
+
+    @keyframes demoActionPulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(217, 37, 52, 0.38); }
+      50% { transform: scale(1.04); box-shadow: 0 0 0 6px rgba(217, 37, 52, 0.14); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(217, 37, 52, 0); }
+    }
+
+    .demo-action-pulse {
+      animation: demoActionPulse 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+      border-color: var(--brand-color) !important;
+      border-style: solid !important;
+      color: var(--brand-color) !important;
+    }
+
+    .preset-subheading {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .preset-constructor-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .preset-active-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 44px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: var(--bg-card-subtle);
+      border: 1.5px dashed var(--border-subtle);
+      align-items: center;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .preset-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px 4px 11px;
+      background: rgba(225, 29, 72, 0.08);
+      border: 1px solid rgba(225, 29, 72, 0.32);
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e11d48;
+      box-shadow: 0 1px 3px rgba(225, 29, 72, 0.08);
+      user-select: none;
+      cursor: grab;
+      position: relative;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+    }
+
+    .preset-chip:hover {
+      background: rgba(225, 29, 72, 0.14);
+      border-color: #e11d48;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(225, 29, 72, 0.18);
+    }
+
+    .preset-chip.dragging {
+      opacity: 0.45;
+      border-style: dashed;
+      transform: scale(0.96);
+      cursor: grabbing;
+    }
+
+    .preset-chip.drag-over-left::before {
+      content: '';
+      position: absolute;
+      top: -3px;
+      bottom: -3px;
+      left: -5px;
+      width: 3px;
+      background: var(--brand-color);
+      border-radius: 2px;
+    }
+
+    .preset-chip.drag-over-right::after {
+      content: '';
+      position: absolute;
+      top: -3px;
+      bottom: -3px;
+      right: -5px;
+      width: 3px;
+      background: var(--brand-color);
+      border-radius: 2px;
+    }
+
+    .chip-grip {
+      color: rgba(225, 29, 72, 0.55);
+      font-size: 11px;
+      letter-spacing: -1px;
+      margin-right: 1px;
+      line-height: 1;
+    }
+
+    .chip-del-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 17px;
+      height: 17px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(225, 29, 72, 0.12);
+      color: #e11d48;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      padding: 0;
+      margin-left: 2px;
+    }
+
+    .chip-del-btn:hover {
+      background: #ef4444;
+      color: #ffffff;
+      transform: scale(1.15);
+    }
+
+    .preset-chip-palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      min-height: 34px;
+    }
+
+    .preset-palette-item {
+      padding: 5px 12px;
+      border-radius: 9999px;
+      border: 1px dashed #cbd5e1;
+      background: var(--bg-card);
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .preset-palette-item:hover {
+      background: rgba(225, 29, 72, 0.06);
+      border-color: #e11d48;
+      border-style: solid;
+      color: #e11d48;
+      transform: translateY(-1px);
+    }
+
+    .preset-palette-empty {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 4px 6px;
+    }
+
+    .preset-rules-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .preset-rule-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+      flex: 1 1 auto;
+    }
+
+    .preset-rule-pill:hover {
+      background: var(--bg-card-subtle);
+      border-color: var(--border-focus);
+    }
+
+    .preset-rule-checkbox {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    .rule-pill-check {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      border-radius: 3px;
+      border: 1.5px solid var(--border-subtle);
+      background: var(--bg-chip);
+      color: transparent;
+      font-size: 10px;
+      font-weight: 900;
+      line-height: 1;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .preset-rule-pill.active {
+      background: var(--brand-bg-subtle);
+      border-color: var(--brand-color);
+      box-shadow: 0 1px 4px var(--brand-glow);
+    }
+
+    .preset-rule-pill.active .rule-pill-check {
+      background: var(--brand-color);
+      border-color: var(--brand-color);
+      color: var(--brand-contrast-text);
+    }
+
+    .rule-pill-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+
+    .rule-pill-sub {
+      font-size: 10px;
+      color: var(--text-subtle);
+      white-space: nowrap;
+    }
+
+    .preset-modal-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      background: var(--bg-card-subtle);
+      border-top: 1px solid var(--border-light);
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-preset-reset {
+      background: none;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 7px 14px;
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-weight: 700;
+      font-size: 12.5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-preset-reset:hover {
+      background: var(--bg-card);
+      color: var(--text-main);
+    }
+
+    .btn-preset-save {
+      background: var(--brand-color);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      font-size: 12.5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 2px 6px rgba(217, 37, 52, 0.22);
+    }
+
+    .btn-preset-save:hover {
+      background: var(--brand-hover);
+    }
+
+    .btn-preset-save.saved {
+      background: #16a34a;
+      box-shadow: 0 2px 8px rgba(22, 163, 74, 0.28);
     }
 
     /* ROI Slider */
@@ -1759,7 +2409,7 @@
        Піксель-перфектна копія рідного інтерфейсу index.html у Mac-вікні + автотаймер
        ========================================================================== */
     .ds-mole-hero-container {
-      max-width: 980px;
+      max-width: 1100px;
       margin: 28px auto 0;
       position: relative;
       text-align: left;
@@ -1864,38 +2514,39 @@
       50% { opacity: 0.35; transform: scale(0.8); }
     }
 
-    /* Нижня панель mole.fit під вікном */
+    /* Нижня панель mole.fit під вікном (один горизонтальний рядок: опис зліва + таби справа) */
     .ds-mole-bottom-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      margin-top: 18px;
-      padding: 0 4px;
-      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 16px;
+      padding: 0 6px;
+      flex-wrap: nowrap;
     }
 
     .ds-mole-tagline {
-      font-size: 0.94rem;
-      font-weight: 600;
+      font-size: 0.88rem;
+      font-weight: 500;
       color: var(--text-muted);
       letter-spacing: -0.01em;
       min-height: 24px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      transition: opacity 0.25s ease;
-    }
-    .ds-mole-tagline-bullet {
-      color: #d92534;
-      font-weight: 800;
+      flex: 1 1 auto;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: opacity 0.2s ease;
     }
 
     .ds-mole-pills {
       display: flex;
       align-items: center;
       gap: 6px;
-      flex-wrap: wrap;
+      flex-shrink: 0;
+      flex-wrap: nowrap;
     }
 
     .ds-mole-pill {
@@ -1903,27 +2554,27 @@
       background: var(--bg-card);
       border: 1px solid var(--border-light);
       border-radius: 9999px;
-      padding: 7px 15px;
-      font-size: 0.8rem;
-      font-weight: 600;
+      padding: 6px 13px;
+      font-size: 0.79rem;
+      font-weight: 500;
       color: var(--text-muted);
       cursor: pointer;
       overflow: hidden;
       user-select: none;
-      transition: all 0.2s ease;
+      white-space: nowrap;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .ds-mole-pill:hover {
       color: var(--text-main);
       border-color: var(--border-focus);
-      transform: translateY(-1px);
     }
 
     .ds-mole-pill.active {
       background: var(--text-main);
       color: var(--bg-card);
       border-color: var(--text-main);
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
     }
 
     /* Індикатор прогресу таймера на активній кнопці */
@@ -1936,6 +2587,7 @@
       width: 0%;
       border-radius: 2px;
       pointer-events: none;
+      transition: width 0.08s linear;
     }
 
     /* Responsive */
@@ -1986,8 +2638,8 @@
     }
 
     @media (max-width: 600px) {
-      .crm-preview-box { flex-direction: column; align-items: stretch; }
-      .btn-copy-crm { width: 100%; text-align: center; }
+      .preset-preview-row { flex-direction: column; align-items: stretch; }
+      .btn-preset-test-copy { width: 100%; justify-content: center; }
       .ds-mini-features-grid { grid-template-columns: 1fr; }
       .ds-mole-stage { padding: 18px 16px 22px; min-height: 250px; }
       .ds-mole-card { flex-direction: column; align-items: stretch; }
@@ -2109,37 +2761,36 @@
 
           <!-- Контейнер реального працюючого додатку (100% нативний функціонал) -->
           <div class="ds-mole-iframe-container">
-            <iframe id="moleAppFrame" src="index.html?embed=1" title="Інтерактивний пошуковий рушій" frameborder="0"></iframe>
+            <iframe id="moleAppFrame" title="Інтерактивний пошуковий рушій" frameborder="0"></iframe>
           </div>
 
         </div>
 
-        <!-- Нижня панель mole.fit (Слоган зліва + Таби з автотаймером справа) -->
+        <!-- Нижня панель mole.fit (Короткий опис зліва + Таби справа в одному рядку) -->
         <div class="ds-mole-bottom-bar">
           <div class="ds-mole-tagline" id="moleTagline">
-            <span class="ds-mole-tagline-bullet">●</span>
-            <span id="moleTaglineText">Головний екран: миттєвий доступ до найчастіших міст та історії в 1 клік.</span>
+            <span id="moleTaglineText">Забули розкладку? «retd 1» миттєво стає «Київ №1».</span>
           </div>
 
           <div class="ds-mole-pills" id="molePills">
-            <button type="button" class="ds-mole-pill active" id="molePill0" onclick="setMoleScene(0)">
-              <span>01. Дефолтна сторінка</span>
+            <button type="button" class="ds-mole-pill active" id="molePill0" onclick="setMoleScene(0, true)">
+              <span>Розкладка</span>
               <div class="ds-mole-pill-progress" id="moleProgress0"></div>
             </button>
-            <button type="button" class="ds-mole-pill" id="molePill1" onclick="setMoleScene(1)">
-              <span>02. Забута розкладка</span>
+            <button type="button" class="ds-mole-pill" id="molePill1" onclick="setMoleScene(1, true)">
+              <span>Поштомат</span>
               <div class="ds-mole-pill-progress" id="moleProgress1"></div>
             </button>
-            <button type="button" class="ds-mole-pill" id="molePill2" onclick="setMoleScene(2)">
-              <span>03. Номер поштомату</span>
+            <button type="button" class="ds-mole-pill" id="molePill2" onclick="setMoleScene(2, true)">
+              <span>За адресою</span>
               <div class="ds-mole-pill-progress" id="moleProgress2"></div>
             </button>
-            <button type="button" class="ds-mole-pill" id="molePill3" onclick="setMoleScene(3)">
-              <span>04. Індекс Укрпошти</span>
+            <button type="button" class="ds-mole-pill" id="molePill3" onclick="setMoleScene(3, true)">
+              <span>Немає НП → УП</span>
               <div class="ds-mole-pill-progress" id="moleProgress3"></div>
             </button>
-            <button type="button" class="ds-mole-pill" id="molePill4" onclick="setMoleScene(4)">
-              <span>05. Стара назва (Вараш)</span>
+            <button type="button" class="ds-mole-pill" id="molePill4" onclick="setMoleScene(4, true)">
+              <span>Індекс у НП</span>
               <div class="ds-mole-pill-progress" id="moleProgress4"></div>
             </button>
           </div>
@@ -2374,33 +3025,141 @@
       <div class="ds-interactive-header">
         <span class="ds-feature-badge">ІНТЕРАКТИВНИЙ SANDBOX</span>
         <h3 class="crm-builder-title">
-          Спробуйте конструктор рядка для CRM
+          Налаштуйте формат адреси 1-в-1 під вашу CRM
         </h3>
-        <p style="font-size: 1rem; color: var(--text-muted); max-width: 580px; margin: 0 auto;">
-          Увімкніть правила під формат вашої CRM та скопіюйте чистий результат:
+        <p style="font-size: 0.98rem; color: var(--text-muted); max-width: 600px; margin: 0 auto;">
+          Точно такий самий конструктор, як на головній сторінці — клікніть будь-який елемент, щоб перехопити керування:
         </p>
       </div>
 
-      <div class="crm-switches-row">
-        <label class="crm-toggle-pill">
-          <input type="checkbox" id="chkNoWord" checked onchange="updateLandingCrmLine()">
-          <span>Без слова «відділення»</span>
-        </label>
-        <label class="crm-toggle-pill">
-          <input type="checkbox" id="chkSmt" checked onchange="updateLandingCrmLine()">
-          <span>«смт» замість селища</span>
-        </label>
-        <label class="crm-toggle-pill">
-          <input type="checkbox" id="chkRegion" checked onchange="updateLandingCrmLine()">
-          <span>Скорочувати «р-н / обл.»</span>
-        </label>
-      </div>
+      <!-- 1-В-1 КОНСТРУКТОР ШАБЛОНУ КОПІЮВАННЯ (ЯК У МОДАЛЬНОМУ ВІКНІ НА САЙТІ) -->
+      <div class="ds-preset-card" id="crmConstructorSandbox">
+        <div class="ab-preset-header">
+          <div class="ab-preset-title-group">
+            <h4 class="ab-preset-title">Конструктор шаблону копіювання</h4>
+            <span class="ab-badge-accent">CRM-шаблони</span>
+          </div>
+          <span class="ab-demo-status-badge" id="crmDemoStatusBadge">
+            <span class="ab-demo-status-dot"></span>
+            <span id="crmDemoStatusText">Авто-демо • клікніть для ручного режиму</span>
+          </span>
+        </div>
 
-      <div class="crm-preview-box">
-        <span class="crm-preview-text" id="landingCrmText">смт Макарів, Бучанський р-н, №1 (вул. Димитрія Ростовського, 63)</span>
-        <button type="button" class="btn-copy-crm" id="btnLandingCopyCrm" onclick="copyLandingCrmLine()">
-          Скопіювати рядок
-        </button>
+        <div class="ab-preset-body">
+          <!-- Вкладки вибору [ Кнопка «Скопіювати» ] / [ Кнопка «Детально» ] -->
+          <div class="copy-preset-tabs" role="tablist" aria-label="Вибір кнопки для налаштування">
+            <button type="button" class="copy-preset-tab active" data-tab="short" role="tab" aria-selected="true">
+              📋 Кнопка «Скопіювати»
+            </button>
+            <button type="button" class="copy-preset-tab" data-tab="detailed" role="tab" aria-selected="false">
+              🔍 Кнопка «Детально»
+            </button>
+          </div>
+
+          <!-- КРОК 1: ТРИ ГОТОВІ ПРЕСЕТ-КАРТКИ В 1 КЛІК -->
+          <div class="preset-level-one">
+            <div class="preset-step-label"><span class="step-num">1</span> Оберіть готовий шаблон:</div>
+            <div class="preset-cards-grid" id="abPresetQuickButtons">
+              <button type="button" class="preset-card-btn btn-preset-quick active" data-preset="default">
+                <div class="preset-card-header">
+                  <div class="preset-card-title-group">
+                    <span class="preset-card-icon" aria-hidden="true">💬</span>
+                    <span class="preset-card-title">Для клієнта в чат</span>
+                  </div>
+                  <span class="preset-card-badge">✓ Обрано</span>
+                </div>
+                <span class="preset-card-sub">Місто, тип, номер та вулиця (лаконічно для покупця)</span>
+              </button>
+
+              <button type="button" class="preset-card-btn btn-preset-quick" data-preset="crm">
+                <div class="preset-card-header">
+                  <div class="preset-card-title-group">
+                    <span class="preset-card-icon" aria-hidden="true">🏢</span>
+                    <span class="preset-card-title">Для CRM (LP-CRM / KeyCRM)</span>
+                  </div>
+                  <span class="preset-card-badge">✓ Обрано</span>
+                </div>
+                <span class="preset-card-sub">Повний запис: область, район у дужках, вага</span>
+              </button>
+
+              <button type="button" class="preset-card-btn btn-preset-quick" data-preset="short">
+                <div class="preset-card-header">
+                  <div class="preset-card-title-group">
+                    <span class="preset-card-icon" aria-hidden="true">⚡</span>
+                    <span class="preset-card-title">Супер-короткий</span>
+                  </div>
+                  <span class="preset-card-badge">✓ Обрано</span>
+                </div>
+                <span class="preset-card-sub">Без зайвих слів, скорочення «р-н», «обл.»</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- КРОК 2: ЖИВИЙ ІНТЕРАКТИВНИЙ КЛІК-ПРЕВ'Ю (Live Preview) -->
+          <div class="preset-preview-section">
+            <div class="preset-preview-header">
+              <div class="preset-step-label"><span class="step-num">2</span> Результат копіювання (Live Preview):</div>
+              <button type="button" class="btn-preset-test-copy" id="abBtnPresetTestCopy" title="Скопіювати цей зразок у буфер">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>Скопіювати зразок</span>
+              </button>
+            </div>
+            <div class="preset-preview-row">
+              <div class="preset-preview-box" id="abPresetLivePreview">селище Середнє, Вантажне відділення №1: вул. Закарпатська, 75</div>
+            </div>
+          </div>
+
+          <!-- КОНСТРУКТОР ПОРЯДКУ ТА ЕЛЕМЕНТІВ (DRAG & DROP) -->
+          <div class="preset-constructor-section">
+            <div>
+              <span class="preset-subheading">Порядок елементів у рядку (перетягуйте для зміни порядку):</span>
+              <div class="preset-active-chips" id="abPresetActiveChips"></div>
+            </div>
+
+            <div>
+              <span class="preset-subheading">Додати елемент до рядка:</span>
+              <div class="preset-chip-palette" id="abPresetChipPalette"></div>
+            </div>
+
+            <div>
+              <span class="preset-subheading">Швидкі правила скорочення:</span>
+              <div class="preset-rules-chips">
+                <label class="preset-rule-pill" for="abOptSmtShort" title="Селище міського типу ➔ смт">
+                  <input type="checkbox" id="abOptSmtShort" class="preset-rule-checkbox">
+                  <span class="rule-pill-check">✓</span>
+                  <span class="rule-pill-title">смт</span>
+                  <span class="rule-pill-sub">(замість селища)</span>
+                </label>
+                <label class="preset-rule-pill" for="abOptNoBranchWord" title="Прибирати службове слово «відділення»">
+                  <input type="checkbox" id="abOptNoBranchWord" class="preset-rule-checkbox">
+                  <span class="rule-pill-check">✓</span>
+                  <span class="rule-pill-title">Без «відділення»</span>
+                  <span class="rule-pill-sub">(прибрати слово)</span>
+                </label>
+                <label class="preset-rule-pill active" for="abOptShortRegion" title="Скорочувати «район» ➔ «р-н», «область» ➔ «обл.»">
+                  <input type="checkbox" id="abOptShortRegion" class="preset-rule-checkbox" checked>
+                  <span class="rule-pill-check">✓</span>
+                  <span class="rule-pill-title">р-н / обл.</span>
+                  <span class="rule-pill-sub">(скоротити)</span>
+                </label>
+                <label class="preset-rule-pill" for="abOptNoStreetPrefix" title="Прибирати префікс «вул.»">
+                  <input type="checkbox" id="abOptNoStreetPrefix" class="preset-rule-checkbox">
+                  <span class="rule-pill-check">✓</span>
+                  <span class="rule-pill-title">Без «вул.»</span>
+                  <span class="rule-pill-sub">(лише назва)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="preset-modal-footer">
+          <button type="button" class="btn-preset-reset" id="abBtnResetPreset">Скинути до стандартного</button>
+          <button type="button" class="btn-preset-save" id="abBtnSavePreset">Зберегти шаблон</button>
+        </div>
       </div>
 
       <!-- ROI Calculator -->
@@ -2616,28 +3375,49 @@
        ======================================================================== -->
   <script>
     // ========================================================================
-    // MOLE.FIT DYNAMIC SCENARIO ENGINE (LIVE IFRAME INTERACTION & AUTO-TIMER)
+    // MOLE.FIT DYNAMIC SCENARIO ENGINE (UNIFIED MASTER CLOCK & IFRAME SYNC)
     // ========================================================================
     const MOLE_SCENARIOS = [
       {
         id: 0,
-        tagline: 'Головний екран: миттєвий доступ до найчастіших міст та історії в 1 клік.'
+        service: 'novaposhta',
+        query: 'retd 1',
+        submitAfterTypeMs: 1350,
+        duration: 6200,
+        tagline: 'Забули розкладку? «retd 1» миттєво стає «Київ №1».'
       },
       {
         id: 1,
-        tagline: 'Забули перемкнути розкладку? Рушій сам зрозуміє "retd 1" як "Київ Відділення №1".'
+        service: 'novaposhta',
+        query: '33159',
+        submitAfterTypeMs: 2000,
+        duration: 6800,
+        tagline: 'Пошук поштомату лише за номером серед 15 000+ точок.'
       },
       {
         id: 2,
-        tagline: 'Клієнт назвав тільки номер? Рушій знаходить потрібний поштомат із 15 000+ за 5 цифрами.'
+        service: 'novaposhta',
+        query: 'львів павлів 1',
+        noSubmit: true,
+        duration: 6200,
+        tagline: 'Розуміє область і село-тезку: «львів павлів 1» → с. Павлів №1.'
       },
       {
         id: 3,
-        tagline: 'Пошук за 5-значним індексом: миттєва видача адреси відділення без розпитування міста.'
+        service: 'novaposhta',
+        query: 'Великий Листвен',
+        noSubmit: true,
+        hoverBridgeInPopup: true,
+        duration: 6200,
+        tagline: 'Немає Нової пошти в селі? В 1 клік перемикає на Укрпошту.'
       },
       {
         id: 4,
-        tagline: 'Клієнт назвав стару назву міста чи ліквідований район? Повна база реформ та синонімів.'
+        service: 'novaposhta',
+        query: '01001',
+        submitAfterTypeMs: 2000,
+        duration: 6800,
+        tagline: 'Ввели індекс у Новій пошті? Сам розпізнає і відкриє Укрпошту.'
       }
     ];
 
@@ -2645,33 +3425,65 @@
     let moleTimer = null;
     let moleProgress = 0;
     let isMolePaused = false;
-    const MOLE_DURATION = 7500; // 7.5 секунд на демонстрацію сценарію (друк запиту + огляд результату)
-    const MOLE_TICK = 50; // оновлення кожні 50 мс
+    let isManualMode = false;
+    let isMoleOutOfView = false;
+    let isMoleIframeReady = false;
+    let moleStarted = false;
+    let isSceneReady = false;
+    let sceneElapsedMs = 0;
+    let sceneReadyWaitMs = 0;
+    let lastTickTime = 0;
+    let lastTypedChars = 0;
+    let scenePopupHovered = false;
+    let sceneSubmitted = false;
 
-    function setMoleScene(idx) {
-      currentMoleIdx = idx;
-      moleProgress = 0;
+    const MOLE_DURATION = 6200; // Повний цикл одного слайду
+    const MOLE_TICK = 40;
+    const TYPE_START_DELAY_MS = 350; // Пауза перед першою літерою
+    const TARGET_TYPING_DURATION_MS = 1850; // Рівномірна тривалість набору тексту (~1.85 с)
+    const SUBMIT_AFTER_TYPE_MS = 1350; // Базова пауза перед Enter
 
-      // 1. Оновлення кнопок та скидання прогрес-барів
-      for (let i = 0; i < 5; i++) {
-        const pill = document.getElementById('molePill' + i);
-        const prog = document.getElementById('moleProgress' + i);
-        if (pill) pill.classList.toggle('active', i === idx);
-        if (prog) prog.style.width = '0%';
-      }
-
-      // 2. Відправка команди в реальний працюючий iframe
+    function postToMoleFrame(payload) {
       const frame = document.getElementById('moleAppFrame');
       if (frame && frame.contentWindow) {
         try {
-          frame.contentWindow.postMessage({ type: 'RUN_SCENARIO', scenario: idx }, '*');
-        } catch (e) {
-          console.warn('Помилка відправки сценарію у фрейм:', e);
+          frame.contentWindow.postMessage(payload, '*');
+        } catch (e) {}
+      }
+    }
+
+    function setMoleScene(idx, fromUserClick = false) {
+      if (!Number.isInteger(idx) || idx < 0 || idx >= MOLE_SCENARIOS.length) {
+        idx = 0;
+      }
+      if (fromUserClick) {
+        isManualMode = false;
+      }
+
+      currentMoleIdx = idx;
+      moleProgress = 0;
+      sceneElapsedMs = 0;
+      sceneReadyWaitMs = 0;
+      lastTypedChars = 0;
+      scenePopupHovered = false;
+      sceneSubmitted = false;
+      isSceneReady = false;
+      lastTickTime = performance.now();
+
+      // 1. Оновлення кнопок та миттєве скидання прогрес-барів без зворотньої анімації
+      for (let i = 0; i < MOLE_SCENARIOS.length; i++) {
+        const pill = document.getElementById('molePill' + i);
+        const prog = document.getElementById('moleProgress' + i);
+        if (pill) pill.classList.toggle('active', i === idx);
+        if (prog) {
+          prog.style.transition = 'none';
+          prog.style.width = '0%';
         }
       }
 
-      // 3. Плавна зміна маркетингового слогану зліва
       const sc = MOLE_SCENARIOS[idx];
+
+      // 2. Плавна зміна короткого опису зліва
       const taglineText = document.getElementById('moleTaglineText');
       const taglineWrap = document.getElementById('moleTagline');
       if (taglineText && taglineWrap && sc) {
@@ -2679,7 +3491,16 @@
         setTimeout(() => {
           taglineText.textContent = sc.tagline;
           taglineWrap.style.opacity = '1';
-        }, 150);
+        }, 120);
+      }
+
+      // 3. Ініціалізація сцени у фреймі (перемикання служби та очищення поля)
+      if ((isMoleIframeReady || moleStarted) && sc) {
+        postToMoleFrame({
+          type: 'DEMO_SCENE_INIT',
+          scenario: idx,
+          service: sc.service
+        });
       }
     }
 
@@ -2687,30 +3508,122 @@
     window.addEventListener('message', (ev) => {
       if (!ev.data) return;
       if (ev.data.type === 'DEMO_USER_INTERACTION') {
-        // Користувач взаємодіє з реальним пошуком вручну — ставимо автотур на паузу
-        pauseMoleTimer();
+        isManualMode = true;
         const taglineText = document.getElementById('moleTaglineText');
         if (taglineText) {
-          taglineText.textContent = '✨ Вільний режим: ви тестуєте реальний рушій прямо тут (клікніть сценарій знизу для запуску туру).';
+          taglineText.textContent = 'Вільний режим — тестуйте живий пошук або оберіть сценарій справа.';
         }
       } else if (ev.data.type === 'DEMO_IFRAME_READY') {
-        // Коли iframe завантажився — оновлюємо стартовий дефолтний екран
-        setMoleScene(0);
+        isMoleIframeReady = true;
+        if (!moleStarted) {
+          moleStarted = true;
+          setMoleScene(currentMoleIdx);
+          startMoleLoop();
+        }
+      } else if (ev.data.type === 'DEMO_SCENE_READY') {
+        if (ev.data.scenario === currentMoleIdx) {
+          isSceneReady = true;
+          lastTickTime = performance.now();
+        }
       }
     });
 
     function startMoleLoop() {
       if (moleTimer) clearInterval(moleTimer);
-      moleTimer = setInterval(() => {
-        if (isMolePaused) return;
+      lastTickTime = performance.now();
 
-        moleProgress += (MOLE_TICK / MOLE_DURATION) * 100;
-        const currentProgBar = document.getElementById('moleProgress' + currentMoleIdx);
-        if (currentProgBar) {
-          currentProgBar.style.width = Math.min(100, moleProgress) + '%';
+      moleTimer = setInterval(() => {
+        const now = performance.now();
+        const dt = Math.min(120, Math.max(10, now - lastTickTime));
+        lastTickTime = now;
+
+        if (isManualMode || isMoleOutOfView) return;
+
+        const sc = MOLE_SCENARIOS[currentMoleIdx];
+        if (!sc) return;
+
+        // Чекаємо підтвердження від iframe про перемикання служби (макс. 450 мс фолбек)
+        if (!isSceneReady) {
+          sceneReadyWaitMs += dt;
+          if (sceneReadyWaitMs >= 450) {
+            isSceneReady = true;
+          } else {
+            return;
+          }
         }
 
-        if (moleProgress >= 100) {
+        // Поки сцена ще у процесі (не завершено показ підказки / Enter), доводимо дію до фіналу;
+        // пауза при наведенні курсора спрацьовує вже на фінальному стані.
+        if (isMolePaused && sceneSubmitted) {
+          return;
+        }
+
+        sceneElapsedMs += dt;
+
+        const queryLen = sc.query.length;
+        const charStepMs = Math.max(125, Math.round(TARGET_TYPING_DURATION_MS / Math.max(1, queryLen)));
+        const typingDoneMs = TYPE_START_DELAY_MS + queryLen * charStepMs;
+        const hoverPopupAtMs = typingDoneMs + 600;
+        const submitAtMs = typingDoneMs + (sc.submitAfterTypeMs || SUBMIT_AFTER_TYPE_MS);
+        const effectiveDuration = sc.duration || MOLE_DURATION;
+
+        // Фаза 1: Синхронний посимвольний ввід запиту
+        if (sceneElapsedMs >= TYPE_START_DELAY_MS && lastTypedChars < queryLen) {
+          const targetChars = Math.min(
+            queryLen,
+            Math.floor((sceneElapsedMs - TYPE_START_DELAY_MS) / charStepMs) + 1
+          );
+          if (targetChars > lastTypedChars) {
+            lastTypedChars = targetChars;
+            postToMoleFrame({
+              type: 'DEMO_SCENE_TYPE',
+              scenario: currentMoleIdx,
+              value: sc.query.slice(0, targetChars)
+            });
+          }
+        }
+
+        // Фаза 1.5: Наведення / підсвітка випадаючої підказки або кнопки переходу в поп-апі
+        if (sceneElapsedMs >= hoverPopupAtMs && !scenePopupHovered) {
+          if (lastTypedChars < queryLen) {
+            lastTypedChars = queryLen;
+            postToMoleFrame({
+              type: 'DEMO_SCENE_TYPE',
+              scenario: currentMoleIdx,
+              value: sc.query
+            });
+          }
+          scenePopupHovered = true;
+          postToMoleFrame({
+            type: 'DEMO_SCENE_HOVER_POPUP',
+            scenario: currentMoleIdx,
+            hoverBridge: Boolean(sc.hoverBridgeInPopup)
+          });
+          if (sc.noSubmit) {
+            sceneSubmitted = true;
+          }
+        }
+
+        // Фаза 2: Натискання Enter після паузи огляду поп-апу (для сценаріїв із фінальною карткою)
+        if (sceneElapsedMs >= submitAtMs && !sceneSubmitted && !sc.noSubmit) {
+          sceneSubmitted = true;
+          postToMoleFrame({
+            type: 'DEMO_SCENE_SUBMIT',
+            scenario: currentMoleIdx,
+            query: sc.query
+          });
+        }
+
+        // Фаза 3: Плавне оновлення прогрес-бару активної кнопки
+        moleProgress = Math.min(100, (sceneElapsedMs / effectiveDuration) * 100);
+        const currentProgBar = document.getElementById('moleProgress' + currentMoleIdx);
+        if (currentProgBar) {
+          currentProgBar.style.transition = 'width 0.08s linear';
+          currentProgBar.style.width = moleProgress + '%';
+        }
+
+        // Фаза 4: Перехід до наступного сценарію після повного завершення циклу
+        if (sceneElapsedMs >= effectiveDuration && sceneSubmitted) {
           const nextIdx = (currentMoleIdx + 1) % MOLE_SCENARIOS.length;
           setMoleScene(nextIdx);
         }
@@ -2749,42 +3662,615 @@
       const moleFrame = document.getElementById('moleAppFrame');
       if (moleFrame && !moleFrame.getAttribute('data-src-set')) {
         const theme = document.documentElement.getAttribute('data-theme') || 'light';
+        moleFrame.addEventListener('load', () => {
+          isMoleIframeReady = true;
+          if (!moleStarted) {
+            moleStarted = true;
+            setMoleScene(currentMoleIdx);
+            startMoleLoop();
+          }
+        }, { once: true });
         moleFrame.src = 'index.html?embed=1&theme=' + encodeURIComponent(theme);
         moleFrame.setAttribute('data-src-set', 'true');
       }
-      setMoleScene(0);
-      startMoleLoop();
+
+      const heroContainer = document.getElementById('moleHeroContainer');
+      if (heroContainer && typeof IntersectionObserver === 'function' && !heroContainer.dataset.ioAttached) {
+        heroContainer.dataset.ioAttached = 'true';
+        const observer = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting || entry.intersectionRatio < 0.2) {
+              isMoleOutOfView = true;
+            } else {
+              isMoleOutOfView = false;
+            }
+          }
+        }, { threshold: [0, 0.2, 0.5] });
+        observer.observe(heroContainer);
+      }
     }
 
-    document.addEventListener('DOMContentLoaded', initMoleSimulator);
-    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initMoleSimulator);
+    } else {
       initMoleSimulator();
     }
 
-    // 1. Інтерактивний CRM Нормалізатор
-    const chkNoWord = document.getElementById('chkNoWord');
-    const chkSmt = document.getElementById('chkSmt');
-    const chkRegion = document.getElementById('chkRegion');
-    const landingCrmText = document.getElementById('landingCrmText');
-    const btnLandingCopyCrm = document.getElementById('btnLandingCopyCrm');
+    // 1. 1-в-1 Конструктор шаблону копіювання (авто-демо при скролі + ручне перехоплення по кліку)
+    (function initAboutCopyPresetSandbox() {
+      const sandboxEl = document.getElementById('crmConstructorSandbox');
+      if (!sandboxEl) return;
 
-    function updateLandingCrmLine() {
-      let t = chkSmt.checked ? 'смт' : 'селище';
-      let b = chkNoWord.checked ? '№1' : 'відділення №1';
-      let r = chkRegion.checked ? 'Бучанський р-н' : 'Бучанський район';
-      landingCrmText.textContent = `${t} Макарів, ${r}, ${b} (вул. Димитрія Ростовського, 63)`;
-    }
+      const CANONICAL_TAG_ORDER = [
+        'service', 'settlementType', 'city', 'branchType', 'number',
+        'street', 'house', 'raion', 'oblast', 'postalCode', 'weight'
+      ];
 
-    function copyLandingCrmLine() {
-      navigator.clipboard.writeText(landingCrmText.textContent).then(() => {
-        btnLandingCopyCrm.textContent = '✓ Скопійовано!';
-        btnLandingCopyCrm.classList.add('copied');
-        setTimeout(() => {
-          btnLandingCopyCrm.textContent = 'Скопіювати рядок';
-          btnLandingCopyCrm.classList.remove('copied');
-        }, 1500);
+      const QUICK_PRESETS = {
+        short: {
+          default: {
+            tags: ['settlementType', 'city', 'branchType', 'number', 'street'],
+            options: { smtShort: false, noBranchWord: false, shortRegion: true, noStreetPrefix: false }
+          },
+          crm: {
+            tags: ['settlementType', 'city', 'branchType', 'number', 'street', 'raion', 'oblast'],
+            options: { smtShort: true, noBranchWord: true, shortRegion: true, noStreetPrefix: true }
+          },
+          short: {
+            tags: ['city', 'branchType', 'number'],
+            options: { smtShort: true, noBranchWord: true, shortRegion: true, noStreetPrefix: true }
+          }
+        },
+        detailed: {
+          default: {
+            tags: ['settlementType', 'city', 'raion', 'oblast', 'branchType', 'number', 'weight', 'street'],
+            options: { smtShort: true, noBranchWord: false, shortRegion: true, noStreetPrefix: false }
+          },
+          crm: {
+            tags: ['settlementType', 'city', 'branchType', 'number', 'street', 'raion', 'oblast', 'weight'],
+            options: { smtShort: true, noBranchWord: true, shortRegion: true, noStreetPrefix: true }
+          },
+          short: {
+            tags: ['city', 'branchType', 'number', 'street'],
+            options: { smtShort: true, noBranchWord: true, shortRegion: true, noStreetPrefix: true }
+          }
+        }
+      };
+
+      const clonePresets = (obj) => JSON.parse(JSON.stringify(obj));
+      // Використовуємо короткий і детальний дефолти для активного редагування
+      let draftPresets = {
+        short: clonePresets(QUICK_PRESETS.short.default),
+        detailed: clonePresets(QUICK_PRESETS.detailed.default)
+      };
+      let activeTab = 'short';
+      let lastPreviewStr = '';
+      let isCrmManualMode = false;
+      let isCrmInView = false;
+      let crmDemoTimer = null;
+      let crmStepPendingTimer = null;
+      let crmDemoStepIdx = 0;
+      let dragSrcIndex = null;
+
+      const elQuickButtons = document.getElementById('abPresetQuickButtons');
+      const elPreview = document.getElementById('abPresetLivePreview');
+      const elCopyBtn = document.getElementById('abBtnPresetTestCopy');
+      const elActiveChips = document.getElementById('abPresetActiveChips');
+      const elPalette = document.getElementById('abPresetChipPalette');
+      const elStatusBadge = document.getElementById('crmDemoStatusBadge');
+      const elStatusText = document.getElementById('crmDemoStatusText');
+      const elBtnReset = document.getElementById('abBtnResetPreset');
+      const elBtnSave = document.getElementById('abBtnSavePreset');
+      const optSmt = document.getElementById('abOptSmtShort');
+      const optNoWord = document.getElementById('abOptNoBranchWord');
+      const optShortReg = document.getElementById('abOptShortRegion');
+      const optNoStreet = document.getElementById('abOptNoStreetPrefix');
+
+      function escapeHtml(str) {
+        return String(str || '').replace(/[&<>"']/g, ch => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+      }
+
+      function getTagInfo(tagId, options) {
+        const smt = !!(options && options.smtShort);
+        const noWord = !!(options && options.noBranchWord);
+        const noStr = !!(options && options.noStreetPrefix);
+        const shortReg = !!(options && options.shortRegion);
+        switch (tagId) {
+          case 'settlementType': return { label: smt ? 'смт' : 'селище', title: 'Тип населеного пункту' };
+          case 'city': return { label: 'Середнє', title: 'Назва населеного пункту' };
+          case 'service': return { label: 'Нова Пошта', title: 'Служба доставки' };
+          case 'branchType': return { label: noWord ? 'Вантажне' : 'відділення', title: 'Тип точки' };
+          case 'number': return { label: '№1', title: 'Номер відділення' };
+          case 'street': return { label: noStr ? 'Закарпатська, 75' : 'вул. Закарпатська, 75', title: 'Вулиця та будинок' };
+          case 'house': return { label: 'буд. 75', title: 'Номер будинку' };
+          case 'raion': return { label: shortReg ? 'Ужгородський р-н' : 'Ужгородський район', title: 'Район' };
+          case 'oblast': return { label: shortReg ? 'Закарпатська обл.' : 'Закарпатська область', title: 'Область' };
+          case 'postalCode': return { label: '89432', title: 'Поштовий індекс' };
+          case 'weight': return { label: 'до 1100 кг', title: 'Обмеження ваги' };
+          default: return { label: tagId, title: tagId };
+        }
+      }
+
+      function insertCanonicalTag(tags, tagId) {
+        if (!Array.isArray(tags)) tags = [];
+        if (tags.includes(tagId)) return tags;
+        const targetRank = CANONICAL_TAG_ORDER.indexOf(tagId);
+        let insertIdx = -1;
+        for (let i = 0; i < tags.length; i++) {
+          const rank = CANONICAL_TAG_ORDER.indexOf(tags[i]);
+          if (rank !== -1 && targetRank !== -1 && rank > targetRank) {
+            insertIdx = i;
+            break;
+          }
+        }
+        if (insertIdx !== -1) tags.splice(insertIdx, 0, tagId);
+        else tags.push(tagId);
+        return tags;
+      }
+
+      function detectPresetName(tabKey, cfg) {
+        const quick = QUICK_PRESETS[tabKey] || {};
+        for (const [name, p] of Object.entries(quick)) {
+          const sameTags = p.tags.length === cfg.tags.length && p.tags.every((t, i) => t === cfg.tags[i]);
+          const sameOpts = Object.keys(p.options).every(k => !!p.options[k] === !!cfg.options[k]);
+          if (sameTags && sameOpts) return name;
+        }
+        return 'custom';
+      }
+
+      function buildPreviewString(tabKey, cfg) {
+        const presetName = detectPresetName(tabKey, cfg);
+        if (presetName === 'default') {
+          return tabKey === 'detailed'
+            ? 'смт Середнє (Ужгородський р-н, Закарпатська обл.), Вантажне відділення №1 (до 1100 кг): вул. Закарпатська, 75'
+            : 'селище Середнє, Вантажне відділення №1: вул. Закарпатська, 75';
+        }
+        const tags = cfg.tags || [];
+        const opt = cfg.options || {};
+        const sTypeVal = opt.smtShort ? 'смт' : 'селище';
+        const branchTypeVal = opt.noBranchWord ? 'Вантажне' : 'Вантажне відділення';
+        const numberVal = opt.noBranchWord ? '1' : '№1';
+        const streetFull = opt.noStreetPrefix ? 'Закарпатська, 75' : 'вул. Закарпатська, 75';
+        const streetVal = tags.includes('street') && tags.includes('house')
+          ? (opt.noStreetPrefix ? 'Закарпатська' : 'вул. Закарпатська')
+          : streetFull;
+        const houseVal = '75';
+        const raionVal = opt.shortRegion ? 'Ужгородський р-н' : 'Ужгородський район';
+        const oblVal = opt.shortRegion ? 'Закарпатська обл.' : 'Закарпатська область';
+        const weightVal = '(до 1100 кг)';
+
+        const parts = [];
+        for (let i = 0; i < tags.length; i++) {
+          const t = tags[i];
+          const next = tags[i + 1];
+          if (t === 'settlementType' && next === 'city') {
+            parts.push(`${sTypeVal} Середнє`);
+            i++;
+          } else if (t === 'settlementType') {
+            parts.push(sTypeVal);
+          } else if (t === 'city') {
+            parts.push('Середнє');
+          } else if (t === 'branchType' && next === 'number') {
+            parts.push(`${branchTypeVal} ${numberVal}`);
+            i++;
+          } else if (t === 'number' && next === 'branchType') {
+            parts.push(`${numberVal} ${branchTypeVal}`);
+            i++;
+          } else if (t === 'branchType') {
+            parts.push(branchTypeVal);
+          } else if (t === 'number') {
+            parts.push(numberVal);
+          } else if (t === 'street' && next === 'house') {
+            parts.push(`${streetVal}, ${houseVal}`);
+            i++;
+          } else if (t === 'street') {
+            parts.push(streetVal);
+          } else if (t === 'house') {
+            parts.push(houseVal);
+          } else if (t === 'raion' && next === 'oblast') {
+            parts.push(`${raionVal}, ${oblVal}`);
+            i++;
+          } else if (t === 'raion') {
+            parts.push(raionVal);
+          } else if (t === 'oblast') {
+            parts.push(oblVal);
+          } else if (t === 'service') {
+            parts.push('Нова Пошта');
+          } else if (t === 'postalCode') {
+            parts.push('89432');
+          } else if (t === 'weight') {
+            parts.push(weightVal);
+          }
+        }
+
+        let res = '';
+        for (let p = 0; p < parts.length; p++) {
+          const cur = parts[p];
+          if (p === 0) {
+            res = cur;
+            continue;
+          }
+          const prev = parts[p - 1];
+          const isStreet = cur === streetVal || cur.startsWith(streetVal + ',');
+          const prevIsBranch = prev && (prev.includes(numberVal) || prev.includes(branchTypeVal) || prev.includes(weightVal));
+          res += (!opt.noBranchWord && isStreet && prevIsBranch) ? `: ${cur}` : `, ${cur}`;
+        }
+        return res.trim();
+      }
+
+      function highlightDiff(oldStr, newStr) {
+        if (!oldStr || oldStr === newStr) return escapeHtml(newStr);
+        let start = 0;
+        while (start < oldStr.length && start < newStr.length && oldStr[start] === newStr[start]) start++;
+        let endOld = oldStr.length - 1;
+        let endNew = newStr.length - 1;
+        while (endOld >= start && endNew >= start && oldStr[endOld] === newStr[endNew]) {
+          endOld--;
+          endNew--;
+        }
+        if (start > endNew) {
+          const idx = Math.min(start, newStr.length);
+          const cs = Math.max(0, idx - 3);
+          const ce = Math.min(newStr.length, idx + 3);
+          return `${escapeHtml(newStr.slice(0, cs))}<span class="preview-flash-highlight">${escapeHtml(newStr.slice(cs, ce))}</span>${escapeHtml(newStr.slice(ce))}`;
+        }
+        while (start > 0 && !/[\s,.:]/.test(newStr[start - 1])) start--;
+        while (endNew < newStr.length - 1 && !/[\s,.:]/.test(newStr[endNew + 1])) endNew++;
+        return `${escapeHtml(newStr.slice(0, start))}<span class="preview-flash-highlight">${escapeHtml(newStr.slice(start, endNew + 1))}</span>${escapeHtml(newStr.slice(endNew + 1))}`;
+      }
+
+      function pulseElement(el) {
+        if (!el) return;
+        el.classList.remove('demo-action-pulse');
+        void el.offsetWidth;
+        el.classList.add('demo-action-pulse');
+        setTimeout(() => el.classList.remove('demo-action-pulse'), 700);
+      }
+
+      function renderSandboxUI() {
+        const cfg = draftPresets[activeTab];
+        const detected = detectPresetName(activeTab, cfg);
+
+        sandboxEl.querySelectorAll('.copy-preset-tab').forEach(tab => {
+          const isCur = tab.dataset.tab === activeTab;
+          tab.classList.toggle('active', isCur);
+          tab.setAttribute('aria-selected', isCur ? 'true' : 'false');
+        });
+
+        if (elQuickButtons) {
+          elQuickButtons.querySelectorAll('.btn-preset-quick').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.preset === detected);
+          });
+        }
+
+        if (elActiveChips) {
+          elActiveChips.innerHTML = '';
+          (cfg.tags || []).forEach((tagId, idx) => {
+            const info = getTagInfo(tagId, cfg.options);
+            const chip = document.createElement('div');
+            chip.className = 'preset-chip';
+            chip.setAttribute('draggable', 'true');
+            chip.dataset.index = idx;
+            chip.dataset.tag = tagId;
+            chip.title = `${info.title} (перетягніть для зміни порядку)`;
+            chip.innerHTML = `
+              <span class="chip-grip" aria-hidden="true">⋮⋮</span>
+              <span class="chip-label">${escapeHtml(info.label)}</span>
+              <button type="button" class="chip-del-btn" data-index="${idx}" title="Видалити «${escapeHtml(info.label)}»" draggable="false">✕</button>
+            `;
+            elActiveChips.appendChild(chip);
+          });
+          if (!cfg.tags || cfg.tags.length === 0) {
+            const empty = document.createElement('span');
+            empty.className = 'preset-palette-empty';
+            empty.textContent = 'Усі елементи видалено. Додайте потрібні елементи з палітри нижче.';
+            elActiveChips.appendChild(empty);
+          }
+        }
+
+        if (elPalette) {
+          elPalette.innerHTML = '';
+          const activeSet = new Set(cfg.tags || []);
+          const avail = CANONICAL_TAG_ORDER.filter(id => !activeSet.has(id));
+          avail.forEach(tagId => {
+            const info = getTagInfo(tagId, cfg.options);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'preset-palette-item';
+            btn.dataset.tag = tagId;
+            btn.innerHTML = `<span>+</span> <span>${escapeHtml(info.label)}</span>`;
+            elPalette.appendChild(btn);
+          });
+          if (avail.length === 0) {
+            const empty = document.createElement('span');
+            empty.className = 'preset-palette-empty';
+            empty.textContent = 'Усі доступні елементи додано до шаблону';
+            elPalette.appendChild(empty);
+          }
+        }
+
+        [
+          { el: optSmt, val: !!cfg.options.smtShort },
+          { el: optNoWord, val: !!cfg.options.noBranchWord },
+          { el: optShortReg, val: !!cfg.options.shortRegion },
+          { el: optNoStreet, val: !!cfg.options.noStreetPrefix }
+        ].forEach(item => {
+          if (item.el) {
+            item.el.checked = item.val;
+            const pill = item.el.closest('.preset-rule-pill');
+            if (pill) pill.classList.toggle('active', item.val);
+          }
+        });
+
+        const previewStr = buildPreviewString(activeTab, cfg);
+        if (elPreview) {
+          if (lastPreviewStr && lastPreviewStr !== previewStr) {
+            elPreview.innerHTML = highlightDiff(lastPreviewStr, previewStr);
+            elPreview.classList.remove('preview-box-pulse');
+            void elPreview.offsetWidth;
+            elPreview.classList.add('preview-box-pulse');
+          } else {
+            elPreview.textContent = previewStr;
+          }
+          lastPreviewStr = previewStr;
+        }
+      }
+
+      function enterCrmManualMode() {
+        if (isCrmManualMode) return;
+        isCrmManualMode = true;
+        if (crmDemoTimer) {
+          clearInterval(crmDemoTimer);
+          crmDemoTimer = null;
+        }
+        if (crmStepPendingTimer) {
+          clearTimeout(crmStepPendingTimer);
+          crmStepPendingTimer = null;
+        }
+        if (elStatusBadge) elStatusBadge.classList.add('manual');
+        if (elStatusText) elStatusText.textContent = 'Ручний режим • налаштовуйте шаблон наживо';
+      }
+
+      function applyQuickPreset(presetKey, pulseTarget) {
+        const def = QUICK_PRESETS[activeTab] && QUICK_PRESETS[activeTab][presetKey];
+        if (!def) return;
+        draftPresets[activeTab] = clonePresets(def);
+        renderSandboxUI();
+        if (pulseTarget) pulseElement(pulseTarget);
+      }
+
+      function triggerTestCopy(btn) {
+        const text = buildPreviewString(activeTab, draftPresets[activeTab]);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).catch(() => {});
+        }
+        if (btn) {
+          const span = btn.querySelector('span');
+          const oldTxt = span ? span.textContent : '';
+          if (span) span.textContent = '✓ Скопійовано!';
+          btn.classList.add('copied');
+          pulseElement(btn);
+          setTimeout(() => {
+            if (span) span.textContent = oldTxt || 'Скопіювати зразок';
+            btn.classList.remove('copied');
+          }, 1400);
+        }
+      }
+
+      // Інтерактивність: перехоплюємо ініціативу ВИКЛЮЧНО по реальному кліку або drag-and-drop (не по hover!)
+      sandboxEl.querySelectorAll('.copy-preset-tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+          if (e.isTrusted) enterCrmManualMode();
+          lastPreviewStr = '';
+          activeTab = tab.dataset.tab;
+          renderSandboxUI();
+        });
       });
-    }
+
+      if (elQuickButtons) {
+        elQuickButtons.addEventListener('click', (e) => {
+          const btn = e.target.closest('.btn-preset-quick');
+          if (!btn) return;
+          if (e.isTrusted) enterCrmManualMode();
+          applyQuickPreset(btn.dataset.preset, btn);
+        });
+      }
+
+      if (elActiveChips) {
+        elActiveChips.addEventListener('click', (e) => {
+          const del = e.target.closest('.chip-del-btn');
+          if (!del) return;
+          if (e.isTrusted) enterCrmManualMode();
+          const idx = parseInt(del.dataset.index, 10);
+          if (!Number.isNaN(idx)) {
+            draftPresets[activeTab].tags.splice(idx, 1);
+            renderSandboxUI();
+          }
+        });
+
+        elActiveChips.addEventListener('dragstart', (e) => {
+          const chip = e.target.closest('.preset-chip');
+          if (!chip) return;
+          enterCrmManualMode();
+          dragSrcIndex = parseInt(chip.dataset.index, 10);
+          chip.classList.add('dragging');
+          if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', String(dragSrcIndex));
+          }
+        });
+
+        elActiveChips.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          const targetChip = e.target.closest('.preset-chip');
+          elActiveChips.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('drag-over-left', 'drag-over-right'));
+          if (targetChip && dragSrcIndex !== null) {
+            const targetIdx = parseInt(targetChip.dataset.index, 10);
+            if (targetIdx !== dragSrcIndex) {
+              const rect = targetChip.getBoundingClientRect();
+              const isAfter = (e.clientX - rect.left) > rect.width / 2;
+              targetChip.classList.add(isAfter ? 'drag-over-right' : 'drag-over-left');
+            }
+          }
+        });
+
+        elActiveChips.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const targetChip = e.target.closest('.preset-chip');
+          elActiveChips.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('drag-over-left', 'drag-over-right'));
+          if (targetChip && dragSrcIndex !== null) {
+            const targetIdx = parseInt(targetChip.dataset.index, 10);
+            const rect = targetChip.getBoundingClientRect();
+            const isAfter = (e.clientX - rect.left) > rect.width / 2;
+            const tags = draftPresets[activeTab].tags;
+            const [moved] = tags.splice(dragSrcIndex, 1);
+            let insertAt = targetIdx;
+            if (dragSrcIndex < targetIdx) insertAt--;
+            if (isAfter) insertAt++;
+            tags.splice(Math.max(0, insertAt), 0, moved);
+            dragSrcIndex = null;
+            renderSandboxUI();
+          }
+        });
+
+        elActiveChips.addEventListener('dragend', () => {
+          dragSrcIndex = null;
+          elActiveChips.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('dragging', 'drag-over-left', 'drag-over-right'));
+        });
+      }
+
+      if (elPalette) {
+        elPalette.addEventListener('click', (e) => {
+          const item = e.target.closest('.preset-palette-item');
+          if (!item) return;
+          if (e.isTrusted) enterCrmManualMode();
+          insertCanonicalTag(draftPresets[activeTab].tags, item.dataset.tag);
+          renderSandboxUI();
+        });
+      }
+
+      [
+        { el: optSmt, key: 'smtShort' },
+        { el: optNoWord, key: 'noBranchWord' },
+        { el: optShortReg, key: 'shortRegion' },
+        { el: optNoStreet, key: 'noStreetPrefix' }
+      ].forEach(({ el, key }) => {
+        if (!el) return;
+        el.addEventListener('change', (e) => {
+          if (e.isTrusted) enterCrmManualMode();
+          draftPresets[activeTab].options[key] = !!el.checked;
+          renderSandboxUI();
+        });
+      });
+
+      if (elCopyBtn) {
+        elCopyBtn.addEventListener('click', (e) => {
+          if (e.isTrusted) enterCrmManualMode();
+          triggerTestCopy(elCopyBtn);
+        });
+      }
+
+      if (elBtnReset) {
+        elBtnReset.addEventListener('click', (e) => {
+          if (e.isTrusted) enterCrmManualMode();
+          applyQuickPreset('default', elBtnReset);
+        });
+      }
+
+      if (elBtnSave) {
+        elBtnSave.addEventListener('click', (e) => {
+          if (e.isTrusted) enterCrmManualMode();
+          try {
+            localStorage.setItem('np_custom_copy_presets', JSON.stringify(draftPresets));
+          } catch (_) {}
+          const oldTxt = elBtnSave.textContent;
+          elBtnSave.textContent = '✓ Збережено для пошуку!';
+          elBtnSave.classList.add('saved');
+          setTimeout(() => {
+            elBtnSave.textContent = oldTxt;
+            elBtnSave.classList.remove('saved');
+          }, 1600);
+        });
+      }
+
+      // Послідовність 6 кроків авто-демо конструктора (коли блок у зоні видимості)
+      const DEMO_SEQUENCE = [
+        () => {
+          activeTab = 'short';
+          applyQuickPreset('default', elQuickButtons && elQuickButtons.querySelector('[data-preset="default"]'));
+        },
+        () => {
+          const raionBtn = elPalette && elPalette.querySelector('[data-tag="raion"]');
+          pulseElement(raionBtn);
+          crmStepPendingTimer = setTimeout(() => {
+            crmStepPendingTimer = null;
+            if (isCrmManualMode || !isCrmInView) return;
+            insertCanonicalTag(draftPresets[activeTab].tags, 'raion');
+            renderSandboxUI();
+            const addedChip = elActiveChips && elActiveChips.querySelector('[data-tag="raion"]');
+            pulseElement(addedChip);
+          }, 260);
+        },
+        () => {
+          const pill = optSmt && optSmt.closest('.preset-rule-pill');
+          pulseElement(pill);
+          crmStepPendingTimer = setTimeout(() => {
+            crmStepPendingTimer = null;
+            if (isCrmManualMode || !isCrmInView) return;
+            draftPresets[activeTab].options.smtShort = true;
+            renderSandboxUI();
+          }, 260);
+        },
+        () => {
+          applyQuickPreset('crm', elQuickButtons && elQuickButtons.querySelector('[data-preset="crm"]'));
+        },
+        () => {
+          applyQuickPreset('short', elQuickButtons && elQuickButtons.querySelector('[data-preset="short"]'));
+        },
+        () => {
+          triggerTestCopy(elCopyBtn);
+        }
+      ];
+
+      function startCrmAutoDemo() {
+        if (crmDemoTimer || isCrmManualMode) return;
+        crmDemoTimer = setInterval(() => {
+          if (isCrmManualMode || !isCrmInView) return;
+          crmDemoStepIdx = (crmDemoStepIdx + 1) % DEMO_SEQUENCE.length;
+          DEMO_SEQUENCE[crmDemoStepIdx]();
+        }, 2300);
+      }
+
+      function stopCrmAutoDemo() {
+        if (crmDemoTimer) {
+          clearInterval(crmDemoTimer);
+          crmDemoTimer = null;
+        }
+        if (crmStepPendingTimer) {
+          clearTimeout(crmStepPendingTimer);
+          crmStepPendingTimer = null;
+        }
+      }
+
+      renderSandboxUI();
+
+      if (typeof IntersectionObserver === 'function') {
+        const crmObserver = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            const visible = entry.isIntersecting && entry.intersectionRatio >= 0.25;
+            isCrmInView = visible;
+            if (visible && !isCrmManualMode) {
+              startCrmAutoDemo();
+            } else if (!visible) {
+              stopCrmAutoDemo();
+            }
+          }
+        }, { threshold: [0, 0.25, 0.5] });
+        crmObserver.observe(sandboxEl);
+      }
+    })();
 
     // 2. ROI Калькулятор
     const lblRoiOrders = document.getElementById('lblRoiOrders');

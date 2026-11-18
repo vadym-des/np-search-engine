@@ -211,7 +211,7 @@ html.is-embedded body {
 
 html.is-embedded .app-layout {
   min-height: auto !important;
-  max-width: 980px !important;
+  max-width: 1100px !important;
   padding: 14px 18px 24px 18px !important;
 }
 
@@ -224,6 +224,13 @@ html.is-embedded #btnHeaderAbout {
 
 html.is-embedded .top-nav {
   margin-bottom: 14px !important;
+}
+
+html.is-embedded .top-nav-actions {
+  position: absolute !important;
+  top: 50% !important;
+  right: 0 !important;
+  transform: translateY(-50%) !important;
 }
 
 /* ==========================================================================
@@ -1383,12 +1390,13 @@ body[data-service="ukrposhta"] .custom-leaflet-marker.marker-hovered {
   margin-left: 4px;
 }
 
-.btn-autocomplete-bridge:hover {
+.btn-autocomplete-bridge:hover,
+.btn-autocomplete-bridge.demo-hovered {
   background: #0284c7;
   color: #ffffff;
   border-color: #0284c7;
-  transform: translateY(-0.5px);
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+  transform: translateY(-0.5px) scale(1.03);
+  box-shadow: 0 3px 10px rgba(2, 132, 199, 0.35);
 }
 
 .btn-autocomplete-bridge.bridge-to-np {
@@ -1410,11 +1418,13 @@ body[data-service="ukrposhta"] .custom-leaflet-marker.marker-hovered {
   border-color: rgba(56, 189, 248, 0.4);
 }
 
-[data-theme="dark"] .btn-autocomplete-bridge:hover {
+[data-theme="dark"] .btn-autocomplete-bridge:hover,
+[data-theme="dark"] .btn-autocomplete-bridge.demo-hovered {
   background: #38bdf8;
   color: #0f172a;
   border-color: #38bdf8;
-  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.4);
+  transform: translateY(-0.5px) scale(1.03);
+  box-shadow: 0 3px 12px rgba(56, 189, 248, 0.42);
 }
 
 [data-theme="dark"] .btn-autocomplete-bridge.bridge-to-np {
@@ -1433,7 +1443,8 @@ body[data-service="ukrposhta"] .custom-leaflet-marker.marker-hovered {
   opacity: 0.72;
 }
 
-.autocomplete-item-no-branch:hover {
+.autocomplete-item-no-branch:hover,
+.autocomplete-item-no-branch.demo-hovered {
   opacity: 1;
 }
 
