@@ -70,7 +70,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.62">
+  <link rel="stylesheet" href="styles.css?v=1.6.63">
 </head>
 <body data-service="novaposhta">
 
@@ -298,7 +298,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.62</span>
+          <span class="version-tag">v1.6.63</span>
         </button>
       </div>
 
@@ -324,8 +324,24 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.62 -->
+        <!-- Версія 1.6.63 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.63</span>
+            <span class="version-state">Покрокове звуження міст у поп-апі та дезамбігуація тезок (Петрівка / Берестин)</span>
+            <span class="version-date">19 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Покрокове звуження в поп-апі автокомпліту:</strong> Набір назви міста + області або району (напр. <code>петрівка харків</code> $\rightarrow$ <code>берестинський</code>) більше не збиває поп-ап, а інтелектуально фільтрує список виключно до обраного регіону з пріоритетом робочих відділень.</li>
+            <li><strong>Захист від вибору недіючих тезок (Правило №1):</strong> Запити виду <code>петрівка харків</code> ніколи не обирають пусті 0-відділкові села замість населених пунктів із діючою поштовою мережею.</li>
+            <li><strong>Підтримка адмінреформи та синонімів районів:</strong> Додано підтримку перейменування Красноград $\rightarrow$ Берестин, а також варіантів <code>берестейський</code>/<code>берестинський</code>.</li>
+            <li><strong>Захист від колізій вулиць та міст:</strong> Повний запит <code>петрівка харків берестейський миронова 84</code> ізолює Відділення №1 у с. Петрівка (вул. Миронова, 84) і не перемикається на м. Харків.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.63.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.62 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.62</span>
             <span class="version-state">Оновлена сторінка «Про проєкт» та 1-в-1 Конструктор CRM</span>
@@ -1735,22 +1751,22 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.fast.js?v=1.6.62"></script>
+  <script src="data/branches.fast.js?v=1.6.63"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.62"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.63"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.62"></script>
+  <script src="data/all_settlements.js?v=1.6.63"></script>
 
   <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
-  <script src="data/crm_settlements.js?v=1.6.62"></script>
+  <script src="data/crm_settlements.js?v=1.6.63"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.62"></script>
+  <script src="data/fuzzySearch.js?v=1.6.63"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.62"></script>
+  <script src="app.js?v=1.6.63"></script>
 
   <!-- Інтерактивний контролер для демо-прев'ю (about.html embed) -->
   <script>
