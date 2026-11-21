@@ -1217,6 +1217,7 @@
     'красноградськ': 'Берестинський',
     'красноградський': 'Берестинський',
     'стрись': 'Стрийський',
+    'стрис': 'Стрийський',
     'стрийськ': 'Стрийський',
     'сарнинськ': 'Сарненський',
     'сарнинський': 'Сарненський',
@@ -1244,10 +1245,13 @@
     if (!text) return null;
     const words = text.toLowerCase().replace(/[,.;/\\-]/g, ' ').split(/\s+/).filter(Boolean);
     for (let w of words) {
-      if (RAION_ROOT_MAP[w]) return RAION_ROOT_MAP[w];
+      if (RAION_ROOT_MAP[w]) {
+        detectRaion.lastRawToken = w;
+        return RAION_ROOT_MAP[w];
+      }
     }
     // Район як прикметник (-ський/цький/зький) або скорочення
-    const raionRegex = /(?<!\p{L})([А-Яа-яІіЇїЄєҐґ'-]+(?:ський|цький|зький|ського|цького|зького|ському|цькому|зькому))(?!\p{L})\s*(?:район|району|р-н)?|(?<!\p{L})([А-Яа-яІіЇїЄєҐґ'-]+(?:ськ|цьк|зьк|сь))\s+(?:район|району|р-н)(?!\p{L})/giu;
+    const raionRegex = /(?<!\p{L})([А-Яа-яІіЇїЄєҐґ'-]+(?:ський|цький|зький|ського|цького|зького|ському|цькому|зькому|ські|цькі|зькі))(?!\p{L})\s*(?:район|району|р-н)?|(?<!\p{L})([А-Яа-яІіЇїЄєҐґ'-]+(?:ськ|цьк|зьк|сь))\s+(?:район|району|р-н)(?!\p{L})/giu;
     const m = text.match(raionRegex);
     if (!m) return null;
     for (let cand of m) {
@@ -1259,16 +1263,42 @@
       if (!hasExplicitRaionWord && (REGIONAL_CENTERS.has(r) || REGIONAL_CENTERS.has(canonText(r)))) {
         continue;
       }
-      if (RAION_ROOT_MAP[r]) return RAION_ROOT_MAP[r];
+      const rawCandToken = r;
+      if (RAION_ROOT_MAP[r]) {
+        detectRaion.lastRawToken = rawCandToken;
+        return RAION_ROOT_MAP[r];
+      }
       r = r.replace(/ського$/i, 'ський').replace(/цького$/i, 'цький').replace(/зького$/i, 'зький')
            .replace(/ському$/i, 'ський').replace(/цькому$/i, 'цький').replace(/зькому$/i, 'зький')
+           .replace(/ські$/i, 'ський').replace(/цькі$/i, 'цький').replace(/зькі$/i, 'зький')
            .replace(/сь$/i, 'ський').replace(/ськ$/i, 'ський').replace(/цьк$/i, 'цький').replace(/зьк$/i, 'зький');
-      if (!hasExplicitRaionWord && typeof getKnownRaionsSet === 'function') {
+      if (typeof getKnownRaionsSet === 'function') {
         const kSet = getKnownRaionsSet();
-        if (kSet && !kSet.has(r) && !kSet.has(r.toLowerCase())) {
-          continue;
+        if (kSet) {
+          const rLow = r.toLowerCase();
+          if (!kSet.has(r) && !kSet.has(rLow)) {
+            let fuzzyRaionMatch = null;
+            if (r.length >= 6) {
+              let bestDist = 2;
+              for (const kr of kSet) {
+                if (Math.abs(kr.length - r.length) > 1) continue;
+                const d = damerauLevenshtein(rLow, kr);
+                if (d <= 1 && d < bestDist) {
+                  bestDist = d;
+                  fuzzyRaionMatch = kr;
+                  if (d === 0) break;
+                }
+              }
+            }
+            if (fuzzyRaionMatch) {
+              r = fuzzyRaionMatch;
+            } else if (!hasExplicitRaionWord) {
+              continue;
+            }
+          }
         }
       }
+      detectRaion.lastRawToken = rawCandToken;
       return r.charAt(0).toUpperCase() + r.slice(1);
     }
     return null;
@@ -1298,6 +1328,7 @@
     'бучан': 'бучанський',
     'бучанськ': 'бучанський',
     'стрись': 'стрийський',
+    'стрис': 'стрийський',
     'стрий': 'стрийський',
     'сарнинський': 'сарненський',
     'сарнинськ': 'сарненський',
@@ -1706,11 +1737,11 @@
 
     for (const [newRaion, oldList] of Object.entries(KATOTTG_RAION_MAP)) {
       const newStem = getRawRaionStem(newRaion);
-      const matchNew = (n, st) => n === newRaion || (st && st.length >= 3 && newRaion.startsWith(st)) || (newStem && n.startsWith(newStem));
+      const matchNew = (n, st) => n === newRaion || (newStem && st && newStem === st);
       const matchOld = (n, st) => oldList.some(oldR => {
         const oldClean = toMasc(canonText(oldR));
         const oldStem = getRawRaionStem(oldClean);
-        return n === oldClean || (st && st.length >= 3 && oldClean.startsWith(st)) || (oldStem && n.startsWith(oldStem));
+        return n === oldClean || (oldStem && st && oldStem === st);
       });
       if ((matchNew(n1, s1) && matchOld(n2, s2)) || (matchNew(n2, s2) && matchOld(n1, s1))) {
         return true;
@@ -2006,8 +2037,22 @@
       if (contextOblast || contextRaion) {
         const cObl = (contextOblast || '').toLowerCase();
         const cRaion = (contextRaion || '').toLowerCase();
-        let matchedCand = null;
+        let exactRaionMatch = null;
+        let compatibleRaionMatch = null;
+        let bestCompScore = -1;
         let oblMatchesList = [];
+        const typeScore = (t) => {
+          if (contextType) {
+            const tNorm = normalizeSettlementBadge(t).toLowerCase();
+            const cNorm = normalizeSettlementBadge(contextType).toLowerCase();
+            if (tNorm === cNorm) return 50000;
+          }
+          return t === 'місто' ? 30 : ((t === 'селище міського типу' || t === 'смт' || t === 'селище') ? 20 : 10);
+        };
+        const npPool = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.novaposhta)) ? window.BRANCHES_DATA.novaposhta : _lastActiveBranchPool;
+        const cCityName = canonCity(candidates[0].cleanName || candidates[0].name);
+        const cityBranches = npPool ? getCityBranchesFromPool(npPool, cCityName) : [];
+
         for (let i = 0; i < candidates.length; i++) {
           const cand = candidates[i];
           const candObl = (cand.oblast || '').toLowerCase();
@@ -2016,21 +2061,32 @@
           const isExactRaion = cRaion && (candRaion.includes(cRaion) || cRaion.includes(candRaion));
           const isCompatibleRaion = cRaion && areRaionsCompatible(cRaion, candRaion);
           if (oblMatches && isExactRaion) {
-            matchedCand = cand;
+            exactRaionMatch = cand;
             break;
-          }
-          if (oblMatches && isCompatibleRaion && !matchedCand) {
-            matchedCand = cand;
           }
           if (oblMatches) {
             oblMatchesList.push(cand);
           }
-          if (isExactRaion && !matchedCand) {
-            matchedCand = cand;
-          } else if (isCompatibleRaion && !matchedCand) {
-            matchedCand = cand;
+          if (isExactRaion && !exactRaionMatch) {
+            exactRaionMatch = cand;
+          }
+          if (isCompatibleRaion && (!cObl || oblMatches)) {
+            let bCount = 0;
+            const cRStem = getRaionStem(cand.raion || '');
+            for (let bIdx = 0; bIdx < cityBranches.length; bIdx++) {
+              const b = cityBranches[bIdx];
+              if (cRStem && b.raion && (b.raion.toLowerCase().includes(cRStem) || areRaionsCompatible(cand.raion, b.raion))) {
+                bCount++;
+              }
+            }
+            const cScore = bCount * 1000 + typeScore(cand.type);
+            if (cScore > bestCompScore) {
+              bestCompScore = cScore;
+              compatibleRaionMatch = cand;
+            }
           }
         }
+        let matchedCand = exactRaionMatch || compatibleRaionMatch;
         if (!matchedCand && oblMatchesList.length > 0) {
           if (oblMatchesList.length === 1) {
             matchedCand = oblMatchesList[0];
@@ -2040,10 +2096,7 @@
             // Обираємо населений пункт з найбільшою кількістю відділень у статичній базі!
             let bestCand = oblMatchesList[0];
             let maxBranches = -1;
-            const npPool = (typeof window !== 'undefined' && window.BRANCHES_DATA && Array.isArray(window.BRANCHES_DATA.novaposhta)) ? window.BRANCHES_DATA.novaposhta : null;
-            if (npPool) {
-              const cName = canonCity(candidates[0].cleanName || candidates[0].name);
-              const cityBranches = getCityBranchesFromPool(npPool, cName);
+            if (cityBranches.length > 0) {
               for (let k = 0; k < oblMatchesList.length; k++) {
                 const c = oblMatchesList[k];
                 const cRStem = getRaionStem(c.raion || '');
@@ -2054,8 +2107,9 @@
                     count++;
                   }
                 }
-                if (count > maxBranches) {
-                  maxBranches = count;
+                const score = count * 1000 + typeScore(c.type);
+                if (score > maxBranches) {
+                  maxBranches = score;
                   bestCand = c;
                 }
               }
@@ -2783,11 +2837,11 @@
     const contextRaion = detectRaion(text);
 
     let contextType = null;
-    if (/(?<!\p{L})(?:смт|селище міського типу)(?!\p{L})/iu.test(rawQuery)) {
+    if (/(?<!\p{L})(?:смт|селище міського типу|селище|сел\.?)(?!\p{L})/iu.test(rawQuery)) {
       contextType = 'смт';
-    } else if (/(?<!\p{L})(?:село|с(?!\p{L}))/iu.test(rawQuery)) {
+    } else if (/(?<!\p{L})(?:село|с\.)(?!\p{L})/iu.test(rawQuery)) {
       contextType = 'село';
-    } else if (/(?<!\p{L})(?:місто|м(?!\p{L}))/iu.test(rawQuery)) {
+    } else if (/(?<!\p{L})(?:місто|м\.)(?!\p{L})/iu.test(rawQuery)) {
       contextType = 'місто';
     }
 
@@ -3658,11 +3712,11 @@
 
     // Визначаємо, чи користувач явно вказав префікс населеного пункту (смт / село / місто)
     let preferredType = null;
-    if (/(?<!\p{L})(?:смт|селище міського типу)(?!\p{L})/iu.test(qClean)) {
+    if (/(?<!\p{L})(?:смт|селище міського типу|селище|сел\.?)(?!\p{L})/iu.test(qClean)) {
       preferredType = 'смт';
-    } else if (/(?<!\p{L})(?:село|с(?!\p{L}))/iu.test(qClean)) {
+    } else if (/(?<!\p{L})(?:село|с\.)(?!\p{L})/iu.test(qClean)) {
       preferredType = 'село';
-    } else if (/(?<!\p{L})(?:місто|м(?!\p{L}))/iu.test(qClean)) {
+    } else if (/(?<!\p{L})(?:місто|м\.)(?!\p{L})/iu.test(qClean)) {
       preferredType = 'місто';
     }
 
@@ -4041,11 +4095,31 @@
 
     // Допоміжний метод: пошук та ранжування відділень міста для Branch Suggestion Mode
     function collectCityBranchSuggestions(facets) {
-      if (!pool || pool.length === 0 || !facets || !facets.city) return [];
-      const cityKey = canonText(facets.city);
-      let cityBranches = getCityBranchesFromPool(pool, cityKey);
-      if (cityBranches.length === 0 && Array.isArray(liveCityBranches) && liveCityBranches.length > 0 && pool !== liveCityBranches) {
-        cityBranches = getCityBranchesFromPool(liveCityBranches, cityKey);
+      if (!pool || pool.length === 0 || !facets || (!facets.city && !facets.raion && !facets.oblast)) return [];
+      const cityKey = facets.city ? canonText(facets.city) : null;
+      let cityBranches = [];
+      if (facets.city) {
+        cityBranches = getCityBranchesFromPool(pool, cityKey);
+        if (cityBranches.length === 0 && Array.isArray(liveCityBranches) && liveCityBranches.length > 0 && pool !== liveCityBranches) {
+          cityBranches = getCityBranchesFromPool(liveCityBranches, cityKey);
+        }
+      } else if (facets.raion || facets.oblast) {
+        const targetOblKey = facets.oblast
+          ? facets.oblast.replace(/(?:ська|цька|зька| область| обл\.?)$/gi, '').toLowerCase().slice(0, 4)
+          : (facets.settlementOblast ? facets.settlementOblast.replace(/(?:ська|цька|зька| область| обл\.?)$/gi, '').toLowerCase().slice(0, 4) : null);
+        const targetRaionStem = facets.raion ? getRaionStem(facets.raion) : null;
+        const targetRaionClean = facets.raion ? cleanRaionName(facets.raion).toLowerCase() : null;
+        cityBranches = pool.filter(b => {
+          if (targetOblKey && b.oblast && !b.oblast.toLowerCase().includes(targetOblKey)) return false;
+          if (targetRaionClean) {
+            const bR = (b.raion || b.district || '').toLowerCase();
+            if (!bR) return false;
+            if (targetRaionStem && bR.includes(targetRaionStem)) return true;
+            if (areRaionsCompatible(targetRaionClean, b.raion || b.district)) return true;
+            return false;
+          }
+          return true;
+        });
       }
       if (cityBranches.length === 0) return [];
 
@@ -4070,9 +4144,23 @@
             })
           : cityBranches;
         const targetPool = candidatePool.length > 0 ? candidatePool : cityBranches;
-        const streetScored = searchBranches(normalizedQuery, targetPool, 50).filter(b => (b._canonCity || canonCity(b.city)) === cityKey);
-        for (let i = 0; i < streetScored.length; i++) {
-          const b = streetScored[i];
+        const streetScored = searchBranches(normalizedQuery, targetPool, 50).filter(b => !cityKey || (b._canonCity || canonCity(b.city)) === cityKey);
+        let orderedStreetScored = streetScored;
+        if (!cityKey && (facets.raion || targetRaionStem)) {
+          const rTarget = (facets.raion || targetRaionStem).toLowerCase();
+          const rClean = cleanRaionName(rTarget).toLowerCase();
+          const rStem = rClean.slice(0, 4);
+          orderedStreetScored = streetScored.slice().sort((a, b) => {
+            const aR = (a.raion || '').toLowerCase();
+            const bR = (b.raion || '').toLowerCase();
+            const aExact = (aR.includes(rStem) || aR.includes(rClean)) ? 1 : 0;
+            const bExact = (bR.includes(rStem) || bR.includes(rClean)) ? 1 : 0;
+            if (aExact !== bExact) return bExact - aExact;
+            return 0;
+          });
+        }
+        for (let i = 0; i < orderedStreetScored.length; i++) {
+          const b = orderedStreetScored[i];
           const bKey = b.id || `${b._canonCity || canonCity(b.city)}|${b.number}|${b.street}`;
           if (!seenBranchKeys.has(bKey)) {
             seenBranchKeys.add(bKey);
@@ -4426,7 +4514,7 @@
           if (!facets.number && pq.targetBranchNumber) facets.number = pq.targetBranchNumber;
         }
       }
-      if (!facets.city) {
+      if (!facets.city && !facets.raion && !facets.oblast) {
         return [];
       }
       const branchResults = collectCityBranchSuggestions(facets);
@@ -4456,6 +4544,12 @@
         }
         const aC = canonText(a.cleanName || a.name);
         const bC = canonText(b.cleanName || b.name);
+        if (tokens && tokens.length > 1) {
+          const fTok = canonText(tokens[0]);
+          const aFirst = (aC === fTok || aC.startsWith(fTok)) ? 1 : 0;
+          const bFirst = (bC === fTok || bC.startsWith(fTok)) ? 1 : 0;
+          if (aFirst !== bFirst) return bFirst - aFirst;
+        }
         const aO = (a.oblast || '').toLowerCase().slice(0, 5);
         const bO = (b.oblast || '').toLowerCase().slice(0, 5);
         const aIsRegHome = REGIONAL_CENTERS.has(aC) && (!aO || aO.startsWith(aC.slice(0, 4)) ||
@@ -4640,10 +4734,10 @@
     if (suggestions.length === 0 && tokens.length > 1) {
       const facets = extractFacets(normalizedQuery);
       const streetPart = (facets.streetTokens || []).filter(t => !/^\d+$/.test(t));
-      if (facets.city && (streetPart.length > 0 || facets.oblast || facets.raion)) {
+      if ((facets.city || facets.raion || facets.oblast) && (streetPart.length > 0 || facets.oblast || facets.raion)) {
         if (streetPart.length > 0) {
           const branchItems = collectCityBranchSuggestions(facets);
-          for (let i = 0; i < branchItems.length; i++) {
+          for (let i = 0; i < branchItems.length && suggestions.length < 50; i++) {
             suggestions.push(branchItems[i]);
           }
         }
@@ -5152,6 +5246,10 @@
     const detectedR = detectRaion(text);
     if (detectedR) {
       raion = detectedR;
+      if (detectRaion.lastRawToken) {
+        const escRaw = detectRaion.lastRawToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        text = text.replace(new RegExp('(?<!\\p{L})' + escRaw + '(?:ський|ського|ському|ським)?\\s*(?:район|р-н)?(?!\\p{L})', 'giu'), ' ');
+      }
       text = text.replace(new RegExp('(?<!\\p{L})' + detectedR + '(?:ський|ського|ському|ським)?\\s*(?:район|р-н)?(?!\\p{L})', 'giu'), ' ');
       for (const [root, fullR] of Object.entries(RAION_ROOT_MAP)) {
         if (fullR.toLowerCase() === raion.toLowerCase() || areRaionsCompatible(fullR, raion)) {
@@ -5159,6 +5257,17 @@
           text = text.replace(new RegExp('(?<!\\p{L})' + escRoot + '(?:ський|ського|ському|ським)?\\s*(?:район|р-н)?(?!\\p{L})', 'giu'), ' ');
           const escCanon = canonText(root).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           text = text.replace(new RegExp('(?<!\\p{L})' + escCanon + '(?:ський|ського|ському|ським)?\\s*(?:район|р-н)?(?!\\p{L})', 'giu'), ' ');
+        }
+      }
+      // Захист від одруків у назві району: видаляємо з тексту запиту будь-яке слово, схоже на знайдений район (Damerau-Levenshtein <= 1)
+      const textWords = text.split(/\s+/);
+      for (const tw of textWords) {
+        const cleanTw = tw.replace(/[,.;/\\-]/g, '').trim().toLowerCase();
+        if (cleanTw.length >= 6 && (cleanTw.endsWith('ський') || cleanTw.endsWith('цький') || cleanTw.endsWith('зький'))) {
+          if (damerauLevenshtein(cleanTw, detectedR.toLowerCase()) <= 1) {
+            const escTw = cleanTw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            text = text.replace(new RegExp('(?<!\\p{L})' + escTw + '(?!\\p{L})', 'giu'), ' ');
+          }
         }
       }
     }
@@ -5178,11 +5287,11 @@
 
     // 4. Очищення службових слів
     let settlementType = null;
-    if (/(?<!\p{L})(?:смт|селище міського типу)(?!\p{L})/iu.test(query)) {
+    if (/(?<!\p{L})(?:смт|селище міського типу|селище|сел\.?)(?!\p{L})/iu.test(query)) {
       settlementType = 'смт';
-    } else if (/(?<!\p{L})(?:село|с(?!\p{L}))/iu.test(query)) {
+    } else if (/(?<!\p{L})(?:село|с\.)(?!\p{L})/iu.test(query)) {
       settlementType = 'село';
-    } else if (/(?<!\p{L})(?:місто|м(?!\p{L}))/iu.test(query)) {
+    } else if (/(?<!\p{L})(?:місто|м\.)(?!\p{L})/iu.test(query)) {
       settlementType = 'місто';
     }
 
@@ -5469,7 +5578,9 @@
 
       // ДЕЗАМБІГУАЦІЯ ТЕЗОК СІЛ/СМТ ЗА ОБЛАСНИМ ЦЕНТРОМ АБО РАЙОНОМ
       for (let v of villageCandidates) {
-        if (v.s.allVariants && v.s.allVariants.length > 1 && cityCandidates.length > 0) {
+        const vVars = (v.s.allVariants && v.s.allVariants.length > 1) ? v.s.allVariants : (_allSettlementsByName.get(canonCity(v.s.cleanName || v.s.name)) || []);
+        if (vVars && vVars.length > 1 && cityCandidates.length > 0) {
+          v.s.allVariants = vVars;
           for (let c of cityCandidates) {
             const cObl = (c.s.oblast || '').toLowerCase();
             const cStem = c.s.name.toLowerCase().slice(0, 4);
@@ -5497,10 +5608,12 @@
               }
               // Якщо район села безпосередньо відповідає місту-центру (наприклад, Житомирський район для м. Житомир),
               // але пусті 0-відділкові села ніколи не перебивають діючу мережу (Rule #1)
-              if (candRaion && cStem && (candRaion.includes(cStem) || cStem.includes(candRaion.slice(0, 4)))) {
+              const isCompR = candRaion && (candRaion.includes(cStem) || cStem.includes(candRaion.slice(0, 4)) || areRaionsCompatible(c.s.name, candRaion) || areRaionsCompatible(c.s.raion || c.s.name, candRaion));
+              if (isCompR) {
                 score += (hasActiveBranch ? 100 : 20);
               }
-              return { cand, score };
+              const typeBonus = (cand.type === 'смт' || cand.type === 'селище міського типу') ? 50 : 0;
+              return { cand, score: score + typeBonus };
             }).sort((a, b) => b.score - a.score);
 
             if (scoredVars.length > 0 && scoredVars[0].score > 0) {
@@ -5689,10 +5802,10 @@
 
           // 2. Чи є m родинним регіоном для selectedMatch (та сама область або однойменний район)?
           const isSameOblast = m.s.oblast && selectedMatch.s.oblast && m.s.oblast === selectedMatch.s.oblast;
-          const isMatchingRaion = selectedMatch.s.raion && selectedMatch.s.raion.toLowerCase().includes(m.s.name.toLowerCase().slice(0, 4));
+          const isMatchingRaion = selectedMatch.s.raion && (selectedMatch.s.raion.toLowerCase().includes(m.s.name.toLowerCase().slice(0, 4)) || areRaionsCompatible(m.s.name, selectedMatch.s.raion) || areRaionsCompatible(m.s.raion || m.s.name, selectedMatch.s.raion));
           if (isSameOblast || isMatchingRaion) {
             if (!oblast && m.s.oblast) oblast = m.s.oblast;
-            if (isMatchingRaion) raion = selectedMatch.s.raion;
+            if (!raion && isMatchingRaion) raion = selectedMatch.s.raion;
           }
         }
       }
@@ -5922,6 +6035,7 @@
         const c = canonText(w);
         if (geoTokens.has(c) && !isDisambiguatedStreet && !(city && isStreetOfCity(city, w))) return false;
         if (isOblastToken(w) && !isDisambiguatedStreet && !(city && isStreetOfCity(city, w))) return false;
+        if (raion && c.length >= 6 && damerauLevenshtein(c, canonText(raion)) <= 1) return false;
         return true;
       });
 
@@ -6294,7 +6408,7 @@
     const hasPostomatKeyword = norm.hasPostomatKeyword || parsed.isPostomat;
     const hasBranchKeyword = norm.hasBranchKeyword;
     const hasCargoKeyword = norm.hasCargoKeyword || isCargoKeyword(rawQuery);
-    const queryHasSmt = /(?<!\p{L})(?:смт|селище міського типу)(?!\p{L})/iu.test(rawQuery);
+    const queryHasSmt = /(?<!\p{L})(?:смт|селище міського типу|селище|сел\.?)(?!\p{L})/iu.test(rawQuery);
     const queryHasMisto = /(?<!\p{L})(?:місто|м\.)(?!\p{L})/iu.test(rawQuery);
     const queryHasSelo = /(?<!\p{L})(?:село|с\.)(?!\p{L})/iu.test(rawQuery);
     let detectedCityName = null;
@@ -6417,7 +6531,7 @@
     const correctedRawCityToken = (parsed.didYouMean && parsed.didYouMean.rawToken) ? canonText(parsed.didYouMean.rawToken) : null;
     const normDetectedCityName = detectedCityName ? normalizeLocativeCase(detectedCityName) : null;
     const streetCandidates = (facets.streetTokens || []).concat(
-      tokens.filter(t => !/^\d+$/.test(t) && t !== detectedCityName && t !== normDetectedCityName && t !== correctedRawCityToken && !isOblastOrCenter(t) && !STOP_WORDS.has(t))
+      tokens.filter(t => !/^\d+$/.test(t) && t !== detectedCityName && t !== normDetectedCityName && t !== correctedRawCityToken && (!isOblastOrCenter(t) || (detectedCityName && isStreetOfCity(detectedCityName, t))) && !STOP_WORDS.has(t))
     );
     const uniqueStreetTokens = Array.from(new Set(streetCandidates)).filter(t =>
       t.length >= 2 &&
@@ -6835,7 +6949,7 @@
         return [];
       }
 
-      const sortedCityBranches = sortBranchesBySettlementOrder(cityCandidates, hasPostomatKeyword, hasBranchKeyword);
+      const sortedCityBranches = sortBranchesBySettlementOrder(cityCandidates, hasPostomatKeyword, hasBranchKeyword, detectedCityName);
       const finalRes = sortedCityBranches.slice(0, effectiveLimit);
       _searchLruCache.set(cacheKey, finalRes);
       return finalRes;
@@ -7029,6 +7143,17 @@
       filtered = matched.filter(m => m.score >= threshold);
     }
 
+    const hasSpecificTarget = Boolean(hasExplicitNumber || (facets && facets.number) || (facets && facets.building) || streetBuildingNum || (facets && facets.streetTokens && facets.streetTokens.length > 0));
+    const isSingleSettlement = Boolean(detectedCityName && filtered.length > 1);
+    const hasDistinction = isSingleSettlement && hasSpecificTarget && filtered.some(m => m.score < leaderScore * 0.85);
+    filtered.forEach(m => {
+      if (hasDistinction) {
+        m.branch._isBestMatch = Boolean(m.score >= leaderScore * 0.85);
+      } else {
+        m.branch._isBestMatch = true;
+      }
+    });
+
     const finalResults = filtered.slice(0, effectiveLimit).map(m => m.branch).slice(0, HARD_CAP_LIMIT);
 
     // Збереження в LRU Cache
@@ -7042,9 +7167,20 @@
   }
 
   // Природне сортування відділень населеного пункту: спочатку вантажні та поштові №1..N, потім поштомати
-  function sortBranchesBySettlementOrder(branches, hasPostomatKeyword = false, hasBranchKeyword = false) {
+  function sortBranchesBySettlementOrder(branches, hasPostomatKeyword = false, hasBranchKeyword = false, targetCity = null) {
     if (!Array.isArray(branches) || branches.length <= 1) return branches || [];
+    const tCity = targetCity ? canonCity(targetCity) : (branches[0] ? canonCity(branches[0].city) : null);
     return branches.slice().sort((a, b) => {
+      if (tCity) {
+        const isExactA = (canonCity(a.city) === tCity) ? 1 : 0;
+        const isExactB = (canonCity(b.city) === tCity) ? 1 : 0;
+        if (isExactA !== isExactB) return isExactB - isExactA;
+      }
+
+      const rankA = settlementTypeRank(a.settlementType);
+      const rankB = settlementTypeRank(b.settlementType);
+      if (rankA !== rankB) return rankB - rankA;
+
       const isPostA = (a.typeClass === 'poshtomat' || a.type === 'poshtomat' || /поштомат/i.test(a.name || '') || /поштомат/i.test(a.typeName || '')) ? 1 : 0;
       const isPostB = (b.typeClass === 'poshtomat' || b.type === 'poshtomat' || /поштомат/i.test(b.name || '') || /поштомат/i.test(b.typeName || '')) ? 1 : 0;
       if (hasPostomatKeyword && isPostA !== isPostB) return isPostB - isPostA;
@@ -7054,6 +7190,10 @@
       const numA = parseInt(a.number, 10) || 999999;
       const numB = parseInt(b.number, 10) || 999999;
       if (numA !== numB) return numA - numB;
+
+      const raionA = (a.raion || '').toLowerCase();
+      const raionB = (b.raion || '').toLowerCase();
+      if (raionA !== raionB) return raionA.localeCompare(raionB);
 
       const wA = parseFloat(a.totalMaxWeightAllowed || a.placeMaxWeightAllowed || a.maxWeight || 0);
       const wB = parseFloat(b.totalMaxWeightAllowed || b.placeMaxWeightAllowed || b.maxWeight || 0);

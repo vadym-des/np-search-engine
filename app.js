@@ -1599,6 +1599,26 @@
       if (!queryCanon.startsWith(selName) && (!parsed.matchedSettlement || canonCity(parsed.matchedSettlement.name) !== selName)) {
         state.selectedSettlement = null;
       }
+      if (state.selectedSettlement) {
+        const queryRaion = parsed.detectedRaion || (parsed.facets && parsed.facets.raion);
+        const selRaion = state.selectedSettlement.cleanRaion || state.selectedSettlement.raion;
+        if (queryRaion && selRaion && !areRaionsCompatible(queryRaion, selRaion)) {
+          state.selectedSettlement = null;
+        }
+      }
+      if (state.selectedSettlement) {
+        const isSmtQuery = /(?<!\p{L})(?:смт|селище міського типу|селище|сел\.?)(?!\p{L})/iu.test(rawQuery);
+        const isSeloQuery = /(?<!\p{L})(?:село|с\.)(?!\p{L})/iu.test(rawQuery);
+        const isMistoQuery = /(?<!\p{L})(?:місто|м\.)(?!\p{L})/iu.test(rawQuery);
+        const selType = (state.selectedSettlement.type || '').toLowerCase();
+        if (isSmtQuery && (selType === 'село' || selType === 'місто')) {
+          state.selectedSettlement = null;
+        } else if (isSeloQuery && (selType.includes('селище') || selType === 'смт' || selType === 'місто')) {
+          state.selectedSettlement = null;
+        } else if (isMistoQuery && selType !== 'місто') {
+          state.selectedSettlement = null;
+        }
+      }
     }
     const activeSettlement = state.selectedSettlement || parsed.matchedSettlement;
     if (activeSettlement) {
@@ -1650,6 +1670,16 @@
     } else if (parsed.detectedOblast || (parsed.facets && parsed.facets.oblast)) {
       const targetObl = (parsed.detectedOblast || parsed.facets.oblast).toLowerCase().slice(0, 4);
       staticMatches = staticMatches.filter(b => !b.oblast || b.oblast.toLowerCase().includes(targetObl));
+    }
+
+    if (!activeSettlement && (parsed.detectedRaion || (parsed.facets && parsed.facets.raion))) {
+      const targetRaion = parsed.detectedRaion || (parsed.facets && parsed.facets.raion);
+      const rClean = cleanRaionName(targetRaion).toLowerCase();
+      const rStem = rClean.slice(0, 4);
+      staticMatches = staticMatches.filter(b => {
+        const bR = (b.raion || b.district || '').toLowerCase();
+        return !bR || bR.includes(rStem) || (window.SmartSearchEngine && window.SmartSearchEngine.areRaionsCompatible(rClean, b.raion || b.district));
+      });
     }
 
     // Перевіряємо, чи є впевнений збіг у статичній базі
@@ -3200,13 +3230,28 @@
     if (oblClean) geoParts.push(`${oblClean} обл.`);
     const geoSub = geoParts.length > 0 ? `(${geoParts.join(', ')})` : '';
 
-    const hlCity = highlightMatch(cleanCity, query);
-    const hlNumber = highlightMatch(branchNumber, query);
-    const hlStreet = highlightMatch(cleanStreet, query);
-    const hlGeoSub = geoSub ? highlightMatch(geoSub, query) : '';
+    const isBest = branch._isBestMatch !== false;
+    const hlQuery = isBest ? query : '';
+    const subHlQuery = getCitySubtitleHighlightQuery(hlQuery, cleanCity);
+
+    const hlCity = highlightMatch(cleanCity, hlQuery);
+    const hlNumber = highlightMatch(branchNumber, hlQuery);
+    const hlStreet = highlightMatch(cleanStreet, hlQuery);
+    let hlGeoSub = geoSub ? highlightMatch(geoSub, subHlQuery) : '';
 
     const oblDisplay = oblClean ? (oblClean.endsWith('область') ? oblClean : `${oblClean} область`) : '';
-    const hlObl = oblDisplay ? highlightMatch(oblDisplay, query) : '';
+    let hlObl = oblDisplay ? highlightMatch(oblDisplay, subHlQuery) : '';
+
+    if (isBest && hlStreet && hlStreet.includes('class="hl-match"')) {
+      const streetTokensInMatch = hlStreet.match(/<mark class="hl-match">([^<]+)<\/mark>/g) || [];
+      for (const mTag of streetTokensInMatch) {
+        const textInside = mTag.replace(/<\/?mark[^>]*>/g, '');
+        if (textInside.length >= 3) {
+          if (hlGeoSub.includes(mTag)) hlGeoSub = hlGeoSub.split(mTag).join(textInside);
+          if (hlObl.includes(mTag)) hlObl = hlObl.split(mTag).join(textInside);
+        }
+      }
+    }
     const cityWithOblast = oblDisplay
       ? `${escapeHtml(sType)} ${hlCity.trim()}, ${hlObl.trim()}`.replace(/\s+,/g, ',')
       : `${escapeHtml(sType)} ${hlCity.trim()}`;
@@ -4263,10 +4308,25 @@
     }
 
     const cleanCity = cleanSettlementName(branch.city || '');
-    const hlNumber = highlightMatch(branchNumber, query || state.searchQuery);
-    const hlStreet = highlightMatch(cleanStreet, query || state.searchQuery);
-    const hlCity = highlightMatch(cleanCity, query || state.searchQuery);
-    const hlGeoSub = geoSub ? highlightMatch(geoSub, query || state.searchQuery) : '';
+    const isBest = branch._isBestMatch !== false;
+    const hlQuery = isBest ? (query || state.searchQuery) : '';
+    const subHlQuery = getCitySubtitleHighlightQuery(hlQuery, cleanCity);
+
+    const hlNumber = highlightMatch(branchNumber, hlQuery);
+    const hlStreet = highlightMatch(cleanStreet, hlQuery);
+    const hlCity = highlightMatch(cleanCity, hlQuery);
+    let hlGeoSub = geoSub ? highlightMatch(geoSub, subHlQuery) : '';
+
+    if (isBest && hlStreet && hlStreet.includes('class="hl-match"')) {
+      const streetTokensInMatch = hlStreet.match(/<mark class="hl-match">([^<]+)<\/mark>/g) || [];
+      for (const mTag of streetTokensInMatch) {
+        const textInside = mTag.replace(/<\/?mark[^>]*>/g, '');
+        if (textInside.length >= 3 && hlGeoSub.includes(mTag)) {
+          hlGeoSub = hlGeoSub.split(mTag).join(textInside);
+        }
+      }
+    }
+
 
     const branchTitle = `${typeDisplay} №${hlNumber}: <span class="street-part">${hlStreet}</span>`;
     const locationSub = `${escapeHtml(sType)} ${hlCity}${hlGeoSub ? ' ' + hlGeoSub : ''}`;
@@ -5458,7 +5518,16 @@
         patterns.add('(?<=№)' + escapeRegex(t));
       } else if (t.length >= 3) {
         patterns.add('(?<!\\p{L})' + escapeRegex(t) + '(?!\\p{L})');
-        const raionStem = window.SmartSearchEngine && window.SmartSearchEngine.getRaionStem ? window.SmartSearchEngine.getRaionStem(t) : '';
+        let raionStem = window.SmartSearchEngine && window.SmartSearchEngine.getRaionStem ? window.SmartSearchEngine.getRaionStem(t) : '';
+        if (window.SmartSearchEngine && window.SmartSearchEngine.detectRaion) {
+          const detectedR = window.SmartSearchEngine.detectRaion(t);
+          if (detectedR) {
+            const canonicalRaionStem = window.SmartSearchEngine.getRaionStem ? window.SmartSearchEngine.getRaionStem(detectedR) : '';
+            if (canonicalRaionStem && canonicalRaionStem.length >= 3) {
+              raionStem = canonicalRaionStem;
+            }
+          }
+        }
         if (raionStem && raionStem.length >= 3) {
           patterns.add('(?<!\\p{L})' + escapeRegex(raionStem) + '[\\p{L}]*');
         }
@@ -5490,7 +5559,7 @@
             if (HIGHLIGHT_STOP_WORDS.has(w)) break;
             combo += w;
             matchedSubwords.push(w);
-            if (matchedSubwords.length >= 2 && (combo === t || (combo.length >= 6 && (combo.includes(t) || t.includes(combo))))) {
+            if (matchedSubwords.length >= 2 && (combo === t || (combo.length >= 6 && t.includes(combo)))) {
               for (const sw of matchedSubwords) {
                 if (sw.length >= 3) patterns.add('(?<!\\p{L})' + escapeRegex(sw) + '(?!\\p{L})');
               }
@@ -5739,14 +5808,26 @@
         fullTitle = cityGeoPrefix ? `${cityGeoPrefix}: ${item.title}` : item.title;
       }
 
-      // Запит для підсвічування заголовка: токени запиту + назва знайденого міста
-      const titleHighlightQuery = [query, cleanCity].filter(Boolean).join(' ');
-      const highlightedBranchTitle = highlightMatch(fullTitle, titleHighlightQuery);
+      const isBest = !(item._isBestMatch === false || (bObj && bObj._isBestMatch === false));
+      // Запит для підсвічування заголовка: токени запиту користувача
+      const titleHighlightQuery = isBest ? query : '';
+      let highlightedBranchTitle = highlightMatch(fullTitle, titleHighlightQuery);
 
       // Рядок 2: вулиця та адреса + ліміт ваги в кінці
       const streetText = item.street || (bObj && (bObj.street || bObj.address)) || item.subtitle || '';
-      const streetQuery = getBranchStreetHighlightQuery(query, item);
+      const streetQuery = isBest ? getBranchStreetHighlightQuery(query, item) : '';
       const highlightedStreet = highlightMatch(streetText, streetQuery);
+
+      if (isBest && highlightedStreet && highlightedStreet.includes('class="hl-match"')) {
+        const streetTokensInMatch = highlightedStreet.match(/<mark class="hl-match">([^<]+)<\/mark>/g) || [];
+        for (const mTag of streetTokensInMatch) {
+          const textInside = mTag.replace(/<\/?mark[^>]*>/g, '');
+          if (textInside.length >= 3 && highlightedBranchTitle.includes(mTag)) {
+            highlightedBranchTitle = highlightedBranchTitle.split(mTag).join(textInside);
+          }
+        }
+      }
+
 
       const weightText = item.weightLabel ? escapeHtml(item.weightLabel) : '';
       const weightHtml = weightText
@@ -6408,6 +6489,14 @@
         const sLower = canonText(state.selectedSettlement.cleanName);
         const valCanon = canonText(val);
 
+        const isSmtQuery = /(?<!\p{L})(?:смт|селище міського типу|селище|сел\.?)(?!\p{L})/iu.test(val);
+        const isSeloQuery = /(?<!\p{L})(?:село|с\.)(?!\p{L})/iu.test(val);
+        const isMistoQuery = /(?<!\p{L})(?:місто|м\.)(?!\p{L})/iu.test(val);
+        const selType = (state.selectedSettlement.type || '').toLowerCase();
+        const typeConflict = (isSmtQuery && (selType === 'село' || selType === 'місто')) ||
+                             (isSeloQuery && (selType.includes('селище') || selType === 'смт' || selType === 'місто')) ||
+                             (isMistoQuery && selType !== 'місто');
+
         // Якщо введено омонім (наприклад "Олександрія") без уточнення області/району і без активного lockedInputValue,
         // скидаємо попередньо зафіксоване місто, щоб гарантувати показ випадаючого списку варіантів!
         let isHomonymWithoutRegion = false;
@@ -6423,8 +6512,8 @@
           }
         }
 
-        // Якщо користувач почав стирати або змінив саму назву зафіксованого міста (наприклад "ки" замість "київ")
-        if (!valCanon.startsWith(sLower) || isHomonymWithoutRegion) {
+        // Якщо користувач почав стирати або змінив саму назву зафіксованого міста (наприклад "ки" замість "київ") або змінив тип
+        if (!valCanon.startsWith(sLower) || isHomonymWithoutRegion || typeConflict) {
           state.selectedSettlement = null;
           state.selectedBranch = null;
           state.lockedInputValue = null;
