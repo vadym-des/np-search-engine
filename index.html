@@ -70,7 +70,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=1.6.63">
+  <link rel="stylesheet" href="styles.css?v=1.6.64">
 </head>
 <body data-service="novaposhta">
 
@@ -298,7 +298,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v1.6.63</span>
+          <span class="version-tag">v1.6.64</span>
         </button>
       </div>
 
@@ -324,8 +324,23 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.63 -->
+        <!-- Версія 1.6.64 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v1.6.64</span>
+            <span class="version-state">Інтелектуальна дезамбігуація міст-тезок облцентрів та пріоритет вулиць над 0-відділковими селами</span>
+            <span class="version-date">21 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Динамічна валідація обласних центрів (<code>isActualRegionalCenter</code>):</strong> Назва міста, що входить до переліку великих міст, вважається обласним центром лише в межах своєї області (наприклад, <code>м. Миколаїв</code> Львівської обл. тепер коректно розпізнається як районне місто, а не обласний центр Миколаївщини).</li>
+            <li><strong>Пріоритет діючої мережі над 0-відділковими селами (Інваріант 1 та 3):</strong> Якщо токен збігається з селом без відділень Нової пошти (напр. <code>с. Болоня</code>, 0 відділень), але в цільовому місті є діюче відділення на цій вулиці (<code>м. Миколаїв, Відділення №1: вул. Болоня, 42</code>), токен класифікується як вулиця міста, захищаючи від помилкового екрану «відділень не знайдено».</li>
+            <li><strong>Підтримка будь-якого порядку слів у запиті:</strong> Запити <code>Львів миколаїв болоня</code>, <code>болоня миколаїв львів</code>, <code>миколаїв львів болоня</code>, <code>болоня миколаїв</code> та <code>миколаїв болоня 42</code> безпомилково приводять до Відділення №1 м. Миколаїв Львівської області.</li>
+            <li><strong>Оновлення Service Worker:</strong> Оновлено кешування статичних файлів до v1.6.64.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 1.6.63 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v1.6.63</span>
             <span class="version-state">Покрокове звуження міст у поп-апі та дезамбігуація тезок (Петрівка / Берестин)</span>
@@ -1751,22 +1766,22 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.fast.js?v=1.6.63"></script>
+  <script src="data/branches.fast.js?v=1.6.64"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=1.6.63"></script>
+  <script src="data/ukrposhta_branches.js?v=1.6.64"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=1.6.63"></script>
+  <script src="data/all_settlements.js?v=1.6.64"></script>
 
   <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
-  <script src="data/crm_settlements.js?v=1.6.63"></script>
+  <script src="data/crm_settlements.js?v=1.6.64"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=1.6.63"></script>
+  <script src="data/fuzzySearch.js?v=1.6.64"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=1.6.63"></script>
+  <script src="app.js?v=1.6.64"></script>
 
   <!-- Інтерактивний контролер для демо-прев'ю (about.html embed) -->
   <script>

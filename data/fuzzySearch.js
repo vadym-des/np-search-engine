@@ -2916,7 +2916,7 @@
             // Або: "хотинська 7 чернівці" -> "хотинська" помилково зіставилося з с. Хотинівка (Житомирська/Чернігівська обл.), але у м. Чернівці є вул. Хотинська!
             const prevCityName = detectedCity.cleanName || detectedCity.name;
             const curCityName = foundSingle.cleanName || foundSingle.name;
-            const curIsRegCenter = REGIONAL_CENTERS.has(curCityName.toLowerCase());
+            const curIsRegCenter = isActualRegionalCenter(curCityName, foundSingle.oblast);
             const curObl = (foundSingle.oblast || '').toLowerCase();
             const prevObl = (detectedCity.oblast || '').toLowerCase();
             const prevHasVarInCurObl = detectedCity.allVariants && detectedCity.allVariants.some(v => (v.oblast || '').toLowerCase().includes(curCityName.toLowerCase().slice(0, 4)) || (curObl && (v.oblast || '').toLowerCase().includes(curObl.slice(0, 4))));
@@ -2936,13 +2936,38 @@
               if (prevIndex !== -1) {
                 mergedTokens[prevIndex] = rawCityToken ? rawCityToken.toLowerCase() : curLower;
               }
-              detectedCity = foundSingle;
+              let targetFound = foundSingle;
+              const dVars = foundSingle.allVariants || _allSettlementsByName.get(canonCity(curCityName)) || [];
+              if (dVars.length > 1) {
+                const varWithStreet = dVars.find(v => isStreetOfCity(curCityName, rawCityToken || prevCityName, v.oblast, v.raion));
+                if (varWithStreet) {
+                  targetFound = {
+                    ...foundSingle,
+                    oblast: varWithStreet.oblast,
+                    raion: varWithStreet.raion || foundSingle.raion,
+                    cleanName: varWithStreet.cleanName || foundSingle.cleanName
+                  };
+                }
+              }
+              detectedCity = targetFound;
               rawCityToken = cur;
               hasCityTypo = !isExact;
-              mergedTokens.push(foundSingle.name.toLowerCase());
+              mergedTokens.push(targetFound.name.toLowerCase());
               continue;
             }
             if (isCurStreetInPrev && !isPrevStreetInCur) {
+              const dVars = detectedCity.allVariants || _allSettlementsByName.get(canonCity(prevCityName)) || [];
+              if (dVars.length > 1) {
+                const varWithStreet = dVars.find(v => isStreetOfCity(prevCityName, cur, v.oblast, v.raion));
+                if (varWithStreet) {
+                  detectedCity = {
+                    ...detectedCity,
+                    oblast: varWithStreet.oblast,
+                    raion: varWithStreet.raion || detectedCity.raion,
+                    cleanName: varWithStreet.cleanName || detectedCity.cleanName
+                  };
+                }
+              }
               mergedTokens.push(cur);
               continue;
             }
@@ -2970,7 +2995,7 @@
             // Region disambiguation: check if foundSingle is in detectedCity's oblast (лише за точним збігом назви села)
             const oblStem = detectedCity.name.toLowerCase().slice(0, 5);
             const singleObl = (foundSingle.oblast || '').toLowerCase();
-            const isRegionalCenter = REGIONAL_CENTERS.has(foundSingle.name.toLowerCase());
+            const isRegionalCenter = isActualRegionalCenter(foundSingle.name, foundSingle.oblast);
             const targetOblastMatches = (detectedCity.oblast || '').toLowerCase().includes(foundSingle.name.toLowerCase().slice(0, 5));
             if (singleObl.includes(oblStem) && !isRegionalCenter && isExact) {
               detectedCity = foundSingle;
@@ -2980,6 +3005,19 @@
             } else if (isRegionalCenter && targetOblastMatches) {
               // Захист села від поглинання обласним центром: залишаємо село якорем
               mergedTokens.push(foundSingle.name.toLowerCase());
+            } else if (foundSingle && isActualRegionalCenter(foundSingle.name, foundSingle.oblast) && detectedCity && (detectedCity.allVariants || _allSettlementsByName.has(canonCity(detectedCity.name)))) {
+              const fsObl = (foundSingle.oblast || '').toLowerCase();
+              const dVars = detectedCity.allVariants || _allSettlementsByName.get(canonCity(detectedCity.name)) || [];
+              const matchingVar = dVars.find(v => (v.oblast || '').toLowerCase().includes(fsObl.slice(0, 4)));
+              if (matchingVar) {
+                detectedCity = {
+                  ...detectedCity,
+                  oblast: matchingVar.oblast,
+                  raion: matchingVar.raion || detectedCity.raion,
+                  cleanName: matchingVar.cleanName || detectedCity.cleanName
+                };
+              }
+              mergedTokens.push(cur);
             } else {
               // Primary Settlement Anchor: anchor is already fixed!
               // Do NOT overwrite detectedCity and treat cur as street/other token (e.g. "київ" in "гриців 1 київ")
@@ -4910,6 +4948,17 @@
     'ужгород', 'кропивницький'
   ]);
 
+  function isActualRegionalCenter(cityName, oblast) {
+    if (!cityName) return false;
+    const cLow = canonText(cityName);
+    if (!REGIONAL_CENTERS.has(cLow)) return false;
+    if (!oblast) return true;
+    const oLow = canonText(oblast);
+    if (cLow.includes('кривий') || cLow.includes('ріг')) return oLow.includes('дніпро');
+    if (cLow === 'київ') return oLow.includes('київ');
+    return oLow.startsWith(cLow.slice(0, 4));
+  }
+
   // Стоп-слова та прийменники
   const STOP_WORDS = new Set([
     'відділення', 'відділ', 'відд', 'вд', 'склад', 'поштомат', 'почтомат', 'пошт', 'п/м', 'пм',
@@ -5294,20 +5343,22 @@
         // а не вулиця облцентру!
         const aObl = (itemA.s.oblast || '').toLowerCase();
         const bObl = (itemB.s.oblast || '').toLowerCase();
+        const aIsRealRegCenter = isActualRegionalCenter(aName, itemA.s.oblast);
+        const bIsRealRegCenter = isActualRegionalCenter(itemB.s.name, itemB.s.oblast);
         const bHasVarInAObl = itemB.s.allVariants && itemB.s.allVariants.some(v => (v.oblast || '').toLowerCase().includes(aName.toLowerCase().slice(0, 4)) || (aObl && (v.oblast || '').toLowerCase().includes(aObl.slice(0, 4))));
         const isSameOblast = (aObl && bObl && (aObl.includes(bObl.slice(0, 4)) || bObl.includes(aObl.slice(0, 4)))) ||
-                             (REGIONAL_CENTERS.has(aName.toLowerCase()) && bObl.includes(aName.toLowerCase().slice(0, 4))) ||
-                             (REGIONAL_CENTERS.has(aName.toLowerCase()) && bHasVarInAObl);
+                             (aIsRealRegCenter && bObl.includes(aName.toLowerCase().slice(0, 4))) ||
+                             (aIsRealRegCenter && bHasVarInAObl);
         // 1. Якщо itemB є обласним центром, він НІКОЛИ не є вулицею меншого містечка тієї ж області
         // (наприклад: "київ вижгорож 3" -> Київ є обласним контекстом, а не вулицею Вишгорода!)
-        if (REGIONAL_CENTERS.has(itemB.s.name.toLowerCase()) && isSameOblast) {
+        if (bIsRealRegCenter && isSameOblast) {
           return false;
         }
 
         // 2. Якщо itemA є обласним центром, а itemB - населений пункт цієї ж області:
         // Перевіряємо, чи це адресний запит у самому облцентрі (наприклад: "запоріжжя поштомат михайлова 46" -> вул. Михайлова у Запоріжжі),
         // чи класичний префікс області для села (наприклад: "львів павлів 1", "житомир попільня 2" -> село).
-        if (REGIONAL_CENTERS.has(aName.toLowerCase()) && isSameOblast) {
+        if (aIsRealRegCenter && isSameOblast) {
           const bName = itemB.s.name.toLowerCase();
           const isStreet = isStreetOfCity(aName, bName) || isStreetOfCity(aName, itemB.raw);
           if (isStreet) {
@@ -5322,7 +5373,11 @@
                 hasDirectBuildingForB = afterB.startsWith(building);
               }
             }
-            const hasStreetSignal = hasPostomat || hasStreetPrefix || hasDirectBuildingForB;
+            const branchSet = getActiveBranchSettlementSet();
+            const bKey = canonCity(itemB.s.cleanName || itemB.s.name);
+            const bOblKey = (itemB.s.oblast || '').toLowerCase().slice(0, 5);
+            const bHasNoBranches = branchSet && !branchSet.has(bKey + '|' + bOblKey);
+            const hasStreetSignal = hasPostomat || hasStreetPrefix || hasDirectBuildingForB || bHasNoBranches;
             if (hasStreetSignal) {
               return true; // Це адреса/вулиця в обласному центрі!
             }
@@ -5371,7 +5426,8 @@
           }
         }
       }
-      if (!oblast && !raion && match.s.allVariants && match.s.allVariants.length > 1) {
+      const sVariants = (match.s.allVariants && match.s.allVariants.length > 1) ? match.s.allVariants : (_allSettlementsByName.get(canonCity(city)) || []);
+      if (!oblast && !raion && sVariants && sVariants.length > 1) {
         const rawMatchWords = new Set((match.raw || '').toLowerCase().split(/\s+/).map(canonText).filter(Boolean));
         const cityCan = canonCity(city);
         const queryWords = (query || '').split(/\s+/).filter(w => {
@@ -5384,14 +5440,14 @@
           return true;
         });
         for (const w of queryWords) {
-          const matchingVar = match.s.allVariants.find(v => isStreetOfCity(city, w, v.oblast, v.raion));
+          const matchingVar = sVariants.find(v => isStreetOfCity(city, w, v.oblast, v.raion));
           if (matchingVar) {
             match.s = {
               name: cleanSettlementName(matchingVar.cleanName || match.s.name),
               oblast: matchingVar.oblast,
               raion: matchingVar.raion,
               type: matchingVar.type || match.s.type,
-              allVariants: match.s.allVariants
+              allVariants: sVariants
             };
             settlementOblast = matchingVar.oblast;
             if (matchingVar.raion) raion = matchingVar.raion;
@@ -5506,8 +5562,69 @@
         }
         if (!selectedMatch) selectedMatch = validVillageCandidates[0];
       } else {
+        // ДЕЗАМБІГУАЦІЯ ТЕЗОК МІСТ ЗА ОБЛАСТЮ, ІНШИМИ МІСТАМИ АБО ВУЛИЦЕЮ
+        for (let c of cityCandidates) {
+          // Якщо місто вже є дійсним обласним центром своєї області (Київ, Львів тощо) - не змінюємо його на однойменне село іншої області
+          if (isActualRegionalCenter(c.s.name, c.s.oblast)) continue;
+          const cVars = (c.s.allVariants && c.s.allVariants.length > 1) ? c.s.allVariants : (_allSettlementsByName.get(canonCity(c.s.name)) || []);
+          if (cVars && cVars.length > 1) {
+            // 1. Пошук варіанта за вулицею в запиті
+            let matchedByStreet = null;
+            for (const other of effectiveSettlements) {
+              if (other === c) continue;
+              const oName = (other.s.cleanName || other.s.name).toLowerCase();
+              const varWithStreet = cVars.find(v => isStreetOfCity(c.s.name, oName, v.oblast, v.raion));
+              if (varWithStreet) {
+                matchedByStreet = varWithStreet;
+                break;
+              }
+            }
+            if (!matchedByStreet) {
+              const queryWords = (query || '').toLowerCase().split(/\s+/).map(canonText).filter(w => w.length >= 3);
+              for (const w of queryWords) {
+                const varWithStreet = cVars.find(v => isStreetOfCity(c.s.name, w, v.oblast, v.raion));
+                if (varWithStreet) {
+                  matchedByStreet = varWithStreet;
+                  break;
+                }
+              }
+            }
+            if (matchedByStreet) {
+              c.s = {
+                name: cleanSettlementName(matchedByStreet.cleanName || c.s.name),
+                oblast: matchedByStreet.oblast,
+                raion: matchedByStreet.raion || c.s.raion,
+                type: matchedByStreet.type || c.s.type,
+                allVariants: cVars
+              };
+              continue;
+            }
+
+            // 2. Пошук варіанта за іншим містом/обласним центром у запиті (наприклад, Львів миколаїв)
+            for (let other of cityCandidates) {
+              if (other === c) continue;
+              const oName = (other.s.cleanName || other.s.name).toLowerCase();
+              const oObl = (other.s.oblast || '').toLowerCase();
+              const matchingVar = cVars.find(v => {
+                const vObl = (v.oblast || '').toLowerCase();
+                return (oObl && vObl.includes(oObl.slice(0, 4))) || vObl.includes(oName.slice(0, 4));
+              });
+              if (matchingVar) {
+                c.s = {
+                  name: cleanSettlementName(matchingVar.cleanName || c.s.name),
+                  oblast: matchingVar.oblast,
+                  raion: matchingVar.raion || c.s.raion,
+                  type: matchingVar.type || c.s.type,
+                  allVariants: cVars
+                };
+                break;
+              }
+            }
+          }
+        }
+
         // Обираємо серед міст: виключаємо обласні центри (REGIONAL_CENTERS), якщо є конкретніше місто
-        const nonRegionalCities = cityCandidates.filter(item => !REGIONAL_CENTERS.has(item.s.name.toLowerCase()));
+        const nonRegionalCities = cityCandidates.filter(item => !isActualRegionalCenter(item.s.name, item.s.oblast));
         if (nonRegionalCities.length > 0) {
           selectedMatch = nonRegionalCities[0];
         } else if (cityCandidates.length > 0) {
@@ -5607,7 +5724,8 @@
           const sRStem = getRaionStem(s.raion);
           const rMatch = Boolean(rStem && (sRStem === rStem || sR.includes(rStem) || (CONSOLIDATED_RAION_MAP[sR] && getRaionStem(CONSOLIDATED_RAION_MAP[sR]) === rStem)));
           const oMatch = Boolean(oKey && sO.includes(oKey));
-          return oMatch || rMatch;
+          if (rStem && oKey) return rMatch && oMatch;
+          return rMatch || oMatch;
         };
         let sFound = UKRAINE_SETTLEMENTS.find(s => s.name.toLowerCase() === city.toLowerCase() && matchesTargetRegion(s));
         if (!sFound && _allSettlementsByName.has(city.toLowerCase())) {
@@ -6185,11 +6303,11 @@
     const normCityIsActuallyStreet = norm.detectedCity && facets.city && norm.rawCityToken && !normCityIsExactSettlement &&
       canonCity(norm.detectedCity.name) !== canonCity(facets.city) &&
       (isStreetOfCity(facets.city, norm.rawCityToken) || (facets.streetTokens && facets.streetTokens.includes(canonText(norm.rawCityToken))));
-    const targetSettlement = (parsed.matchedSettlement && !REGIONAL_CENTERS.has(canonText(parsed.matchedSettlement.name)))
+    const targetSettlement = (parsed.matchedSettlement && !isActualRegionalCenter(parsed.matchedSettlement.name, parsed.matchedSettlement.oblast))
       ? parsed.matchedSettlement
-      : ((norm.detectedCity && !normCityIsActuallyStreet && !REGIONAL_CENTERS.has(canonText(norm.detectedCity.name))) ? norm.detectedCity : null);
+      : ((norm.detectedCity && !normCityIsActuallyStreet && !isActualRegionalCenter(norm.detectedCity.name, norm.detectedCity.oblast)) ? norm.detectedCity : null);
 
-    if (facets.city && REGIONAL_CENTERS.has(canonText(facets.city)) && targetSettlement) {
+    if (facets.city && isActualRegionalCenter(facets.city, facets.oblast || facets.settlementOblast) && targetSettlement) {
       detectedCityName = canonText(targetSettlement.name);
     } else if (parsed.matchedSettlement && parsed.didYouMean && parsed.didYouMean.rawToken && facets.city && canonText(facets.city) === canonText(parsed.didYouMean.rawToken)) {
       detectedCityName = canonText(parsed.matchedSettlement.name);
@@ -6983,6 +7101,8 @@
     getSettlement,
     getSettlementType,
     findSettlementsByName,
+    isActualRegionalCenter,
+    REGIONAL_CENTERS,
     searchBranches,
     filterBranchesByNormalizedSearch,
     sortBranchesBySettlementOrder,
