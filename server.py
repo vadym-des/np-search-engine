@@ -10,7 +10,7 @@ import urllib.error
 import json
 import os
 
-PORT = 8080
+PORT = int(os.environ.get('PORT', 8081))
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
 def load_env():

@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.6.62';
+  const APP_VERSION = '2.0.0';
 
   // Вебхук автоматичного запису проблемних запитів у Google Таблицю
   const TELEMETRY_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzSV99G9gc9XEvyZRs1cxN3BU5Ka74EBPLJDO0n3R7JODWN3GAtumlIFOcj3VcDTI02/exec';
@@ -997,8 +997,99 @@
     return null;
   }
 
+  // ==========================================================================
+  // WEB WORKER SEARCH BRIDGE (Фоновий асинхронний пошук поза Main Thread)
+  // ==========================================================================
+  const SearchWorkerBridge = (() => {
+    let worker = null;
+    let isReady = false;
+    let requestId = 0;
+    const pendingCallbacks = new Map();
+
+    function init() {
+      if (typeof window === 'undefined' || typeof window.Worker !== 'function') return;
+      // Захист від CORS-винятку при відкритті через file://
+      if (window.location && window.location.protocol === 'file:') return;
+
+      try {
+        worker = new Worker('worker/search.worker.js');
+        worker.onmessage = function (e) {
+          const data = e.data;
+          if (!data) return;
+          if (data.type === 'WORKER_READY') {
+            isReady = true;
+            return;
+          }
+          if (data.id && pendingCallbacks.has(data.id)) {
+            const cb = pendingCallbacks.get(data.id);
+            pendingCallbacks.delete(data.id);
+            cb(null, data);
+          }
+        };
+        worker.onerror = function (err) {
+          console.warn('[SearchWorkerBridge] Worker вимкнено через помилку:', err);
+          isReady = false;
+          worker = null;
+        };
+      } catch (err) {
+        console.warn('[SearchWorkerBridge] Web Worker не вдалося ініціалізувати:', err);
+        worker = null;
+      }
+    }
+
+    function isAvailable() {
+      return Boolean(worker && isReady);
+    }
+
+    function searchAsync(query, service) {
+      if (!isAvailable()) return Promise.resolve(null);
+      const id = ++requestId;
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          if (pendingCallbacks.has(id)) {
+            pendingCallbacks.delete(id);
+            resolve(null);
+          }
+        }, 2000);
+        pendingCallbacks.set(id, (err, res) => {
+          clearTimeout(timeout);
+          if (err || !res) resolve(null);
+          else resolve(res);
+        });
+        worker.postMessage({ id, type: 'SEARCH', query, service });
+      });
+    }
+
+    function autocompleteAsync(query, service) {
+      if (!isAvailable()) return Promise.resolve(null);
+      const id = ++requestId;
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          if (pendingCallbacks.has(id)) {
+            pendingCallbacks.delete(id);
+            resolve(null);
+          }
+        }, 1500);
+        pendingCallbacks.set(id, (err, res) => {
+          clearTimeout(timeout);
+          if (err || !res) resolve(null);
+          else resolve(res.suggestions);
+        });
+        worker.postMessage({ id, type: 'AUTOCOMPLETE', query, service });
+      });
+    }
+
+    return {
+      init,
+      isAvailable,
+      searchAsync,
+      autocompleteAsync
+    };
+  })();
+
   // Попереднє розігрівання O(1) індексів пошуку при завантаженні (Zero Input Latency < 16ms)
   function prewarmBranchIndices() {
+    SearchWorkerBridge.init();
     if (!window.BRANCHES_DATA || !window.SmartSearchEngine) return;
     if (typeof window.SmartSearchEngine.buildBranchIndex === 'function') {
       if (Array.isArray(window.BRANCHES_DATA.novaposhta)) {
@@ -1584,11 +1675,19 @@
     }
 
     // 1. УНІВЕРСАЛЬНИЙ ПОШУК ЗА ПЕРЕДНОРМАЛІЗОВАНИМ ЗНАЧЕННЯМ (CI/CD OFFLINE ІНДЕКС)
-    // Єдине поле: місто, вулиця та номер відділення (0 мс затримки, нуль навантаження на API)
+    // Фоновий Web Worker для 0 мс затримки та нуль навантаження на Main Thread
     const allStaticBranches = getAllCurrentServiceBranches();
     let staticMatches = [];
-    if (engine && allStaticBranches.length > 0) {
-      // Пошук за повним пулом сервісу для збереження всіх точок (відділень та поштоматів) у пам'яті
+    let workerResult = null;
+    if (SearchWorkerBridge.isAvailable()) {
+      workerResult = await SearchWorkerBridge.searchAsync(rawQuery, state.currentService);
+      if (currentSignal.aborted) return;
+      if (workerResult && Array.isArray(workerResult.staticMatches)) {
+        staticMatches = workerResult.staticMatches;
+      }
+    }
+    if (!workerResult && engine && allStaticBranches.length > 0) {
+      // Резервний синхронний пошук, якщо Web Worker недоступний або ініціалізується
       staticMatches = engine.filterBranchesByNormalizedSearch(rawQuery, allStaticBranches, null);
     }
 
@@ -5569,6 +5668,32 @@
       }
     }
 
+    // Нечітке підсвічування для слів тексту при одруківках у запиті (Fuzzy Typo Highlighting: "горанечі" -> "Гореничі")
+    if (window.SmartSearchEngine) {
+      const eng = window.SmartSearchEngine;
+      const originalTextWords = (text.match(/[\p{L}0-9]+/gu) || []);
+      for (let i = 0; i < originalTextWords.length; i++) {
+        const tw = originalTextWords[i];
+        const twLow = tw.toLowerCase();
+        if (HIGHLIGHT_STOP_WORDS.has(twLow) || twLow.length < 3 || /^\d+$/.test(twLow)) continue;
+        const twSk = typeof eng.consonantSkeleton === 'function' ? eng.consonantSkeleton(twLow) : '';
+        for (let j = 0; j < rawTokens.length; j++) {
+          const t = rawTokens[j];
+          if (HIGHLIGHT_STOP_WORDS.has(t) || t.length < 3 || /^\d+$/.test(t)) continue;
+          const tSk = typeof eng.consonantSkeleton === 'function' ? eng.consonantSkeleton(t) : '';
+          const isSkeletonMatch = Boolean(twSk && tSk && twSk.length >= 3 && twSk === tSk);
+          const isDlMatch = Boolean(
+            twLow.length >= 4 && t.length >= 4 &&
+            typeof eng.damerauLevenshtein === 'function' &&
+            eng.damerauLevenshtein(twLow, t) <= 1
+          );
+          if (isSkeletonMatch || isDlMatch) {
+            patterns.add('(?<!\\p{L})' + escapeRegex(tw) + '(?!\\p{L})');
+          }
+        }
+      }
+    }
+
     if (patterns.size === 0) return escapeHtml(text);
 
     const combinedRegex = new RegExp('(' + Array.from(patterns).join('|') + ')', 'giu');
@@ -6329,6 +6454,16 @@
     if (state.currentService === 'ukrposhta' && !_ukrposhtaLoaded) {
       loadUkrposhtaBranchesIfNeeded().then(() => {
         triggerAutocomplete(val);
+      });
+      return;
+    }
+
+    if (SearchWorkerBridge.isAvailable()) {
+      const currentVal = val;
+      SearchWorkerBridge.autocompleteAsync(val, state.currentService).then(suggestions => {
+        if (suggestions && dom.searchInput && dom.searchInput.value.trim() === currentVal.trim()) {
+          renderAutocomplete(suggestions, currentVal);
+        }
       });
       return;
     }
@@ -7818,6 +7953,7 @@
   window.COPY_PRESET_TAGS = COPY_PRESET_TAGS;
   window.CANONICAL_TAG_ORDER = CANONICAL_TAG_ORDER;
   window.insertTagInCanonicalOrder = insertTagInCanonicalOrder;
+  window.SearchWorkerBridge = SearchWorkerBridge;
   if (window.SmartSearchEngine) {
     window.SmartSearchEngine.highlightMatch = highlightMatch;
     window.SmartSearchEngine.formatClassicCopyString = formatClassicCopyString;

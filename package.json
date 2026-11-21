@@ -1,0 +1,26 @@
+{
+  "name": "np-search-engine",
+  "version": "2.0.0",
+  "description": "Smart Search Engine & Homonym Disambiguation for Nova Poshta & Ukrposhta (CRM Edition)",
+  "main": "app.js",
+  "scripts": {
+    "start": "python3 server.py",
+    "test": "node tests/run_all.js",
+    "test:google": "node tests/test_google_like_cases.js",
+    "test:autocomplete": "node tests/test_autocomplete.js",
+    "test:ui": "node tests/test_ui_improvements.js",
+    "build:fast": "node scripts/build_branches_fast.js",
+    "bump": "node scripts/bump_version.js",
+    "sync": "node scripts/sync_nova_poshta.js && node scripts/build_branches_fast.js"
+  },
+  "keywords": [
+    "nova-poshta",
+    "ukrposhta",
+    "crm",
+    "search-engine",
+    "autocomplete",
+    "ukraine"
+  ],
+  "author": "vadym-des",
+  "license": "MIT"
+}
