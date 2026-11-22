@@ -1,0 +1,8 @@
+{
+  "lastAnalyzedTimestamp": "2026-11-22 13:46:34",
+  "lastAnalyzedVersion": "2.0.1",
+  "lastAnalyzedCommit": "38b20e9",
+  "lastAnalyzedTab": "📅 Останні 7 днів",
+  "analyzedRowsCount": 4915,
+  "notes": "Усі рядки з колонкою A (Дата та час) <= lastAnalyzedTimestamp вже проаналізовано та пофіксовано у v2.0.1. При наступному аналізі обробляти лише новіші рядки (> lastAnalyzedTimestamp)."
+}
