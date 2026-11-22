@@ -383,6 +383,200 @@ const testCases = [
     expectedOblast: 'Київська',
     expectedActualRaion: 'Білоцерківський',
     desc: 'Одрук (пропущена літера) у назві району: "соборна білоцеківський" -> нечітке розпізнавання Білоцерківського району та відділень на вул. Соборна'
+  },
+  // КЕЙСИ З АНАЛІЗУ 7-ДЕННИХ ЛОГІВ ПОШУКУ (22.11.2026)
+  {
+    q: 'Кременчук Кременчуцький Полтавська',
+    expectedCity: 'Кременчук',
+    expectedOblast: 'Полтавська',
+    expectedMinResults: 380,
+    desc: 'Місто + однойменний район + область з УКРПОШТА-пулом у пам\'яті: "Кременчук Кременчуцький Полтавська" -> повертає всі ~386 відділень (не 2)'
+  },
+  {
+    q: 'Бровари Броварський Київська',
+    expectedCity: 'Бровари',
+    expectedOblast: 'Київська',
+    expectedMinResults: 400,
+    desc: 'Місто + однойменний район + область: "Бровари Броварський Київська" -> повертає ~411 відділень'
+  },
+  {
+    q: 'Бориспіль Бориспільський Київська',
+    expectedCity: 'Бориспіль',
+    expectedOblast: 'Київська',
+    expectedMinResults: 200,
+    desc: 'Місто + однойменний район + область: "Бориспіль Бориспільський Київська" -> повертає ~213 відділень'
+  },
+  {
+    q: 'півд',
+    checkAutocomplete: true,
+    expectedCity: 'Південне',
+    expectedOblast: 'Одеська',
+    desc: 'Префікс "півд" не повинен хибно спрацьовувати на скор. "вд" (відділення) у автокомпліті'
+  },
+  {
+    q: 'південноукр',
+    checkAutocomplete: true,
+    expectedCity: 'Південноукраїнськ',
+    expectedOblast: 'Миколаївська',
+    desc: 'Префікс "південноукр" без хибного тригера "вд" -> Південноукраїнськ'
+  },
+  {
+    q: 'південоукра',
+    checkAutocomplete: true,
+    expectedCity: 'Південноукраїнськ',
+    expectedOblast: 'Миколаївська',
+    desc: 'Одинарне "н" ("південоукра") через стиснення подвоєних літер -> Південноукраїнськ'
+  },
+  {
+    q: '22 кропивн',
+    expectedCity: 'Кропивницький',
+    expectedNum: '22',
+    desc: 'Номер + префікс міста ("22 кропивн") -> Кропивницький #22'
+  },
+  {
+    q: '5 камяне',
+    expectedCity: "Кам'янець-Подільський",
+    expectedNum: '5',
+    desc: 'Номер + префікс міста без апострофа ("5 камяне") -> Кам\'янець-Подільський #5'
+  },
+  {
+    q: '2 шепти',
+    expectedCity: 'Шептицький',
+    expectedNum: '2',
+    desc: 'Номер + префікс нового перейменування ("2 шепти") -> Шептицький #2'
+  },
+  {
+    q: '2 дрогб',
+    expectedCity: 'Дрогобич',
+    expectedNum: '2',
+    desc: 'Номер + усічений префікс із пропуском голосної ("2 дрогб") -> Дрогобич #2'
+  },
+  {
+    q: '3 вільня',
+    expectedCity: 'Вільнянськ',
+    expectedNum: '3',
+    desc: 'Номер + префікс міста ("3 вільня") -> Вільнянськ #3'
+  },
+  {
+    q: '2 город',
+    expectedCity: 'Городок',
+    expectedNum: '2',
+    desc: 'Номер + префікс міста ("2 город") без отруєння кешу фасетів -> Городок #2'
+  },
+  {
+    q: 'тарасівка , київська 90',
+    expectedCity: 'Тарасівка',
+    expectedNum: '1',
+    expectedStreet: 'Київська',
+    desc: 'Дезамбігуація прикметника "київська" як назви вулиці з номером будинку 90'
+  },
+  {
+    q: 'терн гуятин',
+    expectedCity: 'Гусятин',
+    expectedOblast: 'Тернопільська',
+    desc: 'Префікс області + одрук у селищі ("терн гуятин") -> Гусятин (Тернопільська)'
+  },
+  {
+    q: 'віницька обл сердинів',
+    expectedCity: 'Сербинівці',
+    expectedOblast: 'Вінницька',
+    desc: 'Скорочення області + приголосний одрук ("віницька обл сердинів") -> Сербинівці (Вінницька)'
+  },
+  {
+    q: 'миоклаїв березнегувате',
+    expectedCity: 'Березнегувате',
+    expectedOblast: 'Миколаївська',
+    desc: 'Транспозиція у назві обласного центру ("миоклаїв березнегувате") -> Березнегувате (Миколаївська)'
+  },
+  {
+    q: 'село Петрівка - Поштове(ий) №1: вул. Миронова, 84',
+    expectedCity: 'Петрівка',
+    expectedNum: '1',
+    expectedStreet: 'Миронова',
+    desc: 'Шаблон копіпасту CRM з дужками "Поштове(ий)" -> Петрівка #1, вул. Миронова, 84'
+  },
+  {
+    q: 'Тарасівка києвосвятошинськи',
+    expectedCity: 'Тарасівка',
+    expectedOblast: 'Київська',
+    desc: 'Злитий усічений історичний район без дефіса ("Тарасівка києвосвятошинськи") -> Тарасівка (Київська)'
+  },
+  {
+    q: 'кїв',
+    checkAutocomplete: true,
+    expectedCity: 'Київ',
+    expectedOblast: 'Київська',
+    desc: 'Пропущена літера у 3-літерному запиті ("кїв") -> Київ у автокомпліті'
+  },
+  {
+    q: 'івно',
+    checkAutocomplete: true,
+    expectedCity: 'Івано-Франківськ',
+    expectedOblast: 'Івано-Франківська',
+    desc: 'Нечіткий префікс автокомпліту ("івно") -> Івано-Франківськ'
+  },
+  {
+    q: 'Запро',
+    checkAutocomplete: true,
+    expectedCity: 'Запоріжжя',
+    expectedOblast: 'Запорізька',
+    desc: 'Перестановка літер у префіксі ("Запро") -> Запоріжжя'
+  },
+  {
+    q: 'вільногв',
+    checkAutocomplete: true,
+    expectedCity: 'Вільногірськ',
+    expectedOblast: 'Дніпропетровська',
+    desc: 'Одрук в кінці довгого префікса ("вільногв") -> Вільногірськ'
+  },
+  {
+    q: 'Ганопокр',
+    checkAutocomplete: true,
+    expectedCity: 'Ганно-Покровка',
+    expectedOblast: 'Одеська',
+    desc: 'Стиснення подвоєної "нн" та пропуск дефісу ("Ганопокр") -> Ганно-Покровка'
+  },
+  {
+    q: 'січкаре',
+    checkAutocomplete: true,
+    expectedCity: 'Свічкареве',
+    expectedOblast: 'Полтавська',
+    desc: 'Пропуск літери в активному селі ("січкаре") -> Свічкареве'
+  },
+  {
+    q: 'пятопетрі',
+    checkAutocomplete: true,
+    expectedCity: 'Святопетрівське',
+    expectedOblast: 'Київська',
+    desc: 'Заміна початкової приголосної ("пятопетрі") -> Святопетрівське'
+  },
+  {
+    q: 'одеська',
+    checkAutocomplete: true,
+    expectedCity: 'Одеса',
+    expectedOblast: 'Одеська',
+    desc: 'Чистий запит області в автокомпліті ("одеська") -> Одеса та міста області'
+  },
+  {
+    q: 'віницька',
+    checkAutocomplete: true,
+    expectedCity: 'Вінниця',
+    expectedOblast: 'Вінницька',
+    desc: 'Чистий запит області з пропуском подвоєння ("віницька") -> Вінниця та міста області'
+  },
+  {
+    q: "Кам'янське Дніпропетровська",
+    service: 'ukrposhta',
+    expectedCity: "Кам'янське",
+    expectedOblast: 'Дніпропетровська',
+    expectedMinResults: 20,
+    desc: 'Пошук в Укрпошті ("Кам\'янське Дніпропетровська") -> >= 20 мапованих відділень'
+  },
+  {
+    q: 'Великомихайлівка 3',
+    expectedCity: 'Велика Михайлівка',
+    expectedNum: '3',
+    desc: 'Злите написання без пробілу ("Великомихайлівка 3") -> Велика Михайлівка #3'
   }
 ];
 
@@ -398,11 +592,12 @@ for (let i = 0; i < testCases.length; i++) {
   window.currentService = activeService;
   let top = null;
   let sugg = null;
+  let res = null;
   if (tc.checkAutocomplete) {
     sugg = window.SmartSearchEngine.getAutocompleteSuggestions(tc.q, activeService, null, activePool);
     top = sugg && sugg[0] && sugg[0].branchObj ? sugg[0].branchObj : (sugg && sugg[0] ? { city: sugg[0].value, number: sugg[0].title, street: sugg[0].subtitle, oblast: sugg[0].oblast } : null);
   } else {
-    const res = window.SmartSearchEngine.searchBranches(tc.q, activePool, 3);
+    res = window.SmartSearchEngine.searchBranches(tc.q, activePool, tc.expectedMinResults ? null : 3);
     top = res[0];
   }
   window.currentService = 'novaposhta';
@@ -419,7 +614,8 @@ for (let i = 0; i < testCases.length; i++) {
   const okV1Branches = tc.expectedVariant1Branches === undefined || (Array.isArray(sugg) && sugg[0] && sugg[0].branchCount === tc.expectedVariant1Branches);
   const okV2Branches = tc.expectedVariant2Branches === undefined || (Array.isArray(sugg) && sugg[1] && sugg[1].branchCount === tc.expectedVariant2Branches);
   const okV2Postal = !tc.expectedVariant2Postal || (Array.isArray(sugg) && sugg[1] && sugg[1].postalCode === tc.expectedVariant2Postal);
-  const ok = okCity && okNum && okStreet && okType && okCrm && okOblast && okActualRaion && okOldRaion && okVariantsCount && okV1Branches && okV2Branches && okV2Postal;
+  const okMinResults = !tc.expectedMinResults || (tc.checkAutocomplete ? (Array.isArray(sugg) && sugg.length >= tc.expectedMinResults) : (Array.isArray(res) && res.length >= tc.expectedMinResults));
+  const ok = okCity && okNum && okStreet && okType && okCrm && okOblast && okActualRaion && okOldRaion && okVariantsCount && okV1Branches && okV2Branches && okV2Postal && okMinResults;
 
   if (ok) {
     passed++;

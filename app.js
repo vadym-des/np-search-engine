@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '2.0.0';
+  const APP_VERSION = '2.0.1';
 
   // Вебхук автоматичного запису проблемних запитів у Google Таблицю
   const TELEMETRY_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzSV99G9gc9XEvyZRs1cxN3BU5Ka74EBPLJDO0n3R7JODWN3GAtumlIFOcj3VcDTI02/exec';
@@ -1012,7 +1012,7 @@
       if (window.location && window.location.protocol === 'file:') return;
 
       try {
-        worker = new Worker('worker/search.worker.js');
+        worker = new Worker('worker/search.worker.js?v=' + APP_VERSION);
         worker.onmessage = function (e) {
           const data = e.data;
           if (!data) return;
@@ -1661,10 +1661,10 @@
     if (/(?:вантажне|вантажний|вантаж)/i.test(rawQuery)) {
       state.typeFilter = 'cargo';
       updateTypeFilterUI();
-    } else if (/(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)/i.test(rawQuery)) {
+    } else if (/(?<!\p{L})(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)(?!\p{L})/iu.test(rawQuery)) {
       state.typeFilter = 'postomat';
       updateTypeFilterUI();
-    } else if (/(?:відділення|відділ|вд|склад)/i.test(rawQuery)) {
+    } else if (/(?<!\p{L})(?:відділення|відділ|вд|склад)(?!\p{L})/iu.test(rawQuery)) {
       state.typeFilter = 'all';
       updateTypeFilterUI();
     } else if (state.typeFilter !== 'all' && !parsed.targetBranchNumber && !parsed.isPostomat) {
@@ -1783,7 +1783,7 @@
 
     // Перевіряємо, чи є впевнений збіг у статичній базі
     if (staticMatches.length > 0) {
-      const isPostomatSearch = parsed.isPostomat || state.typeFilter === 'postomat' || /(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)/i.test(rawQuery);
+      const isPostomatSearch = parsed.isPostomat || state.typeFilter === 'postomat' || /(?<!\p{L})(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)(?!\p{L})/iu.test(rawQuery);
       const isHouseNumberNotBranch = isPostomatSearch && parsed.targetBranchNumber && parseInt(parsed.targetBranchNumber, 10) < 1000;
 
       if (parsed.targetBranchNumber && !isHouseNumberNotBranch) {
@@ -1873,7 +1873,7 @@
       } else {
         // Пошук за вулицею, містом або аліасом без фіксованого номера
         if (!hasStreetInQuery && engine && typeof engine.sortBranchesBySettlementOrder === 'function') {
-          results = engine.sortBranchesBySettlementOrder(staticMatches, isPostomatSearch, /(?:відділення|відділ|вд|склад)/i.test(rawQuery));
+          results = engine.sortBranchesBySettlementOrder(staticMatches, isPostomatSearch, /(?<!\p{L})(?:відділення|відділ|вд|склад)(?!\p{L})/iu.test(rawQuery));
         } else {
           results = staticMatches;
         }
@@ -1961,7 +1961,7 @@
     // Якщо в запиті вказано номер відділення/поштомату (parsed.targetBranchNumber), і його не знайдено:
     // Для Нової Пошти КАТЕГОРИЧНО ЗАБОРОНЕНО фолбечитись до показу всіх інших відділень міста!
     // Для Укрпошти: у селах/СМТ відділення мають поштовий індекс замість номера 1-9, тому показуємо відділення населеного пункту з індексом
-    const isPostomatSearch = parsed.isPostomat || state.typeFilter === 'postomat' || /(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)/i.test(rawQuery);
+    const isPostomatSearch = parsed.isPostomat || state.typeFilter === 'postomat' || /(?<!\p{L})(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)(?!\p{L})/iu.test(rawQuery);
     const hasExactTargetMatch = Boolean(
       parsed.targetBranchNumber &&
       results.some(b => String(b.number || '').toLowerCase() === String(parsed.targetBranchNumber).toLowerCase())
@@ -2078,8 +2078,8 @@
     // Гарантуємо природний порядок видачі населеного пункту (спочатку відділення №1..N, потім поштомати)
     if (results.length > 1 && (!parsed.targetBranchNumber || fellBackToSettlementOnMissingBranch) && !hasStreetInQuery) {
       if (engine && typeof engine.sortBranchesBySettlementOrder === 'function') {
-        const isPostomatSearch = parsed.isPostomat || state.typeFilter === 'postomat' || /(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)/i.test(rawQuery);
-        const isBranchSearch = /(?:відділення|відділ|вд|склад)/i.test(rawQuery) || state.typeFilter === 'cargo' || state.typeFilter === 'branch' || fellBackToSettlementOnMissingBranch;
+        const isPostomatSearch = parsed.isPostomat || state.typeFilter === 'postomat' || /(?<!\p{L})(?:поштомат|поштомата|поштомати|почтомат|п\/м|пм)(?!\p{L})/iu.test(rawQuery);
+        const isBranchSearch = /(?<!\p{L})(?:відділення|відділ|вд|склад)(?!\p{L})/iu.test(rawQuery) || state.typeFilter === 'cargo' || state.typeFilter === 'branch' || fellBackToSettlementOnMissingBranch;
         results = engine.sortBranchesBySettlementOrder(results, isPostomatSearch, isBranchSearch);
       }
     }

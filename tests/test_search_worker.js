@@ -109,6 +109,33 @@ const foundUp = upSearchMsg.staticMatches[0];
 assert.ok(String(foundUp.index || foundUp.postalCode || foundUp.number).includes('47501'), 'Індекс має містити 47501');
 console.log(`  ✓ Укрпошта знайшла: ${foundUp.city} (${foundUp.index || foundUp.postalCode})`);
 
+// 6б. Тестування CRM_SETTLEMENTS_DATA та мапованих полів Укрпошти у Worker
+console.log('\n▶ ТЕСТ 6б: Перевірка CRM_SETTLEMENTS_DATA та детального пошуку Укрпошти у Worker');
+assert.ok(sandbox.CRM_SETTLEMENTS_DATA && typeof sandbox.CRM_SETTLEMENTS_DATA === 'object', 'Worker повинен завантажувати CRM_SETTLEMENTS_DATA');
+
+const runUpWorkerSearch = (id, query) => {
+  sandbox.onmessage({
+    data: { id, type: 'SEARCH', query, service: 'ukrposhta' }
+  });
+  return messagesFromWorker.find(m => m.id === id);
+};
+
+const upKamianske = runUpWorkerSearch(104, "Кам'янське Дніпропетровська");
+assert.ok(upKamianske && upKamianske.staticMatches.length >= 20, `Очікувалось >= 20 відділень УП для Кам'янське Дніпропетровська, отримано ${upKamianske && upKamianske.staticMatches.length}`);
+assert.strictEqual(upKamianske.staticMatches[0].city, "Кам'янське");
+assert.strictEqual(upKamianske.staticMatches[0].oblast, 'Дніпропетровська');
+assert.match(String(upKamianske.staticMatches[0].index || upKamianske.staticMatches[0].postalCode), /^\d{5}$/);
+console.log(`  ✓ Кам'янське Дніпропетровська (УП): ${upKamianske.staticMatches.length} відділень (${upKamianske.staticMatches[0].index})`);
+
+const upSvyatopetr = runUpWorkerSearch(105, 'Святопетрівське Бучанський Київська');
+assert.ok(upSvyatopetr && upSvyatopetr.staticMatches.length >= 2, `Очікувалось >= 2 відділень УП для Святопетрівське Бучанський Київська, отримано ${upSvyatopetr && upSvyatopetr.staticMatches.length}`);
+console.log(`  ✓ Святопетрівське Бучанський Київська (УП): ${upSvyatopetr.staticMatches.length} відділень`);
+
+const upKharkiv = runUpWorkerSearch(106, 'Харків 61020');
+assert.ok(upKharkiv && upKharkiv.staticMatches.length >= 1, `Очікувалось >= 1 відділення УП для Харків 61020, отримано ${upKharkiv && upKharkiv.staticMatches.length}`);
+assert.ok(String(upKharkiv.staticMatches[0].index || upKharkiv.staticMatches[0].postalCode).includes('61020'));
+console.log(`  ✓ Харків 61020 (УП): ${upKharkiv.staticMatches[0].city} (${upKharkiv.staticMatches[0].index})`);
+
 // 7. Перевірка інтеграції SearchWorkerBridge в app.js
 console.log('\n▶ ТЕСТ 7: Перевірка інтеграції SearchWorkerBridge та Graceful Fallback в app.js');
 const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');

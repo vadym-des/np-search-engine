@@ -129,7 +129,7 @@ if (!testContent.includes(`v${newVersion}`)) {
     `(htmlContent.includes('v${newVersion}') && htmlContent.includes('styles.css?v=${newVersion}')) ||\n  (htmlContent.includes('v${currentVersion}')`
   );
   testContent = testContent.replace(
-    new RegExp(`\\(swContent\\.includes\\("const CACHE_VERSION = 'v${currentVersion}';\\)`, 'g'),
+    new RegExp(`\\(swContent\\.includes\\("const CACHE_VERSION = 'v${currentVersion}';"\\)`, 'g'),
     `(swContent.includes("const CACHE_VERSION = 'v${newVersion}';") && swContent.includes("const CACHE_NAME = 'np-search-cache-v${newVersion}';")) ||\n  (swContent.includes("const CACHE_VERSION = 'v${currentVersion}';")`
   );
   fs.writeFileSync(MAP_TEST_PATH, testContent, 'utf8');

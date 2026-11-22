@@ -70,7 +70,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=2.0.0">
+  <link rel="stylesheet" href="styles.css?v=2.0.1">
 </head>
 <body data-service="novaposhta">
 
@@ -298,7 +298,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v2.0.0</span>
+          <span class="version-tag">v2.0.1</span>
         </button>
       </div>
 
@@ -324,8 +324,23 @@
       </div>
 
       <div class="modal-body changelog-scroll">
-        <!-- Версія 1.6.65 -->
+        <!-- Версія 2.0.1 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v2.0.1</span>
+            <span class="version-state">Покращення пошуку та автокомпліту за 7-денними логами телеметрії</span>
+            <span class="version-date">22 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Web Worker для Укрпошти та CRM-довідника:</strong> Додано мапінг полів Укрпошти (<code>mapUkrposhtaRaw</code>), завантаження <code>crm_settlements.js</code>, контекст сервісу та кеш-бастинг запитів воркера (<code>?v=2.0.1</code>).</li>
+            <li><strong>Захист скорочень та однойменні райони:</strong> Додано Unicode-межі слів для маркерів на кшталт <code>вд</code> (усунуто збої у <code>півд</code> / <code>південноукр</code>) та виправлено пошук у містах з однойменним районом (<code>Кременчук Кременчуцький Полтавська</code> тощо).</li>
+            <li><strong>Префікси, вулиці-області та 5-етапний каскад автокомпліту:</strong> Підтримано запити виду <code>[Номер] [Префікс]</code> (<code>22 кропивн</code>, <code>5 камяне</code>, <code>2 шепти</code>, <code>2 дрогб</code>), злите написання (<code>Великомихайлівка 3</code>), вулиці-прикметники областей (<code>тарасівка , київська 90</code>), уточнення громад і відновлення одруків/чистих запитів областей в автокомпліті.</li>
+            <li><strong>Антирегресійне покриття та Service Worker:</strong> Додано 29 регресійних кейсів з логів (192 / 192 у <code>test_google_like_cases.js</code>) та оновлено кешування статичних файлів до <code>v2.0.1</code>.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 2.0.0 / 1.6.65 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v2.0.0</span>
             <span class="version-state">Толерантність до одруків у районах, точне підсвічування UI та захист від омонімів</span>
@@ -1782,22 +1797,22 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
   <!-- Дані відділень -->
-  <script src="data/branches.fast.js?v=2.0.0"></script>
+  <script src="data/branches.fast.js?v=2.0.1"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script src="data/ukrposhta_branches.js?v=2.0.0"></script>
+  <script src="data/ukrposhta_branches.js?v=2.0.1"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script src="data/all_settlements.js?v=2.0.0"></script>
+  <script src="data/all_settlements.js?v=2.0.1"></script>
 
   <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
-  <script src="data/crm_settlements.js?v=2.0.0"></script>
+  <script src="data/crm_settlements.js?v=2.0.1"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script src="data/fuzzySearch.js?v=2.0.0"></script>
+  <script src="data/fuzzySearch.js?v=2.0.1"></script>
 
   <!-- Головна логіка застосунку -->
-  <script src="app.js?v=2.0.0"></script>
+  <script src="app.js?v=2.0.1"></script>
 
   <!-- Інтерактивний контролер для демо-прев'ю (about.html embed) -->
   <script>
