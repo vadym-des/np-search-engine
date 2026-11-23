@@ -267,7 +267,7 @@ html.is-embedded .top-nav-actions {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .switcher-btn:hover {
@@ -2038,7 +2038,7 @@ html[data-theme="dark"] .btn-header-up-switch {
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .type-pill-btn:hover {
@@ -2077,7 +2077,7 @@ html[data-theme="dark"] .btn-header-up-switch {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .limit-btn:hover {
@@ -2146,7 +2146,7 @@ html[data-theme="dark"] .btn-header-up-switch {
 .branch-card,
 .result-item {
   content-visibility: auto;
-  contain-intrinsic-size: 0 100px;
+  contain-intrinsic-block-size: auto 100px;
 }
 
 /* Компактні рядки збігів адреси (режим пошуку адреси за зразком LP-CRM) */
@@ -2161,7 +2161,7 @@ html[data-theme="dark"] .btn-header-up-switch {
   border-radius: var(--radius-md);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
 }
 
@@ -2264,7 +2264,7 @@ html[data-theme="dark"] .btn-header-up-switch {
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-light);
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -2316,7 +2316,7 @@ html[data-theme="dark"] .btn-header-up-switch {
   border-radius: var(--radius-sm);
   padding: 5px 11px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   white-space: nowrap;
 }
 
@@ -2341,7 +2341,7 @@ html[data-theme="dark"] .btn-header-up-switch {
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
   padding: 0;
   line-height: 1;
   flex-shrink: 0;
@@ -3906,14 +3906,11 @@ body[data-theme="dark"] .status-pill {
     background-color: var(--brand-color);
     color: var(--brand-contrast-text);
     box-shadow: 0 0 10px var(--brand-glow, rgba(217, 37, 52, 0.4));
-    border-radius: 4px;
-    padding: 1px 5px;
   }
   100% {
     background-color: transparent;
     color: inherit;
     box-shadow: none;
-    padding: 0;
   }
 }
 
@@ -3921,6 +3918,8 @@ body[data-theme="dark"] .status-pill {
   display: inline;
   font-weight: 700;
   white-space: pre-wrap;
+  border-radius: 4px;
+  padding: 1px 4px;
   animation: previewFlash 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -4222,7 +4221,7 @@ body[data-theme="dark"] .status-pill {
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
   display: inline-flex;
   align-items: center;
   gap: 5px;

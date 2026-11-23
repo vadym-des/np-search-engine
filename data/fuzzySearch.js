@@ -175,7 +175,7 @@
     for (let i = 0; i < words.length; i++) {
       const w = words[i];
       if (w.length >= 7 && w.length <= 10) {
-        if (damerauLevenshtein(w, 'поштомат') <= 1 || damerauLevenshtein(w, 'почтомат') <= 1) {
+        if (damerauLevenshtein(w, 'поштомат', 1) <= 1 || damerauLevenshtein(w, 'почтомат', 1) <= 1) {
           return true;
         }
       }
@@ -577,7 +577,7 @@
           (typeof _allSettlementsByName !== 'undefined' && _allSettlementsByName && (_allSettlementsByName.has(tStem) || _allSettlementsByName.has(tStem + 'а') || _allSettlementsByName.has(tStem + 'и')))
         ) && !OBLASTS.some(o => {
           const oSt = o.name.toLowerCase().replace(/(?:ська|цька|зька)$/, '');
-          return (t[0] === oSt[0] || tClean[0] === oSt[0]) && damerauLevenshtein(tStem, oSt) <= 1;
+          return (t[0] === oSt[0] || tClean[0] === oSt[0]) && damerauLevenshtein(tStem, oSt, 1) <= 1;
         });
 
         if (!isSettlementDerivedStreet) {
@@ -587,14 +587,14 @@
             if (t[0] !== oLower[0] && tClean[0] !== oLower[0]) continue;
             const oStem = oLower.replace(/(?:ська|цька|зька)$/, '');
             if (hasAdjectiveSuffix && /(?:ська|цька|зька)$/.test(t)) {
-              if (tStem.length >= 4 && damerauLevenshtein(tStem, oStem) <= 1) {
+              if (tStem.length >= 4 && damerauLevenshtein(tStem, oStem, 1) <= 1) {
                 return obl.name;
               }
             } else {
-              if (damerauLevenshtein(t, oLower) <= 2) {
+              if (damerauLevenshtein(t, oLower, 2) <= 2) {
                 return obl.name;
               }
-              if (hasAdjectiveSuffix && tStem.length >= 4 && damerauLevenshtein(tStem, oStem) <= 1) {
+              if (hasAdjectiveSuffix && tStem.length >= 4 && damerauLevenshtein(tStem, oStem, 1) <= 1) {
                 return obl.name;
               }
             }
@@ -1075,13 +1075,14 @@
   const _dlRow1 = new Int32Array(128);
   const _dlRow2 = new Int32Array(128);
 
-  function damerauLevenshtein(a, b) {
+  function damerauLevenshtein(a, b, maxDist = Infinity) {
     if (a === b) return 0;
     if (!a || !b) return (a ? a.length : 0) + (b ? b.length : 0);
     const al = a.length;
     const bl = b.length;
     if (al === 0) return bl;
     if (bl === 0) return al;
+    if (maxDist < Infinity && Math.abs(al - bl) > maxDist) return maxDist + 1;
 
     // Швидкий захист від наддовгих рядків (> 120 символів)
     if (bl >= 127 || al >= 127) {
@@ -1111,8 +1112,10 @@
       r1[j] = j;
     }
 
+    let prevRowMin = 0;
     for (let i = 1; i <= al; i++) {
       r2[0] = i;
+      let curRowMin = i;
       const aChar = a[i - 1];
       const prevAChar = i > 1 ? a[i - 2] : 0;
 
@@ -1130,7 +1133,13 @@
           if (transposition < min) min = transposition;
         }
         r2[j] = min;
+        if (min < curRowMin) curRowMin = min;
       }
+
+      if (maxDist < Infinity && curRowMin > maxDist && prevRowMin > maxDist) {
+        return maxDist + 1;
+      }
+      prevRowMin = curRowMin;
 
       const tmp = r0;
       r0 = r1;
@@ -2453,7 +2462,7 @@
               for (let i = 0; i < skList.length; i++) {
                 const sc = skList[i];
                 const scName = (sc.cleanName || sc.name || '').toLowerCase();
-                if (scName.length !== w.length || damerauLevenshtein(w, scName) > 1) continue;
+                if (scName.length !== w.length || damerauLevenshtein(w, scName, 1) > 1) continue;
                 const scObl = (sc.oblast || '').toLowerCase();
                 const scRaion = (sc.raion || '').toLowerCase();
                 if (cObl && !scObl.includes(cObl) && !cObl.includes(scObl)) continue;
@@ -2503,8 +2512,8 @@
         let bestSDist = 999;
         // Якщо одне слово є префіксом іншого і вони мають різну довжину з різними закінченнями/суфіксами (наприклад, славута vs славутич), не підміняти!
         if (!(Math.abs(w.length - sLower.length) > 1 && (sLower.startsWith(w) || w.startsWith(sLower)))) {
-          const d1 = damerauLevenshtein(w, sLower);
-          const d2 = damerauLevenshtein(wNorm, sLower);
+          const d1 = damerauLevenshtein(w, sLower, maxAllowedDist);
+          const d2 = damerauLevenshtein(wNorm, sLower, maxAllowedDist);
           const d = Math.min(d1, d2);
           if (d <= maxAllowedDist && d < bestSDist) {
             bestSDist = d;
@@ -2516,7 +2525,7 @@
             if (Math.abs(w.length - alias.length) > 1 && (alias.startsWith(w) || w.startsWith(alias))) {
               continue;
             }
-            const da = damerauLevenshtein(w, alias);
+            const da = damerauLevenshtein(w, alias, maxAllowedDist);
             if (da <= maxAllowedDist && da < bestSDist) {
               bestSDist = da;
             }
@@ -2583,7 +2592,7 @@
               continue;
             }
 
-            const d = damerauLevenshtein(w, candName);
+            const d = damerauLevenshtein(w, candName, maxDist);
             if (d > maxDist) continue;
             const hasBranch = branchSet && (branchSet.has(canonCity(cand.cleanName || cand.name) + '|' + (cand.oblast || '').toLowerCase().slice(0, 5)));
             if (!cObl && !cRaion && !hasBranch && d > 1) continue;
@@ -2855,7 +2864,7 @@
       if (stem && wStem && stem === wStem) {
         if (stem.length >= 5 || Math.abs(w.length - token.length) <= 1) return true;
       }
-      if (token.length >= 4 && Math.abs(w.length - token.length) <= 2 && damerauLevenshtein(token, w) <= 2) {
+      if (token.length >= 4 && Math.abs(w.length - token.length) <= 2 && damerauLevenshtein(token, w, 2) <= 2) {
         return true;
       }
     }
@@ -3163,7 +3172,7 @@
             // Малий населений пункт (село/смт) має безумовний пріоритет як цільове місто над містом/райцентром
             const isVillage = foundSingle.type === 'село' || foundSingle.type === 'смт' || foundSingle.type === 'селище';
             const prevIsCity = !detectedCity.type || detectedCity.type === 'місто';
-            const isFuzzyClose = isExact || (consonantSkeleton(curLower) && consonantSkeleton(curLower) === consonantSkeleton(sLower)) || (curLower.length >= 4 && damerauLevenshtein(curLower, sLower) <= 1);
+            const isFuzzyClose = isExact || (consonantSkeleton(curLower) && consonantSkeleton(curLower) === consonantSkeleton(sLower)) || (curLower.length >= 4 && damerauLevenshtein(curLower, sLower, 1) <= 1);
 
             if (isVillage && prevIsCity && isFuzzyClose) {
               const singleObl = (foundSingle.oblast || '').toLowerCase();
@@ -4334,7 +4343,7 @@
           for (let i = 0; i < cityBranches.length; i++) {
             const b = cityBranches[i];
             const bNum = String(b.number != null ? b.number : '');
-            if (bNum.length === numPrefix.length && damerauLevenshtein(bNum, numPrefix) <= 1) {
+            if (bNum.length === numPrefix.length && damerauLevenshtein(bNum, numPrefix, 1) <= 1) {
               prefixCandidates.push(b);
             }
           }
@@ -5505,12 +5514,38 @@
       .trim();
   }
 
-  // Кешування searchIndex в пам'яті об'єкта branch для виключення повторних обчислень
+  // Ліниве кешування searchIndex у WeakMap з non-enumerable геттером на об'єкті branch:
+  // економить ~1.6с стартового CPU, ~84 МБ Heap/потік та виключає серіалізацію 11 МБ у postMessage.
+  const _branchSearchIndexCache = new WeakMap();
+  const _lazySearchIndexDesc = {
+    configurable: true,
+    enumerable: false,
+    get() {
+      let cached = _branchSearchIndexCache.get(this);
+      if (cached === undefined) {
+        cached = this.normalizedSearchText || buildNormalizedSearchText(this);
+        _branchSearchIndexCache.set(this, cached);
+      }
+      return cached;
+    },
+    set(val) {
+      _branchSearchIndexCache.set(this, val);
+    }
+  };
+
   function getBranchSearchIndex(item) {
     if (!item) return '';
-    if (item.searchIndex) return item.searchIndex;
-    const text = item.normalizedSearchText || buildNormalizedSearchText(item);
-    item.searchIndex = text;
+    let text = _branchSearchIndexCache.get(item);
+    if (text !== undefined) return text;
+    if (Object.prototype.hasOwnProperty.call(item, 'searchIndex')) {
+      const desc = Object.getOwnPropertyDescriptor(item, 'searchIndex');
+      if (desc && 'value' in desc && typeof desc.value === 'string' && desc.value) {
+        _branchSearchIndexCache.set(item, desc.value);
+        return desc.value;
+      }
+    }
+    text = item.normalizedSearchText || buildNormalizedSearchText(item);
+    _branchSearchIndexCache.set(item, text);
     return text;
   }
 
@@ -5556,39 +5591,83 @@
     return tok.length >= 3 && w.startsWith(tok);
   }
 
-  // Морфологічний стемінг українських слів (виділення основи для пошуку вулиць)
+  // Морфологічний стемінг українських слів (виділення основи для пошуку вулиць) з мемоізацією
+  const _stemCache = new Map();
   function getUkrainianStem(word) {
     if (!word || word.length < 4) return word;
+    let cached = _stemCache.get(word);
+    if (cached !== undefined) return cached;
     const w = word.toLowerCase();
     const longSuffixStripped = w.replace(/(?:ського|ської|ському|ських|ською|ський|ська|ське|ські|цького|цької|цькому|цьких|цькою|цький|цька|цьке|цькі|зького|зької|зькому|зьких|зькою|зький|зька|зьке|зькі|ової|евої|євої|овою|евою|євою|ова|ева|єва|івка|івку|івці|івки)$/iu, '');
+    let res;
     if (longSuffixStripped !== w && longSuffixStripped.length >= 4) {
-      return longSuffixStripped;
+      res = longSuffixStripped;
+    } else {
+      res = w.replace(/(?:ої|ою|ею|єю|ій|ім|их|им|а|я|у|ю|і|и|е|є|ей)$/iu, '');
     }
-    return w.replace(/(?:ої|ою|ею|єю|ій|ім|их|им|а|я|у|ю|і|и|е|є|ей)$/iu, '');
+    if (_stemCache.size >= 2000) {
+      const firstK = _stemCache.keys().next().value;
+      _stemCache.delete(firstK);
+    }
+    _stemCache.set(word, res);
+    return res;
   }
 
   // Перевірка збігу вулиці з урахуванням кореня/морфології та нечіткого зіставлення (одруківок)
+  const _streetMetaCache = new WeakMap();
+  function getBranchStreetMeta(branch) {
+    const rawStreet = branch.street || '';
+    const rawAddress = branch.address || '';
+    let meta = _streetMetaCache.get(branch);
+    if (!meta || meta.rawStreet !== rawStreet || meta.rawAddress !== rawAddress) {
+      meta = {
+        rawStreet,
+        rawAddress,
+        lower: canonText(rawStreet + ' ' + rawAddress),
+        noSpace: null,
+        words: null
+      };
+      _streetMetaCache.set(branch, meta);
+    }
+    return meta;
+  }
+
   function matchStreetOrAddress(branch, token) {
     if (!branch || !token) return false;
-    const sLower = canonText((branch.street || '') + ' ' + (branch.address || ''));
+    const meta = getBranchStreetMeta(branch);
+    const sLower = meta.lower;
     if (sLower.includes(token)) return true;
     const stem = getUkrainianStem(token);
     if (stem && stem.length >= 3 && sLower.includes(stem)) return true;
 
     // Зіставлення без пробілів (напр. "пирогівськийшлях" -> "вул. Пирогівський шлях")
-    const cleanTokenNoSpace = token.replace(/\s+/g, '');
-    const cleanSNoSpace = sLower.replace(/\s+/g, '');
+    const cleanTokenNoSpace = token.indexOf(' ') !== -1 ? token.replace(/\s+/g, '') : token;
+    if (meta.noSpace === null) {
+      meta.noSpace = sLower.replace(/\s+/g, '');
+    }
+    const cleanSNoSpace = meta.noSpace;
     if (cleanTokenNoSpace.length >= 4 && cleanSNoSpace.includes(cleanTokenNoSpace)) return true;
     if (stem && stem.length >= 3 && cleanSNoSpace.includes(stem)) return true;
 
     // Нечітке зіставлення слів вулиці (Damerau-Levenshtein <= 2)
     if (token.length >= 4) {
-      const words = sLower.replace(/[^a-zа-яіїєґ0-9\s]/gi, ' ').split(/\s+/).filter(w => w.length >= 4);
-      for (let w of words) {
-        if (Math.abs(w.length - token.length) <= 2 && damerauLevenshtein(token, w) <= 2) return true;
-        if (stem && stem.length >= 3) {
-          const wStem = getUkrainianStem(w);
-          if (wStem && Math.abs(wStem.length - stem.length) <= 1 && damerauLevenshtein(stem, wStem) <= 1) return true;
+      if (meta.words === null) {
+        meta.words = sLower
+          .replace(/[^a-zа-яіїєґ0-9\s]/gi, ' ')
+          .split(/\s+/)
+          .filter(w => w.length >= 4)
+          .map(w => ({ w, stem: getUkrainianStem(w) }));
+      }
+      const words = meta.words;
+      const tokLen = token.length;
+      const stemLen = stem ? stem.length : 0;
+      for (let i = 0; i < words.length; i++) {
+        const entry = words[i];
+        const w = entry.w;
+        if (Math.abs(w.length - tokLen) <= 2 && damerauLevenshtein(token, w, 2) <= 2) return true;
+        if (stem && stemLen >= 3) {
+          const wStem = entry.stem;
+          if (wStem && Math.abs(wStem.length - stemLen) <= 1 && damerauLevenshtein(stem, wStem, 1) <= 1) return true;
         }
       }
     }
@@ -6686,9 +6765,9 @@
     for (let i = 0; i < branches.length; i++) {
       const b = branches[i];
 
-      // Кешування searchIndex в пам'яті об'єкта branch (генерується один раз при ініціалізації бази)
-      if (!b.searchIndex) {
-        b.searchIndex = b.normalizedSearchText || buildNormalizedSearchText(b);
+      // Прикріплення non-enumerable лінивого геттера searchIndex (без негайної генерації 55k+ рядків)
+      if (!Object.prototype.hasOwnProperty.call(b, 'searchIndex')) {
+        Object.defineProperty(b, 'searchIndex', _lazySearchIndexDesc);
       }
 
       const bc = (b._canonCity && b._canonCityRaw === b.city)
@@ -6893,6 +6972,16 @@
   // 9. ОПТИМІЗОВАНИЙ ДВИГУН ПОШУКУ З LRU КЕШУВАННЯМ ТА УНІВЕРСАЛЬНИМ СКОРИНГОМ (SCORING MATRIX ENGINE)
   const SEARCH_LRU_LIMIT = 50;
   const _searchLruCache = new Map();
+
+  function setSearchLru(key, value) {
+    if (_searchLruCache.has(key)) {
+      _searchLruCache.delete(key);
+    } else if (_searchLruCache.size >= SEARCH_LRU_LIMIT) {
+      const oldestKey = _searchLruCache.keys().next().value;
+      _searchLruCache.delete(oldestKey);
+    }
+    _searchLruCache.set(key, value);
+  }
 
   function searchBranches(rawQuery, branches, limit = null) {
     if (!rawQuery || !Array.isArray(branches) || branches.length === 0) return [];
@@ -7586,13 +7675,13 @@
         });
       }
       if (cityCandidates.length === 0 && (queryOblastClean || targetR)) {
-        _searchLruCache.set(cacheKey, []);
+        setSearchLru(cacheKey, []);
         return [];
       }
 
       const sortedCityBranches = sortBranchesBySettlementOrder(cityCandidates, hasPostomatKeyword, hasBranchKeyword, detectedCityName);
       const finalRes = sortedCityBranches.slice(0, effectiveLimit);
-      _searchLruCache.set(cacheKey, finalRes);
+      setSearchLru(cacheKey, finalRes);
       return finalRes;
     }
 
@@ -7605,7 +7694,7 @@
       const tokStems = searchTokens.map(tok => ({ tok, stem: getUkrainianStem(tok) }));
       for (let i = 0; i < bLen; i++) {
         const b = branchesToScore[i];
-        const sIdx = b.searchIndex || getBranchSearchIndex(b);
+        const sIdx = getBranchSearchIndex(b);
         if (tokStems.every(item => sIdx.includes(item.tok) || (item.stem && item.stem.length >= 4 && sIdx.includes(item.stem)))) {
           fastMatches.push(b);
         }
@@ -7762,7 +7851,7 @@
       }
 
       if (matched.length === 0) {
-        _searchLruCache.set(cacheKey, []);
+        setSearchLru(cacheKey, []);
         return [];
       }
     }
@@ -7774,7 +7863,7 @@
 
     const leaderScore = matched[0].score;
     if (leaderScore < 250) {
-      _searchLruCache.set(cacheKey, []);
+      setSearchLru(cacheKey, []);
       return [];
     }
 
@@ -7799,50 +7888,50 @@
     const finalResults = filtered.slice(0, effectiveLimit).map(m => m.branch).slice(0, HARD_CAP_LIMIT);
 
     // Збереження в LRU Cache
-    if (_searchLruCache.size >= SEARCH_LRU_LIMIT) {
-      const oldestKey = _searchLruCache.keys().next().value;
-      _searchLruCache.delete(oldestKey);
-    }
-    _searchLruCache.set(cacheKey, finalResults);
+    setSearchLru(cacheKey, finalResults);
 
     return finalResults;
   }
 
-  // Природне сортування відділень населеного пункту: спочатку вантажні та поштові №1..N, потім поштомати
+  // Природне сортування відділень населеного пункту: спочатку вантажні та поштові №1..N, потім поштомати (Schwartzian transform)
   function sortBranchesBySettlementOrder(branches, hasPostomatKeyword = false, hasBranchKeyword = false, targetCity = null) {
     if (!Array.isArray(branches) || branches.length <= 1) return branches || [];
     const tCity = targetCity ? canonCity(targetCity) : (branches[0] ? canonCity(branches[0].city) : null);
-    return branches.slice().sort((a, b) => {
-      if (tCity) {
-        const isExactA = (canonCity(a.city) === tCity) ? 1 : 0;
-        const isExactB = (canonCity(b.city) === tCity) ? 1 : 0;
-        if (isExactA !== isExactB) return isExactB - isExactA;
+    const len = branches.length;
+    const decorated = new Array(len);
+    for (let i = 0; i < len; i++) {
+      const b = branches[i];
+      const bCanon = (b._canonCity && b._canonCityRaw === b.city)
+        ? b._canonCity
+        : (b._canonCityRaw = b.city, b._canonCity = canonCity(b.city));
+      decorated[i] = {
+        b,
+        isExact: tCity ? (bCanon === tCity ? 1 : 0) : 0,
+        rank: settlementTypeRank(b.settlementType),
+        isPost: (b.typeClass === 'poshtomat' || b.type === 'poshtomat' || /поштомат/i.test(b.name || '') || /поштомат/i.test(b.typeName || '')) ? 1 : 0,
+        num: parseInt(b.number, 10) || 999999,
+        raion: (b.raion || '').toLowerCase(),
+        w: parseFloat(b.totalMaxWeightAllowed || b.placeMaxWeightAllowed || b.maxWeight || 0),
+        numStr: String(b.number || '')
+      };
+    }
+    decorated.sort((a, b) => {
+      if (tCity && a.isExact !== b.isExact) return b.isExact - a.isExact;
+      if (a.rank !== b.rank) return b.rank - a.rank;
+      if (a.isPost !== b.isPost) {
+        if (hasPostomatKeyword) return b.isPost - a.isPost;
+        return a.isPost - b.isPost;
       }
-
-      const rankA = settlementTypeRank(a.settlementType);
-      const rankB = settlementTypeRank(b.settlementType);
-      if (rankA !== rankB) return rankB - rankA;
-
-      const isPostA = (a.typeClass === 'poshtomat' || a.type === 'poshtomat' || /поштомат/i.test(a.name || '') || /поштомат/i.test(a.typeName || '')) ? 1 : 0;
-      const isPostB = (b.typeClass === 'poshtomat' || b.type === 'poshtomat' || /поштомат/i.test(b.name || '') || /поштомат/i.test(b.typeName || '')) ? 1 : 0;
-      if (hasPostomatKeyword && isPostA !== isPostB) return isPostB - isPostA;
-      if (hasBranchKeyword && isPostA !== isPostB) return isPostA - isPostB;
-      if (isPostA !== isPostB) return isPostA - isPostB;
-
-      const numA = parseInt(a.number, 10) || 999999;
-      const numB = parseInt(b.number, 10) || 999999;
-      if (numA !== numB) return numA - numB;
-
-      const raionA = (a.raion || '').toLowerCase();
-      const raionB = (b.raion || '').toLowerCase();
-      if (raionA !== raionB) return raionA.localeCompare(raionB);
-
-      const wA = parseFloat(a.totalMaxWeightAllowed || a.placeMaxWeightAllowed || a.maxWeight || 0);
-      const wB = parseFloat(b.totalMaxWeightAllowed || b.placeMaxWeightAllowed || b.maxWeight || 0);
-      if (wA !== wB) return wB - wA;
-
-      return String(a.number || '').localeCompare(String(b.number || ''));
+      if (a.num !== b.num) return a.num - b.num;
+      if (a.raion !== b.raion) return a.raion.localeCompare(b.raion);
+      if (a.w !== b.w) return b.w - a.w;
+      return a.numStr.localeCompare(b.numStr);
     });
+    const res = new Array(len);
+    for (let i = 0; i < len; i++) {
+      res[i] = decorated[i].b;
+    }
+    return res;
   }
 
   // Зворотна сумісність: фільтрація використовує новий скоринговий рушій

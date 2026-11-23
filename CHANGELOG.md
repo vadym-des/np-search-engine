@@ -3,6 +3,22 @@
 Усі помітні зміни в проєкті документуються в цьому файлі.
 Формат ведеться за стандартом [Keep a Changelog](https://keepachangelog.com/) та відповідає [Semantic Versioning](https://semver.org/).
 
+## [2.0.2] — 2026-11-23
+
+### 🚀 Глибока оптимізація швидкодії, пам'яті, кешування та розміру баз (Performance Audit Release)
+- **Пам'ять JS Heap та індексація (`data/fuzzySearch.js`, `worker/search.worker.js`, `app.js`)**:
+  - Переведено `b.searchIndex` із жадібної побудови на старті на лінивий `WeakMap` + `non-enumerable` геттер `_lazySearchIndexDesc`: час `buildBranchIndex` зменшено на **87.5%** (з 1,634 мс до 203 мс для НП та з 307 мс до 59 мс для УП), споживання пам'яті знижено на **~60 МБ на потік (~120 МБ сумарно)**, а обсяг серіалізації `postMessage` із Worker для великих міст скорочено на **52–56%**.
+  - Усунуто витік пам'яті в `_searchLruCache` через єдиний хелпер `setSearchLru()` з лімітом 50 записів на всіх гілках повернення; звільнено дублікат сирої бази `UKRPOSHTA_BRANCHES_DATA = null` після мапінгу.
+  - Прискорено гарячі шляхи пошуку: додано точний early-exit `maxDist` у `damerauLevenshtein`, мемоізацію `getUkrainianStem`, лінивий `_streetMetaCache` у `matchStreetOrAddress` та Schwartzian transform у `sortBranchesBySettlementOrder` (сортування Києва 8 058 відділень — **7.4 мс замість ~85 мс**).
+- **Стиснення баз даних без втрат (`scripts/build_branches_fast.js`, `scripts/download_all_settlements.js`, `scripts/build_ukrposhta_fast.js`)**:
+  - `data/branches.fast.js`: **16.56 МБ ➔ 10.12 МБ raw** (дедуплікація префікса `name` відносно `street` у 96.5% записів + пул `postalCode` зі 100% збереженням `JSON.stringify`).
+  - `data/ukrposhta_branches.js`: **7.53 МБ ➔ 2.53 МБ raw (−66.4%)**.
+  - `data/all_settlements.js`: **4.14 МБ ➔ 0.88 МБ raw (−78.8%, −49.2% gzip)**.
+- **Критичний шлях рендеру, Service Worker та сервер (`index.html`, `data/changelog-modal.html`, `sw.js`, `styles.css`, `server.py`, `about.html`)**:
+  - Вміст модального вікна історії версій винесено в `data/changelog-modal.html` з лінивим завантаженням по кліку (`index.html` зменшено на **82.5%**: з 202.1 КБ до 35.4 КБ); Leaflet CSS/JS підвантажуються динамічно (`ensureLeafletLoaded()`) лише при відкритті карти.
+  - У `sw.js` ввімкнено `Cache-First` для імутабельних `?v=` ресурсів та прибрано 4 невикористовувані браузером `.json` із `PRECACHE_ASSETS`.
+  - Розблоковано Back-Forward Cache (прибрано `no-store` та замінено `beforeunload` на `pagehide`), обмежено `/api/status` до `localhost`, виправлено `contain-intrinsic-block-size: auto 100px`, переведено `server.py` на багатопотоковий `ThreadingHTTPServer` із RAM-кешем `gzip` та очищено `assets/` від 17 невикористовуваних чернеток (−4.38 МБ).
+
 ## [2.0.1] — 2026-11-22
 
 ### Виправлено та вдосконалено (за результатами 7-денного аналізу логів телеметрії)

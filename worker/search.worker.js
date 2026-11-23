@@ -56,6 +56,7 @@ try {
   self.BRANCHES_DATA = self.BRANCHES_DATA || {};
   if (Array.isArray(self.UKRPOSHTA_BRANCHES_DATA) && self.UKRPOSHTA_BRANCHES_DATA.length > 0) {
     self.BRANCHES_DATA.ukrposhta = mapUkrposhtaRaw(self.UKRPOSHTA_BRANCHES_DATA);
+    self.UKRPOSHTA_BRANCHES_DATA = null;
   }
 
   if (self.SmartSearchEngine) {

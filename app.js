@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '2.0.1';
+  const APP_VERSION = '2.0.2';
 
   // Вебхук автоматичного запису проблемних запитів у Google Таблицю
   const TELEMETRY_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzSV99G9gc9XEvyZRs1cxN3BU5Ka74EBPLJDO0n3R7JODWN3GAtumlIFOcj3VcDTI02/exec';
@@ -938,6 +938,11 @@
           if (window.SmartSearchEngine && typeof window.SmartSearchEngine.buildBranchIndex === 'function') {
             window.SmartSearchEngine.buildBranchIndex(mapped);
           }
+          if (typeof window !== 'undefined' && window.UKRPOSHTA_BRANCHES_DATA === rawList) {
+            window.UKRPOSHTA_BRANCHES_DATA = null;
+          }
+          _ukrposhtaPrepared = null;
+          _ukrposhtaPreparedSrc = null;
           return mapped;
         }
       } catch (e) {
@@ -3710,6 +3715,10 @@
       updateBottomBarVisibility();
       return;
     }
+
+    // Zero Layout Shift (Варіант 3): фіксуємо поточну висоту списку ДО мутацій DOM, щоб уникнути forced reflow
+    const prevResultsHeight = dom.resultsList ? dom.resultsList.offsetHeight : 0;
+
     dom.searchResultsSection.classList.remove('hidden');
     updateBottomBarVisibility();
 
@@ -3732,8 +3741,6 @@
     }
     filtered = typedFiltered;
 
-    // Zero Layout Shift (Варіант 3): фіксуємо поточну висоту списку перед оновленням, щоб екран не смикався
-    const prevResultsHeight = dom.resultsList ? dom.resultsList.offsetHeight : 0;
     if (prevResultsHeight > 0 && dom.resultsList) {
       dom.resultsList.style.minHeight = `${prevResultsHeight}px`;
     }
@@ -5054,6 +5061,40 @@
     }, 200);
   }
 
+  let _leafletLoadPromise = null;
+
+  function ensureLeafletLoaded() {
+    if (typeof L !== 'undefined') return Promise.resolve();
+    if (_leafletLoadPromise) return _leafletLoadPromise;
+    if (typeof document === 'undefined') return Promise.reject(new Error('Document unavailable'));
+
+    _leafletLoadPromise = new Promise((resolve, reject) => {
+      const cssHref = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      if (!document.querySelector(`link[href="${cssHref}"]`)) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = cssHref;
+        link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+        link.crossOrigin = '';
+        document.head.appendChild(link);
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+      script.crossOrigin = '';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => {
+        _leafletLoadPromise = null;
+        reject(new Error('Не вдалося завантажити бібліотеку карти Leaflet'));
+      };
+      document.head.appendChild(script);
+    });
+
+    return _leafletLoadPromise;
+  }
+
   function initMapIfNeeded() {
     if (state.leafletMap) return;
     if (typeof L === 'undefined') return;
@@ -5109,6 +5150,38 @@
     });
   }
 
+  function finishOpenMap() {
+    if (!state.isMapVisible) return;
+    initMapIfNeeded();
+    updateMapTypeFilterUI();
+
+    setTimeout(() => {
+      if (!state.isMapVisible) return;
+      if (window.leafMap) window.leafMap.invalidateSize();
+      if (state.leafletMap) state.leafletMap.invalidateSize();
+
+      let mapBranches = [];
+      let targetBranch = state.selectedBranch || (state.currentResults.length > 0 ? state.currentResults[0] : null);
+
+      if (state.currentResults && state.currentResults.length > 0) {
+        mapBranches = state.currentResults.slice(0, 20);
+        renderMapMarkers(mapBranches, targetBranch, true);
+      } else if (state.searchQuery && window.SmartSearchEngine) {
+        const parsed = window.SmartSearchEngine.parseQuery(state.searchQuery);
+        if (parsed && parsed.matchedSettlement) {
+          const sName = parsed.matchedSettlement.name.toLowerCase();
+          const allBranches = getAllCurrentServiceBranches();
+          mapBranches = allBranches.filter(b => b.city && b.city.toLowerCase() === sName).slice(0, 20);
+          renderMapMarkers(mapBranches, targetBranch, true);
+        } else {
+          updateVisibleMarkersFromViewport();
+        }
+      } else {
+        updateVisibleMarkersFromViewport();
+      }
+    }, 150);
+  }
+
   function toggleMapView() {
     state.isMapVisible = !state.isMapVisible;
 
@@ -5120,33 +5193,18 @@
       dom.btnToggleMap.setAttribute('title', 'Сховати карту');
       dom.btnToggleMap.setAttribute('aria-label', 'Сховати карту');
 
-      initMapIfNeeded();
-      updateMapTypeFilterUI();
-
-      setTimeout(() => {
-        if (window.leafMap) window.leafMap.invalidateSize();
-        if (state.leafletMap) state.leafletMap.invalidateSize();
-
-        let mapBranches = [];
-        let targetBranch = state.selectedBranch || (state.currentResults.length > 0 ? state.currentResults[0] : null);
-
-        if (state.currentResults && state.currentResults.length > 0) {
-          mapBranches = state.currentResults.slice(0, 20);
-          renderMapMarkers(mapBranches, targetBranch, true);
-        } else if (state.searchQuery && window.SmartSearchEngine) {
-          const parsed = window.SmartSearchEngine.parseQuery(state.searchQuery);
-          if (parsed && parsed.matchedSettlement) {
-            const sName = parsed.matchedSettlement.name.toLowerCase();
-            const allBranches = getAllCurrentServiceBranches();
-            mapBranches = allBranches.filter(b => b.city && b.city.toLowerCase() === sName).slice(0, 20);
-            renderMapMarkers(mapBranches, targetBranch, true);
-          } else {
-            updateVisibleMarkersFromViewport();
-          }
-        } else {
-          updateVisibleMarkersFromViewport();
-        }
-      }, 150);
+      if (typeof L !== 'undefined') {
+        finishOpenMap();
+      } else {
+        if (dom.mapMarkersCount) dom.mapMarkersCount.textContent = '(завантаження карти...)';
+        ensureLeafletLoaded()
+          .then(() => {
+            finishOpenMap();
+          })
+          .catch(() => {
+            if (dom.mapMarkersCount) dom.mapMarkersCount.textContent = '(офлайн: карта недоступна)';
+          });
+      }
     } else {
       dom.mapSection.classList.add('hidden');
       dom.btnToggleMap.classList.remove('active');
@@ -5397,26 +5455,29 @@
         const userLat = pos.coords.latitude;
         const userLng = pos.coords.longitude;
 
-        if (!state.leafletMap) initMapIfNeeded();
-        if (!state.isMapVisible) toggleMapView();
+        ensureLeafletLoaded().then(() => {
+          if (!state.leafletMap) initMapIfNeeded();
+          if (!state.isMapVisible) toggleMapView();
+          if (!state.leafletMap || typeof L === 'undefined') return;
 
-        if (state.userLocationMarker) {
-          state.leafletMap.removeLayer(state.userLocationMarker);
-        }
+          if (state.userLocationMarker) {
+            state.leafletMap.removeLayer(state.userLocationMarker);
+          }
 
-        state.userLocationMarker = L.circleMarker([userLat, userLng], {
-          radius: 9,
-          fillColor: '#38bdf8',
-          color: '#ffffff',
-          weight: 3,
-          opacity: 1,
-          fillOpacity: 0.95
-        }).addTo(state.leafletMap).bindPopup('📍 Ви знаходитесь тут', {
-          autoPan: false,
-          autoPanPadding: (typeof L !== 'undefined' && L.point) ? L.point(10, 10) : [10, 10]
-        }).openPopup();
+          state.userLocationMarker = L.circleMarker([userLat, userLng], {
+            radius: 9,
+            fillColor: '#38bdf8',
+            color: '#ffffff',
+            weight: 3,
+            opacity: 1,
+            fillOpacity: 0.95
+          }).addTo(state.leafletMap).bindPopup('📍 Ви знаходитесь тут', {
+            autoPan: false,
+            autoPanPadding: (typeof L !== 'undefined' && L.point) ? L.point(10, 10) : [10, 10]
+          }).openPopup();
 
-        state.leafletMap.setView([userLat, userLng], 13);
+          state.leafletMap.setView([userLat, userLng], 13);
+        }).catch(() => {});
       },
       () => {
         dom.btnGeoLocate.textContent = 'Моя геолокація';
@@ -5450,7 +5511,7 @@
         }
       };
 
-      window.addEventListener('beforeunload', () => {
+      window.addEventListener('pagehide', () => {
         tabChannel.postMessage({ type: 'tab_closed' });
       });
 
@@ -7212,8 +7273,37 @@
       }
     });
 
-    // Модалка версій
+    // Модалка версій (ліниве завантаження журналу змін при першому відкритті)
+    let _changelogLoaded = false;
+    let _changelogLoadingPromise = null;
+    function ensureChangelogLoaded() {
+      if (_changelogLoaded) return Promise.resolve();
+      if (_changelogLoadingPromise) return _changelogLoadingPromise;
+      const bodyEl = document.getElementById('versionModalBody');
+      if (!bodyEl || typeof fetch !== 'function' || (window.location && window.location.protocol === 'file:')) {
+        if (bodyEl) {
+          bodyEl.innerHTML = '<div style="text-align:center; padding:24px 16px;"><a href="https://github.com/vadym-des/np-search-engine/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" style="color:var(--brand-primary, #e11d48); font-weight:600; text-decoration:none;">📄 Повна історія змін у CHANGELOG.md ➔</a></div>';
+        }
+        return Promise.resolve();
+      }
+      _changelogLoadingPromise = fetch(`data/changelog-modal.html?v=${APP_VERSION}`)
+        .then(resp => {
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          return resp.text();
+        })
+        .then(html => {
+          bodyEl.innerHTML = html;
+          _changelogLoaded = true;
+        })
+        .catch(() => {
+          _changelogLoadingPromise = null;
+          bodyEl.innerHTML = '<div style="text-align:center; padding:24px 16px;"><a href="https://github.com/vadym-des/np-search-engine/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" style="color:var(--brand-primary, #e11d48); font-weight:600; text-decoration:none;">📄 Повна історія змін у CHANGELOG.md ➔</a></div>';
+        });
+      return _changelogLoadingPromise;
+    }
+
     dom.btnVersionHistory.addEventListener('click', () => {
+      ensureChangelogLoaded();
       dom.versionModal.showModal();
     });
     dom.btnCloseVersionModal.addEventListener('click', () => dom.versionModal.close());
@@ -7727,8 +7817,11 @@
     }
   }
 
-  // Перевірка наявності захищеного ключа на бекенді (.env)
+  // Перевірка наявності захищеного ключа на бекенді (.env) — тільки для локального проксі-сервера
   function checkServerApiStatus() {
+    if (typeof window === 'undefined' || !window.location) return;
+    const host = window.location.hostname;
+    if (host !== 'localhost' && host !== '127.0.0.1') return;
     fetch('/api/status')
       .then(res => res.json())
       .then(data => {
@@ -7839,9 +7932,11 @@
           });
         });
 
-        // Періодична фонова перевірка кожні 3 хвилини
+        // Періодична фонова перевірка кожні 3 хвилини (тільки коли вкладка видима)
         setInterval(() => {
-          reg.update().catch(() => {});
+          if (!document.hidden) {
+            reg.update().catch(() => {});
+          }
         }, 3 * 60 * 1000);
 
         // Перевірка при поверненні на вкладку після відсутності

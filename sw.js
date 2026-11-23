@@ -1,29 +1,25 @@
 /**
  * Service Worker для "Пошук відділень Нова Пошта & Укрпошта"
- * Версія: v2.0.1
+ * Версія: v2.0.2
  * Забезпечує миттєве оновлення (skipWaiting + clients.claim) та офлайн-доступ.
  */
 
-const CACHE_VERSION = 'v2.0.1';
-const CACHE_NAME = 'np-search-cache-v2.0.1';
+const CACHE_VERSION = 'v2.0.2';
+const CACHE_NAME = 'np-search-cache-v2.0.2';
 
 // Ресурси для попереднього кешування з версіонуванням
 const PRECACHE_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=2.0.1',
-  './favicon.svg?v=2.0.1',
-  './data/branches.fast.js?v=2.0.1',
-  './data/ukrposhta_branches.js?v=2.0.1',
-  './data/all_settlements.js?v=2.0.1',
-  './data/crm_settlements.js?v=2.0.1',
-  './data/fuzzySearch.js?v=2.0.1',
-  './data/raion_aliases.json',
-  './data/settlement_aliases.json',
-  './data/crm_settlements.json',
-  './data/crm_branch_overrides.json',
-  './worker/search.worker.js?v=2.0.1',
-  './app.js?v=2.0.1'
+  './styles.css?v=2.0.2',
+  './favicon.svg?v=2.0.2',
+  './data/branches.fast.js?v=2.0.2',
+  './data/ukrposhta_branches.js?v=2.0.2',
+  './data/all_settlements.js?v=2.0.2',
+  './data/crm_settlements.js?v=2.0.2',
+  './data/fuzzySearch.js?v=2.0.2',
+  './worker/search.worker.js?v=2.0.2',
+  './app.js?v=2.0.2'
 ];
 
 // Встановлення: попереднє кешування ресурсів
@@ -106,6 +102,24 @@ self.addEventListener('fetch', (event) => {
 
   // Локальні ресурси додатку (того ж origin)
   if (url.origin === self.location.origin) {
+    // Імутабельні версійні ресурси (?v=...) -> Cache-First (0 зайвих фонових завантажень 30+ МБ)
+    if (url.searchParams.has('v')) {
+      event.respondWith(
+        caches.match(req).then((cached) => {
+          if (cached) return cached;
+          return fetch(req).then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const clone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+            }
+            return networkResponse;
+          });
+        })
+      );
+      return;
+    }
+
+    // Неверсійні локальні ресурси -> Stale-While-Revalidate
     event.respondWith(
       caches.match(req).then((cached) => {
         const fetchPromise = fetch(req)

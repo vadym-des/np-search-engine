@@ -201,12 +201,9 @@ async function downloadAllSettlements() {
   const jsonSizeMb = (fs.statSync(jsonPath).size / 1024 / 1024).toFixed(2);
   console.log(`✓ Збережено JSON: ${jsonPath} (${jsonSizeMb} MB)`);
 
-  // 2. data/all_settlements.js (для автономної роботи в браузері без CORS)
+  // 2. data/all_settlements.js (компактна словникова схема для автономної роботи в браузері без CORS)
   const jsPath = path.join(dataDir, 'all_settlements.js');
-  const jsContent = `// Реєстр населених пунктів України (Нова Пошта API AddressGeneral/getSettlements)
-// Оновлено: ${new Date().toISOString()} | Кількість: ${cleanSettlements.length}
-window.ALL_SETTLEMENTS_DATA = ${JSON.stringify(cleanSettlements)};
-`;
+  const jsContent = buildCompactSettlementsJs(cleanSettlements);
   fs.writeFileSync(jsPath, jsContent, 'utf8');
   const jsSizeMb = (fs.statSync(jsPath).size / 1024 / 1024).toFixed(2);
   console.log(`✓ Збережено JS: ${jsPath} (${jsSizeMb} MB)`);
@@ -216,7 +213,65 @@ window.ALL_SETTLEMENTS_DATA = ${JSON.stringify(cleanSettlements)};
   console.log('===============================================================');
 }
 
-downloadAllSettlements().catch(err => {
-  console.error('\n❌ Критична помилка під час вивантаження:', err);
-  process.exit(1);
-});
+function buildCompactSettlementsJs(settlements) {
+  const sp = [];
+  const spMap = new Map();
+  function intern(s) {
+    if (!spMap.has(s)) {
+      spMap.set(s, sp.length);
+      sp.push(s);
+    }
+    return spMap.get(s);
+  }
+  const rows = settlements.map(s => {
+    const isStandardName = s.name === (s.type + ' ' + s.cleanName);
+    return [
+      isStandardName ? 0 : s.name,
+      s.cleanName,
+      intern(s.type || ''),
+      intern(s.oblast || ''),
+      intern(s.raion || '')
+    ];
+  });
+  const packedStr = JSON.stringify({ sp, r: rows });
+  const escaped = packedStr.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return (
+    `// Реєстр населених пунктів України (Нова Пошта API AddressGeneral/getSettlements)\n` +
+    `// Оновлено: ${new Date().toISOString()} | Кількість: ${settlements.length}\n` +
+    `(function() {\n` +
+    `  var p = JSON.parse('${escaped}');\n` +
+    `  var sp = p.sp;\n` +
+    `  var r = p.r;\n` +
+    `  var len = r.length;\n` +
+    `  var out = new Array(len);\n` +
+    `  for (var i = 0; i < len; i++) {\n` +
+    `    var row = r[i];\n` +
+    `    var t = sp[row[2]];\n` +
+    `    var cn = row[1];\n` +
+    `    out[i] = {\n` +
+    `      name: row[0] === 0 ? (t + ' ' + cn) : row[0],\n` +
+    `      cleanName: cn,\n` +
+    `      type: t,\n` +
+    `      oblast: sp[row[3]],\n` +
+    `      raion: sp[row[4]]\n` +
+    `    };\n` +
+    `  }\n` +
+    `  var root = typeof window !== 'undefined' ? window : globalThis;\n` +
+    `  root.ALL_SETTLEMENTS_DATA = out;\n` +
+    `})();\n`
+  );
+}
+
+if (process.argv.includes('--from-json')) {
+  const dataDir = path.join(__dirname, '..', 'data');
+  const cleanSettlements = JSON.parse(fs.readFileSync(path.join(dataDir, 'all_settlements.json'), 'utf8'));
+  const jsPath = path.join(dataDir, 'all_settlements.js');
+  const jsContent = buildCompactSettlementsJs(cleanSettlements);
+  fs.writeFileSync(jsPath, jsContent, 'utf8');
+  console.log(`OK: ${jsPath} (${(jsContent.length / 1e6).toFixed(2)} MB, count=${cleanSettlements.length})`);
+} else {
+  downloadAllSettlements().catch(err => {
+    console.error('\n❌ Критична помилка під час вивантаження:', err);
+    process.exit(1);
+  });
+}

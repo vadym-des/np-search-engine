@@ -43,7 +43,18 @@ function intern(str) {
   return stringMap.get(str);
 }
 
-const poolFields = new Set(['settlementType', 'oblast', 'typeName', 'typeText', 'typeClass', 'city', 'raion']);
+const poolFields = new Set(['settlementType', 'oblast', 'typeName', 'typeText', 'typeClass', 'city', 'raion', 'postalCode']);
+
+// 2.5. Таблиця шаблонів префікса назви відносно вулиці (дедуплікація street у 96.5% записів)
+const prefixPool = [];
+const prefixMap = new Map();
+function internPrefix(tpl) {
+  if (!prefixMap.has(tpl)) {
+    prefixMap.set(tpl, prefixPool.length);
+    prefixPool.push(tpl);
+  }
+  return prefixMap.get(tpl);
+}
 
 // 3. Формування компактних кортежів
 const rows = np.map(b => {
@@ -51,21 +62,32 @@ const rows = np.map(b => {
   const sId = getSchemaId(keys.join(','));
   const vals = keys.map(k => {
     const v = b[k];
+    if (k === 'name' && typeof v === 'string' && b.street && v.endsWith(b.street)) {
+      const rawPref = v.slice(0, v.length - b.street.length);
+      if (!rawPref.includes('{N}')) {
+        const numStr = b.number != null ? String(b.number) : '';
+        const tpl = (numStr && rawPref.includes(numStr)) ? rawPref.replace(numStr, '{N}') : rawPref;
+        if (tpl.replace('{N}', numStr) === rawPref) {
+          return internPrefix(tpl);
+        }
+      }
+    }
     return poolFields.has(k) ? intern(v) : v;
   });
   return [sId, ...vals];
 });
 
-const packed = { schemas, stringPool, rows, ukrposhta: data.ukrposhta || [] };
+const packed = { schemas, sp: stringPool, pp: prefixPool, rows, ukrposhta: data.ukrposhta || [] };
 const packedStr = JSON.stringify(packed);
 const escaped = packedStr.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
 const clientCode = '// АВТОГЕНЕРОВАНО scripts/build_branches_fast.js з data/branches.js — не редагувати вручну\n' +
 '(function() {\n' +
 "  var p = JSON.parse('" + escaped + "');\n" +
-'  var sp = p.stringPool;\n' +
+'  var sp = p.sp;\n' +
+'  var pp = p.pp;\n' +
 '  var scs = p.schemas;\n' +
-'  var pf = { settlementType: 1, oblast: 1, typeName: 1, typeText: 1, typeClass: 1, city: 1, raion: 1 };\n' +
+'  var pf = { settlementType: 1, oblast: 1, typeName: 1, typeText: 1, typeClass: 1, city: 1, raion: 1, postalCode: 1 };\n' +
 '  var r = p.rows;\n' +
 '  var rl = r.length;\n' +
 '  var np = new Array(rl);\n' +
@@ -78,6 +100,10 @@ const clientCode = '// АВТОГЕНЕРОВАНО scripts/build_branches_fast.
 '      var k = keys[j];\n' +
 '      var v = row[j + 1];\n' +
 "      obj[k] = (pf[k] && typeof v === 'number') ? sp[v] : v;\n" +
+'    }\n' +
+"    if (typeof obj.name === 'number') {\n" +
+"      var nStr = obj.number != null ? String(obj.number) : '';\n" +
+"      obj.name = pp[obj.name].replace('{N}', nStr) + (obj.street || '');\n" +
 '    }\n' +
 '    np[i] = obj;\n' +
 '  }\n' +
