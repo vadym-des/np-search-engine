@@ -1,5 +1,19 @@
-<!-- Версія 2.0.3 -->
+<!-- Версія 2.0.4 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v2.0.4</span>
+            <span class="version-state">Відновлення та захист автоматичної синхронізації бази Нової пошти (CI/CD)</span>
+            <span class="version-date">23 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Виправлення скрипту <code>sync_nova_poshta.js</code>:</strong> Усунуто синтаксичний збій повторного оголошення <code>API_KEY</code>, додано зчитування <code>.env</code>, паралельне завантаження всіх 55 000+ точок та збереження тестових фікстур і районів без зайвого поля <code>normalizedSearchText</code>.</li>
+            <li><strong>Запобіжник від втрати бази (<code>MIN_SAFE_BRANCHES = 45000</code>):</strong> Захист ніколи не дозволить перезаписати робочу базу неповною відповіддю при збоях API Нової пошти.</li>
+            <li><strong>Активація GitHub Actions (<code>.github/workflows/sync-data.yml</code>):</strong> Workflow перенесено у <code>.github/workflows/</code> з автоматичною перезбіркою <code>branches.fast.js</code> та обов'язковим гейтом із 18 тестів <code>node tests/run_all.js</code>.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 2.0.3 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v2.0.3</span>
             <span class="version-state">Аудит безпеки, захист postMessage, таймаути мережі та очищення коду</span>

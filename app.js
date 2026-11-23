@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '2.0.3';
+  const APP_VERSION = '2.0.4';
 
   // Вебхук автоматичного запису проблемних запитів у Google Таблицю
   const TELEMETRY_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzSV99G9gc9XEvyZRs1cxN3BU5Ka74EBPLJDO0n3R7JODWN3GAtumlIFOcj3VcDTI02/exec';
