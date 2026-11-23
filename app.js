@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '2.0.2';
+  const APP_VERSION = '2.0.3';
 
   // Вебхук автоматичного запису проблемних запитів у Google Таблицю
   const TELEMETRY_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzSV99G9gc9XEvyZRs1cxN3BU5Ka74EBPLJDO0n3R7JODWN3GAtumlIFOcj3VcDTI02/exec';
@@ -386,7 +386,6 @@
     searchInput: document.getElementById('searchInput'),
     btnClearSearch: document.getElementById('btnClearSearch'),
     btnSearchSubmit: document.getElementById('btnSearchSubmit'),
-    btnQuickPostomat: document.getElementById('btnQuickPostomat'),
     autocompleteDropdown: document.getElementById('autocompleteDropdown'),
     
     // Результати
@@ -421,21 +420,11 @@
     versionModal: document.getElementById('versionModal'),
     btnCloseVersionModal: document.getElementById('btnCloseVersionModal'),
     btnDismissVersionModal: document.getElementById('btnDismissVersionModal'),
-    onlineUsersCount: document.getElementById('onlineUsersCount'),
     bottomBar: (typeof document !== 'undefined') ? (
       (typeof document.getElementById === 'function' && document.getElementById('bottomBar')) ||
       (typeof document.querySelector === 'function' && document.querySelector('.bottom-bar')) ||
       null
     ) : null,
-
-    // Налаштування API
-    btnApiSettings: document.getElementById('btnApiSettings'),
-    apiModal: document.getElementById('apiModal'),
-    btnCloseApiModal: document.getElementById('btnCloseApiModal'),
-    btnSaveApiSettings: document.getElementById('btnSaveApiSettings'),
-    btnTestApiKey: document.getElementById('btnTestApiKey'),
-    npApiKeyInput: document.getElementById('npApiKeyInput'),
-    apiTestStatus: document.getElementById('apiTestStatus'),
 
     // Конструктор шаблонів копіювання
     btnHeaderCopySettings: document.getElementById('btnHeaderCopySettings'),
@@ -452,9 +441,6 @@
     optNoBranchWord: document.getElementById('optNoBranchWord'),
     optShortRegion: document.getElementById('optShortRegion'),
     optNoStreetPrefix: document.getElementById('optNoStreetPrefix'),
-    btnToggleAdvancedPreset: document.getElementById('btnToggleAdvancedPreset'),
-    presetAdvancedContainer: document.getElementById('presetAdvancedContainer'),
-    presetLiveInteractiveChips: document.getElementById('presetLiveInteractiveChips'),
 
     // Фідбек
     btnFeedback: (typeof document !== 'undefined' && typeof document.querySelector === 'function') ? document.querySelector('.btn-feedback') : null
@@ -598,8 +584,6 @@
       dom.searchInput.placeholder = 'Наприклад: 47501, Бережани, Київ, Відділення 1, вул. Хрещатик...';
       dom.mapServiceTitle.textContent = 'Нова пошта';
 
-      // Відновлюємо поштомати для Нової пошти
-      if (dom.btnQuickPostomat) dom.btnQuickPostomat.style.display = '';
       applyTypeFiltersVisibility();
     } else {
       dom.btnUkrposhta.classList.add('active');
@@ -611,8 +595,7 @@
       dom.searchInput.placeholder = 'Наприклад: 47501, Бережани, Київ 01001, Львів 79000, вул. Соборна...';
       dom.mapServiceTitle.textContent = 'Укрпошта';
 
-      // Приховуємо кнопку «Поштомат» та фільтр «Поштомати» для Укрпошти (в Укрпошти немає поштоматів)
-      if (dom.btnQuickPostomat) dom.btnQuickPostomat.style.display = 'none';
+      // Приховуємо фільтр «Поштомати» для Укрпошти (в Укрпошти немає поштоматів)
       applyTypeFiltersVisibility();
 
       // Скидаємо фільтр типів на 'all'
@@ -954,11 +937,29 @@
     return _ukrposhtaLoadingPromise;
   }
 
+  // Допоміжний таймаут-сигнал для зовнішніх мережевих запитів (захист від зависання на повільному 3G/Edge)
+  function fetchWithTimeout(url, options = {}, timeoutMs = 5000) {
+    if (typeof AbortController === 'undefined') {
+      return fetch(url, options);
+    }
+    const controller = new AbortController();
+    const extSignal = options.signal;
+    if (extSignal) {
+      if (extSignal.aborted) {
+        controller.abort();
+      } else {
+        extSignal.addEventListener('abort', () => controller.abort(), { once: true });
+      }
+    }
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+  }
+
   // Резервне динамічне отримання відділення Укрпошти за 5-значним індексом з офіційного API
   async function fetchUkrposhtaBranchLive(postalCode) {
     if (!postalCode || !/^\d{5}$/.test(postalCode)) return null;
     try {
-      const resp = await fetch(`https://index.ukrposhta.ua/endpoints-for-apps/index.php?method=get_postoffices_by_postindex_web&pc=${postalCode}`);
+      const resp = await fetchWithTimeout(`https://index.ukrposhta.ua/endpoints-for-apps/index.php?method=get_postoffices_by_postindex_web&pc=${postalCode}`, {}, 5000);
       if (!resp.ok) return null;
       const data = await resp.json();
       const entry = data.Entry || (data.Entries && data.Entries.Entry);
@@ -1191,7 +1192,7 @@
 
     try {
       const url = `https://index.ukrposhta.ua/endpoints-for-apps/index.php?method=get_postoffices_by_postindex_web&pc=${pc}`;
-      const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      const resp = await fetchWithTimeout(url, { headers: { 'Accept': 'application/json' } }, 5000);
       if (!resp.ok) return null;
       const json = await resp.json();
       const entry = json.Entry || (json.Entries && json.Entries.Entry);
@@ -1271,29 +1272,29 @@
     // 1. Якщо локальний dev (localhost) — використовуємо серверний проксі server.py
     if (isLocal) {
       try {
-        const response = await fetch('/api/novaposhta', {
+        const response = await fetchWithTimeout('/api/novaposhta', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestPayload),
           signal: signal
-        });
+        }, 5000);
         if (response.ok) {
           rawData = await response.json();
         }
       } catch (e) {
-        if (e.name === 'AbortError') return null;
+        if (e.name === 'AbortError' && signal && signal.aborted) return null;
       }
     }
 
     // 2. Якщо хостинг (GitHub Pages тощо) або локальний проксі не відповів — викликаємо прямий CORS API Нової пошти миттєво!
     if (!rawData || !rawData.success) {
       try {
-        const response = await fetch('https://api.novaposhta.ua/v2.0/json/', {
+        const response = await fetchWithTimeout('https://api.novaposhta.ua/v2.0/json/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestPayload),
           signal: signal
-        });
+        }, 5000);
         if (response.ok) {
           rawData = await response.json();
         }
@@ -5487,92 +5488,6 @@
   }
 
   // ==========================================================================
-  // 6. ЧЕСНИЙ ЛІЧИЛЬНИК ОНЛАЙН (СИНХРОНІЗАЦІЯ ВКЛАДОК ОПЕРАТОРА)
-  // ==========================================================================
-  function initHonestOnlineCounter() {
-    let currentTabCount = 1;
-
-    try {
-      const tabChannel = new BroadcastChannel('postal_search_tabs_channel');
-
-      tabChannel.postMessage({ type: 'tab_opened' });
-
-      tabChannel.onmessage = (event) => {
-        if (event.data.type === 'tab_opened') {
-          currentTabCount += 1;
-          tabChannel.postMessage({ type: 'tab_count_sync', count: currentTabCount });
-          updateOnlineBadge(currentTabCount);
-        } else if (event.data.type === 'tab_count_sync') {
-          currentTabCount = Math.max(currentTabCount, event.data.count);
-          updateOnlineBadge(currentTabCount);
-        } else if (event.data.type === 'tab_closed') {
-          currentTabCount = Math.max(1, currentTabCount - 1);
-          updateOnlineBadge(currentTabCount);
-        }
-      };
-
-      window.addEventListener('pagehide', () => {
-        tabChannel.postMessage({ type: 'tab_closed' });
-      });
-
-      updateOnlineBadge(1);
-    } catch (e) {
-      updateOnlineBadge(1);
-    }
-  }
-
-  function updateOnlineBadge(count) {
-    if (!dom.onlineUsersCount) return;
-    dom.onlineUsersCount.textContent = `${count}`;
-    dom.onlineUsersCount.title = `Активних вкладок: ${count}`;
-  }
-
-  // ==========================================================================
-  // 7. ТЕСТУВАННЯ ТА ЗБЕРЕЖЕННЯ API НОВОЇ ПОШТИ
-  // ==========================================================================
-  async function testNovaPoshtaApiKey(apiKey) {
-    if (!apiKey) {
-      dom.apiTestStatus.textContent = '⚠️ Будь ласка, введіть ключ перед тестуванням.';
-      dom.apiTestStatus.style.color = '#fb7185';
-      return;
-    }
-
-    dom.apiTestStatus.textContent = '⏳ Перевірка зв\'язку з api.novaposhta.ua...';
-    dom.apiTestStatus.style.color = '#38bdf8';
-
-    try {
-      const response = await fetch('https://api.novaposhta.ua/v2.0/json/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          apiKey: apiKey,
-          modelName: 'Address',
-          calledMethod: 'searchSettlements',
-          methodProperties: {
-            CityName: 'Київ',
-            Limit: '1'
-          }
-        })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        dom.apiTestStatus.textContent = '✅ Ключ дійсний! Успішне з\'єднання з сервером Нової пошти.';
-        dom.apiTestStatus.style.color = '#4ade80';
-      } else {
-        const errorMsg = data.errors && data.errors.length > 0 ? data.errors[0] : 'Невірний ключ';
-        dom.apiTestStatus.textContent = `❌ Помилка API: ${errorMsg}`;
-        dom.apiTestStatus.style.color = '#fb7185';
-      }
-    } catch (err) {
-      // Якщо CORS блокує прямий клієнтський fetch, пояснюємо користувачу
-      dom.apiTestStatus.innerHTML = `
-        <span style="color: #ffd200;">ℹ️ Ключ збережено.</span> У браузері прямі запити до API можуть обмежуватись CORS полісом Нової пошти. Система автоматично використовує його при доступності.
-      `;
-    }
-  }
-
-  // ==========================================================================
   // 8. УТИЛІТИ ТА AUTOCOMPLETE DROPDOWN (LP-CRM STYLE)
   // ==========================================================================
   function escapeHtml(str) {
@@ -7346,33 +7261,6 @@
       });
     }
 
-    // Модалка API (якщо присутня у версії з панеллю)
-    if (dom.btnApiSettings && dom.apiModal) {
-      dom.btnApiSettings.addEventListener('click', () => {
-        if (dom.npApiKeyInput) dom.npApiKeyInput.value = state.apiKeyNP;
-        dom.apiModal.showModal();
-      });
-      if (dom.btnCloseApiModal) dom.btnCloseApiModal.addEventListener('click', () => dom.apiModal.close());
-      dom.apiModal.addEventListener('click', e => {
-        if (e.target === dom.apiModal) dom.apiModal.close();
-      });
-
-      if (dom.btnTestApiKey && dom.npApiKeyInput) {
-        dom.btnTestApiKey.addEventListener('click', () => {
-          testNovaPoshtaApiKey(dom.npApiKeyInput.value.trim());
-        });
-      }
-
-      if (dom.btnSaveApiSettings && dom.npApiKeyInput) {
-        dom.btnSaveApiSettings.addEventListener('click', () => {
-          state.apiKeyNP = dom.npApiKeyInput.value.trim();
-          localStorage.setItem('np_api_key', state.apiKeyNP);
-          dom.apiModal.close();
-          alert('Налаштування API успішно збережено!');
-        });
-      }
-    }
-
     // Ініціалізація конструктора шаблонів копіювання
     initCopyPresetBuilder();
   }
@@ -7989,7 +7877,6 @@
     checkServerApiStatus();
     renderFrequentChips();
     renderRecentHistory();
-    initHonestOnlineCounter();
     initServiceWorker();
 
     // Автофокус на поле пошуку для миттєвої роботи оператора без зайвих кліків
@@ -8034,7 +7921,6 @@
   window.saveCopyPresets = saveCopyPresets;
   window.openCopyPresetModal = openCopyPresetModal;
   window.assembleCopyStringFromPreset = assembleCopyStringFromPreset;
-  window.selectAutocompleteItem = selectAutocompleteItem;
   window.triggerAutocomplete = triggerAutocomplete;
   window.renderFrequentChips = renderFrequentChips;
   window.executeSearch = executeSearch;

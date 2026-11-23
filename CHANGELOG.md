@@ -3,6 +3,19 @@
 Усі помітні зміни в проєкті документуються в цьому файлі.
 Формат ведеться за стандартом [Keep a Changelog](https://keepachangelog.com/) та відповідає [Semantic Versioning](https://semver.org/).
 
+## [2.0.3] — 2026-11-23
+
+### 🛡️ Безпека, захист `postMessage`, таймаути мережі та очищення коду (−84 МБ у Git)
+- **Безпека та захист секретів (`scripts/download_all_settlements.js`, `scripts/download_all_warehouses.js`, `index.html`, `about.html`, `server.py`)**:
+  - Видалено захардкоджений фолбек API-ключа Нової пошти з `scripts/download_all_settlements.js` та `scripts/download_all_warehouses.js` (ключ читається виключно з `.env` / `process.env.NP_API_KEY`).
+  - Додано сувору валідацію джерела повідомлень `postMessage` (`ev.source` та `ev.origin === window.location.origin` із відхиленням `'null'`) між `about.html` та `index.html?embed=1`.
+  - У `server.py` додано ліміт розміру POST-тіла до 64 КБ (`413 Payload Too Large`) для `/api/novaposhta`.
+- **Відмовостійкість мережі (`app.js`)**:
+  - Додано обгортку `fetchWithTimeout(..., 5000)` з `AbortController` для всіх зовнішніх API-викликів (Укрпошта та Нова пошта) для захисту від зависань на нестабільному мобільному з'єднанні.
+- **Гігієна коду та репозиторію (`app.js`, `data/fuzzySearch.js`, `.gitignore`, `scripts/sync-data.yml`)**:
+  - Із Git-відстеження та деплою GitHub Pages вилучено 84+ МБ старих чорнових дампів (`data/all_warehouses.js`, `data/all_warehouses.json`, `data/branches_registry.json`, `screenshots_ocr.json` — загальний обсяг файлів у Git скорочено зі **176.5 МБ до 77.5 МБ**).
+  - Видалено ~150 рядків мертвого коду від застарілих фіч (`initHonestOnlineCounter`, `updateOnlineBadge`, `testNovaPoshtaApiKey`, `matchesWord`, 12 неіснуючих DOM-елементів та дубль `window.selectAutocompleteItem`).
+
 ## [2.0.2] — 2026-11-23
 
 ### 🚀 Глибока оптимізація швидкодії, пам'яті, кешування та розміру баз (Performance Audit Release)

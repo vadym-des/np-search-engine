@@ -121,9 +121,12 @@ class PostalProxyHandler(http.server.SimpleHTTPRequestHandler):
             pass
 
     def do_POST(self):
-        # Проксі для запитів до Нової пошти
+        # Проксі для запитів до Нової пошти (з лімітом тіла 64 КБ для захисту пам'яті)
         if self.path == '/api/novaposhta':
             content_length = int(self.headers.get('Content-Length', 0))
+            if content_length <= 0 or content_length > 65536:
+                self.send_error(413, 'Payload Too Large (max 64 KB)')
+                return
             post_body = self.rfile.read(content_length)
 
             try:

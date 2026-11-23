@@ -1,5 +1,19 @@
-<!-- Версія 2.0.2 -->
+<!-- Версія 2.0.3 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v2.0.3</span>
+            <span class="version-state">Аудит безпеки, захист postMessage, таймаути мережі та очищення коду</span>
+            <span class="version-date">23 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Захист API-ключів та ізоляція postMessage:</strong> Прибрано захардкоджені фолбеки ключів із CLI-скриптів (виключно <code>.env</code>), додано сувору перевірку <code>event.origin</code> та <code>event.source</code> для <code>postMessage</code> між <code>about.html</code> і <code>index.html</code>, а також ліміт 64 КБ у <code>server.py</code>.</li>
+            <li><strong>Відмовостійкість на слабкому інтернеті:</strong> Усі зовнішні виклики <code>fetch()</code> до API Нової пошти та Укрпошти захищено 5-секундним таймаутом (<code>fetchWithTimeout</code> з <code>AbortController</code>).</li>
+            <li><strong>Чистота коду та −56% розміру Git-репозиторію:</strong> Видалено ~150 рядків мертвого коду застарілих елементів і вилучено з Git 84+ МБ старих чорнових дампів (<code>all_warehouses</code>, <code>branches_registry</code>).</li>
+          </ul>
+        </div>
+
+        <!-- Версія 2.0.2 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v2.0.2</span>
             <span class="version-state">Глибока оптимізація швидкодії, пам'яті, кешування та розміру баз</span>

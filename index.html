@@ -20,7 +20,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2.0.2">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2.0.3">
   
   <!-- Theme initialization (Default: Light; inherits from query param & persists in localStorage) -->
   <script>
@@ -48,7 +48,7 @@
   </script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=2.0.2">
+  <link rel="stylesheet" href="styles.css?v=2.0.3">
 </head>
 <body data-service="novaposhta">
 
@@ -276,7 +276,7 @@
       <!-- Лівий нижній кут: Історія версій сайту -->
       <div class="corner-left">
         <button id="btnVersionHistory" class="corner-pill-btn" aria-haspopup="dialog">
-          <span class="version-tag">v2.0.2</span>
+          <span class="version-tag">v2.0.3</span>
         </button>
       </div>
 
@@ -451,22 +451,22 @@
   </dialog>
 
   <!-- Дані відділень (Leaflet підвантажується ліниво лише при відкритті карти) -->
-  <script defer src="data/branches.fast.js?v=2.0.2"></script>
+  <script defer src="data/branches.fast.js?v=2.0.3"></script>
 
   <!-- База 26 500+ відділень та індексів Укрпошти -->
-  <script defer src="data/ukrposhta_branches.js?v=2.0.2"></script>
+  <script defer src="data/ukrposhta_branches.js?v=2.0.3"></script>
 
   <!-- Повний реєстр населених пунктів України (26 500+ сіл, смт, селищ, міст) -->
-  <script defer src="data/all_settlements.js?v=2.0.2"></script>
+  <script defer src="data/all_settlements.js?v=2.0.3"></script>
 
   <!-- Реєстр офіційних назв населених пунктів LP-CRM & Нової Пошти -->
-  <script defer src="data/crm_settlements.js?v=2.0.2"></script>
+  <script defer src="data/crm_settlements.js?v=2.0.3"></script>
 
   <!-- Розумний двигун пошуку та виправлення одруків -->
-  <script defer src="data/fuzzySearch.js?v=2.0.2"></script>
+  <script defer src="data/fuzzySearch.js?v=2.0.3"></script>
 
   <!-- Головна логіка застосунку -->
-  <script defer src="app.js?v=2.0.2"></script>
+  <script defer src="app.js?v=2.0.3"></script>
 
   <!-- Інтерактивний контролер для демо-прев'ю (about.html embed) -->
   <script>
@@ -475,6 +475,7 @@
         var params = new URLSearchParams(window.location.search);
         if (params.get('embed') === '1') {
           var scenarioToken = 0;
+          var targetOrigin = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : '*';
 
           // Сигнал батьківському вікну про активність користувача (пауза автотаймера)
           var notifyParentInteraction = function() {
@@ -484,7 +485,7 @@
             }
             try {
               if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ type: 'DEMO_USER_INTERACTION' }, '*');
+                window.parent.postMessage({ type: 'DEMO_USER_INTERACTION' }, targetOrigin);
               }
             } catch (e) {}
           };
@@ -495,14 +496,15 @@
           window.addEventListener('load', function() {
             try {
               if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ type: 'DEMO_IFRAME_READY' }, '*');
+                window.parent.postMessage({ type: 'DEMO_IFRAME_READY' }, targetOrigin);
               }
             } catch (e) {}
           });
 
-          // Обробка синхронних команд сценаріїв від about.html (без внутрішніх setTimeout у фреймі)
+          // Обробка синхронних команд сценаріїв від about.html (із суворою перевіркою origin та джерела вікна)
           window.addEventListener('message', function(ev) {
-            if (!ev.data) return;
+            if (!ev.data || ev.source !== window.parent) return;
+            if (window.location.protocol !== 'file:' && (ev.origin === 'null' || ev.origin !== window.location.origin)) return;
 
             if (ev.data.type === 'SET_THEME' && ev.data.theme) {
               document.documentElement.setAttribute('data-theme', ev.data.theme);
@@ -563,7 +565,7 @@
                 if (historySection) historySection.classList.add('hidden');
                 try {
                   if (window.parent && window.parent !== window) {
-                    window.parent.postMessage({ type: 'DEMO_SCENE_READY', scenario: idx }, '*');
+                    window.parent.postMessage({ type: 'DEMO_SCENE_READY', scenario: idx }, targetOrigin);
                   }
                 } catch (e) {}
               };

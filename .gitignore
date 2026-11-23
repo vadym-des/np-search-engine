@@ -27,9 +27,11 @@ ENV/
 *.swp
 *.swo
 
-# Резервні дампи бази даних (основна база у data/branches.js)
+# Резервні дампи бази даних (основна база у data/branches.js та data/branches.fast.js)
 data/branches.json
 data/branches_registry.json
+data/all_warehouses.js
+data/all_warehouses.json
 
 # Тестові скріншоти та артефакти OCR
 screenshots/

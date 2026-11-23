@@ -7,7 +7,7 @@
   <meta name="description" content="Миттєвий пошук за містом, вулицею чи номером і автоматичний формат для вашої CRM-системи. Два поштових гіганти в одному чистому інтерфейсі.">
 
   <!-- Favicon з фірмовим логотипом -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2.0.2">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2.0.3">
 
   <!-- Theme initialization (Default: Light; inherits app_theme from main search page via query param & localStorage) -->
   <script>
@@ -3447,7 +3447,8 @@
       const frame = document.getElementById('moleAppFrame');
       if (frame && frame.contentWindow) {
         try {
-          frame.contentWindow.postMessage(payload, '*');
+          const targetOrigin = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : '*';
+          frame.contentWindow.postMessage(payload, targetOrigin);
         } catch (e) {}
       }
     }
@@ -3504,9 +3505,11 @@
       }
     }
 
-    // Слухач подій від інтерактивного iframe
+    // Слухач подій від інтерактивного iframe (із суворою валідацією origin та source)
     window.addEventListener('message', (ev) => {
-      if (!ev.data) return;
+      const moleFrame = document.getElementById('moleAppFrame');
+      if (!ev.data || !moleFrame || ev.source !== moleFrame.contentWindow) return;
+      if (window.location.protocol !== 'file:' && (ev.origin === 'null' || ev.origin !== window.location.origin)) return;
       if (ev.data.type === 'DEMO_USER_INTERACTION') {
         isManualMode = true;
         const taglineText = document.getElementById('moleTaglineText');
@@ -4886,7 +4889,8 @@
       const moleFrame = document.getElementById('moleAppFrame');
       if (moleFrame && moleFrame.contentWindow) {
         try {
-          moleFrame.contentWindow.postMessage({ type: 'SET_THEME', theme: theme }, '*');
+          const targetOrigin = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : '*';
+          moleFrame.contentWindow.postMessage({ type: 'SET_THEME', theme: theme }, targetOrigin);
         } catch (e) {}
       }
 

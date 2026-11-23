@@ -41,12 +41,15 @@ function loadEnv() {
 
 loadEnv();
 
-const API_KEY = process.env.NP_API_KEY || process.env.NOVA_POSHTA_API_KEY || '34e68667d9a43b14f086f02c38023642';
+const API_KEY = process.env.NP_API_KEY || process.env.NOVA_POSHTA_API_KEY || '';
 const PAGE_SIZE = 1000;
 const CONCURRENCY = 4;
 
 function queryApi(model, method, props, retryCount = 3) {
   return new Promise((resolve, reject) => {
+    if (!API_KEY) {
+      return reject(new Error('Не задано NP_API_KEY або NOVA_POSHTA_API_KEY у .env або змінних середовища'));
+    }
     const payload = JSON.stringify({
       apiKey: API_KEY,
       modelName: model,
