@@ -577,6 +577,45 @@ const testCases = [
     expectedCity: 'Велика Михайлівка',
     expectedNum: '3',
     desc: 'Злите написання без пробілу ("Великомихайлівка 3") -> Велика Михайлівка #3'
+  },
+  // БАГ ЗІ СКРІНШОТА КОРИСТУВАЧА: Вибір "Миколаїв (Стрийський р-н, Львівська обл.)" не повинен згортатися до Поштомату №43384 (вул. Львівське шосе)
+  {
+    q: 'Миколаїв Львівська',
+    expectedCity: 'Миколаїв',
+    expectedNum: '1',
+    expectedOblast: 'Львівська',
+    expectedMinResults: 7,
+    desc: 'Анти-колізія області та вулиці: "Миколаїв Львівська" -> список відділень (Відділення #1 перше, >= 7 рез., а не 1 поштомат #43384)'
+  },
+  {
+    q: 'Миколаїв Стрийський Львівська',
+    expectedCity: 'Миколаїв',
+    expectedNum: '1',
+    expectedOblast: 'Львівська',
+    expectedActualRaion: 'Стрийський',
+    expectedExactResults: 7,
+    desc: 'Точний район + область: "Миколаїв Стрийський Львівська" -> рівно 7 точок Стрийського р-ну (2 відд. + 5 пошт., перше #1)'
+  },
+  {
+    q: 'Іванків Київська',
+    expectedCity: 'Іванків',
+    expectedOblast: 'Київська',
+    expectedMinResults: 25,
+    desc: 'Тезка з вулицею-областю: "Іванків Київська" -> повний список відділень (не згортається до вул. Київська)'
+  },
+  {
+    q: 'Городок Львівська',
+    expectedCity: 'Городок',
+    expectedOblast: 'Львівська',
+    expectedMinResults: 15,
+    desc: 'Тезка з вулицею-областю: "Городок Львівська" -> повний список відділень (не згортається до вул. Львівська)'
+  },
+  {
+    q: 'Калинівка Вінницька',
+    expectedCity: 'Калинівка',
+    expectedOblast: 'Вінницька',
+    expectedMinResults: 15,
+    desc: 'Тезка з вулицею-областю: "Калинівка Вінницька" -> повний список відділень (не згортається до вул. Вінницька)'
   }
 ];
 
@@ -597,7 +636,7 @@ for (let i = 0; i < testCases.length; i++) {
     sugg = window.SmartSearchEngine.getAutocompleteSuggestions(tc.q, activeService, null, activePool);
     top = sugg && sugg[0] && sugg[0].branchObj ? sugg[0].branchObj : (sugg && sugg[0] ? { city: sugg[0].value, number: sugg[0].title, street: sugg[0].subtitle, oblast: sugg[0].oblast } : null);
   } else {
-    res = window.SmartSearchEngine.searchBranches(tc.q, activePool, tc.expectedMinResults ? null : 3);
+    res = window.SmartSearchEngine.searchBranches(tc.q, activePool, (tc.expectedMinResults || tc.expectedExactResults) ? null : 3);
     top = res[0];
   }
   window.currentService = 'novaposhta';
@@ -615,7 +654,8 @@ for (let i = 0; i < testCases.length; i++) {
   const okV2Branches = tc.expectedVariant2Branches === undefined || (Array.isArray(sugg) && sugg[1] && sugg[1].branchCount === tc.expectedVariant2Branches);
   const okV2Postal = !tc.expectedVariant2Postal || (Array.isArray(sugg) && sugg[1] && sugg[1].postalCode === tc.expectedVariant2Postal);
   const okMinResults = !tc.expectedMinResults || (tc.checkAutocomplete ? (Array.isArray(sugg) && sugg.length >= tc.expectedMinResults) : (Array.isArray(res) && res.length >= tc.expectedMinResults));
-  const ok = okCity && okNum && okStreet && okType && okCrm && okOblast && okActualRaion && okOldRaion && okVariantsCount && okV1Branches && okV2Branches && okV2Postal && okMinResults;
+  const okExactResults = !tc.expectedExactResults || (Array.isArray(res) && res.length === tc.expectedExactResults);
+  const ok = okCity && okNum && okStreet && okType && okCrm && okOblast && okActualRaion && okOldRaion && okVariantsCount && okV1Branches && okV2Branches && okV2Postal && okMinResults && okExactResults;
 
   if (ok) {
     passed++;

@@ -2891,8 +2891,12 @@
     if (oblToken) {
       // Якщо це токен області, перевіряємо: якщо місто належить до іншої області (напр. Чернівці -> Чернівецька),
       // і в цьому місті є вулиця з назвою цієї іншої області (вул. Миколаївська, вул. Київська тощо), то це вулиця!
-      const cityObl = targetOblast || (branches[0] && (branches[0].oblast || branches[0].region));
-      if (cityObl && cityObl.toLowerCase().includes(oblToken.toLowerCase().slice(0, 4))) {
+      const oblPrefix = oblToken.toLowerCase().slice(0, 4);
+      if (targetOblast) {
+        if (targetOblast.toLowerCase().includes(oblPrefix)) {
+          return false;
+        }
+      } else if (branches.some(b => ((b.oblast || b.region || '').toLowerCase()).includes(oblPrefix))) {
         return false;
       }
     }
@@ -6629,8 +6633,8 @@
       .filter(w => {
         if (w.length < 2 || STOP_WORDS.has(w)) return false;
         const c = canonText(w);
-        if (geoTokens.has(c) && !isDisambiguatedStreet && !(city && isStreetOfCity(city, w))) return false;
-        if (isOblastToken(w) && !isDisambiguatedStreet && !(city && isStreetOfCity(city, w))) return false;
+        if (geoTokens.has(c) && !isDisambiguatedStreet && !(city && isStreetOfCity(city, w, oblast || settlementOblast, raion))) return false;
+        if (isOblastToken(w) && !isDisambiguatedStreet && !(city && isStreetOfCity(city, w, oblast || settlementOblast, raion))) return false;
         if (raion && c.length >= 6 && damerauLevenshtein(c, canonText(raion)) <= 1) return false;
         return true;
       });
@@ -7093,7 +7097,7 @@
         if (lastWordMatch) {
           const lw = lastWordMatch[1].toLowerCase();
           // Якщо слово має прикметникове закінчення вулиці або перед ним є позначення вулиці
-          const isNotOblastOrCity = (!isOblastToken(lw) || (detectedCityName && isStreetOfCity(detectedCityName, lw))) && !_settlementsByName.has(lw) && !_allSettlementsByName.has(lw) && !REGIONAL_CENTERS.has(lw);
+          const isNotOblastOrCity = (!isOblastToken(lw) || (detectedCityName && isStreetOfCity(detectedCityName, lw, targetOblast, facets.raion))) && !_settlementsByName.has(lw) && !_allSettlementsByName.has(lw) && !REGIONAL_CENTERS.has(lw);
           const isStreetEnding = /(?:ова|єва|ева|івка|івська|евська|ська|ського|ської|ськой|на|ного|ної|ний|яка|ого|му|ра)$/u.test(lw);
           const hasStreetPrefix = /(?:вул|вулиця|просп|проспект|бульв|бульвар|пл|площа|пров|провулок)/iu.test(textBeforeNum);
           const numVal = parseInt(numCandidate, 10);
@@ -7128,7 +7132,7 @@
       if (facets.oblast && t.toLowerCase() === facets.oblast.toLowerCase()) return true;
       if (oblStem && t.startsWith(oblStem)) return true;
       if (REGIONAL_CENTERS.has(t) && facets.oblast && facets.oblast.toLowerCase().includes(t.slice(0, 4))) return true;
-      if (detectedCityName && isStreetOfCity(detectedCityName, t)) return false;
+      if (detectedCityName && isStreetOfCity(detectedCityName, t, targetOblast, facets.raion)) return false;
       if (isOblastToken(t)) return true;
       if (/(?:ський|цький|зький|ського|цького|зького)$/iu.test(t) && detectRaion(t)) return true;
       return false;
@@ -7141,8 +7145,13 @@
       !(facets.streetTokens && facets.streetTokens.includes(t)) &&
       (t === canonText(facets.raion) || areRaionsCompatible(t, facets.raion))
     );
+    const isConsumedOblastToken = (t) => Boolean(
+      facets.oblast &&
+      !(facets.streetTokens && facets.streetTokens.includes(t)) &&
+      (t === canonText(facets.oblast) || isOblastToken(t) === facets.oblast)
+    );
     const streetCandidates = (facets.streetTokens || []).concat(
-      tokens.filter(t => !/^\d+$/.test(t) && t !== detectedCityName && t !== normDetectedCityName && t !== correctedRawCityToken && !isConsumedRaionToken(t) && (!isOblastOrCenter(t) || (detectedCityName && isStreetOfCity(detectedCityName, t))) && !STOP_WORDS.has(t))
+      tokens.filter(t => !/^\d+$/.test(t) && t !== detectedCityName && t !== normDetectedCityName && t !== correctedRawCityToken && !isConsumedRaionToken(t) && !isConsumedOblastToken(t) && (!isOblastOrCenter(t) || (detectedCityName && isStreetOfCity(detectedCityName, t, targetOblast, facets.raion))) && !STOP_WORDS.has(t))
     );
     const uniqueStreetTokens = Array.from(new Set(streetCandidates)).filter(t =>
       t.length >= 2 &&
@@ -7229,7 +7238,7 @@
           !/^(?:відділ|віділен|вантаж)/iu.test(t) &&
           !(facets.oblast && (t === canonText(facets.oblast) || isOblastToken(t) === facets.oblast)) &&
           !(facets.raion && (t === canonText(facets.raion) || areRaionsCompatible(t, facets.raion))) &&
-          !(hasExactCityInPool && detectedCityName && facets.streetTokens && facets.streetTokens.includes(t) && isStreetOfCity(detectedCityName, t))
+          !(hasExactCityInPool && detectedCityName && facets.streetTokens && facets.streetTokens.includes(t) && isStreetOfCity(detectedCityName, t, targetOblast, facets.raion))
         );
       const prefTok = rawPrefTokens.sort((a, b) => b.length - a.length)[0] || null;
       const isLiteralCurrentCity = Boolean(prefTok && detectedCityName === prefTok);

@@ -4277,6 +4277,53 @@ async function runTests() {
     console.error('  ✗ Провал Тесту 69:', err.message, '\n');
   }
 
+  // ТЕСТ 70: Вибір "Миколаїв (Стрийський р-н, Львівська обл.)" з автокомпліту показує всі 7 точок району, а не єдиний Поштомат №43384
+  totalTests++;
+  console.log('▶ ТЕСТ 70: Вибір "Миколаїв (Стрийський р-н, Львівська обл.)" з автокомпліту повертає список відділень і поштоматів, а не Поштомат №43384');
+  try {
+    searchInput.value = '';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(30);
+    searchInput.value = 'Миколаїв';
+    searchInput.dispatchEvent({ type: 'input' });
+    await sleep(240);
+
+    const mykItems = dropdown.querySelectorAll('.autocomplete-item-city');
+    const stryiItem = mykItems.find(el => (el.textContent || el.innerHTML).includes('Стрийський') && (el.textContent || el.innerHTML).includes('Львівська'));
+    if (!stryiItem) {
+      throw new Error('У списку автокомпліту для "Миколаїв" не знайдено "Миколаїв (Стрийський р-н, Львівська обл.)"');
+    }
+
+    stryiItem.dispatchEvent({ type: 'click' });
+    await sleep(80);
+
+    if (searchInput.value.includes('43384')) {
+      throw new Error(`Інпут не повинен підставляти поштомат 43384, отримано: "${searchInput.value}"`);
+    }
+
+    const resultsCountEl = elementsById['resultsCount'];
+    if (resultsCountEl && resultsCountEl.textContent && resultsCountEl.textContent.includes('1 обране відділення')) {
+      throw new Error(`Очікувався список відділень, а не "${resultsCountEl.textContent}"`);
+    }
+
+    const appState = window._appStateForTesting;
+    const currResults = appState && Array.isArray(appState.currentResults) ? appState.currentResults : [];
+    if (currResults.length !== 7) {
+      throw new Error(`Очікувалося рівно 7 точок (2 відділення + 5 поштоматів) Стрийського р-ну, отримано: ${currResults.length}`);
+    }
+    if (String(currResults[0].number) !== '1') {
+      throw new Error(`Першим у списку має йти Відділення №1, отримано: №${currResults[0].number}`);
+    }
+    if (!currResults.every(b => b.oblast === 'Львівська' && b.raion === 'Стрийський')) {
+      throw new Error('У результатах виявлено точки поза Стрийським р-ном Львівської обл.');
+    }
+
+    console.log('  ✓ Успіх: Вибір "Миколаїв (Стрийський р-н, Львівська обл.)" коректно показав усі 7 точок району (Відділення №1 перше, без згортання у Поштомат №43384)!\n');
+    passedTests++;
+  } catch (err) {
+    console.error('  ✗ Провал Тесту 70:', err.message, '\n');
+  }
+
   console.log('===============================================================');
   console.log(`📊 РЕЗУЛЬТАТ: ${passedTests} / ${totalTests} ТЕСТІВ ПРОЙДЕНО УСПІШНО!`);
   console.timeEnd('⏱️ Час виконання тестів');

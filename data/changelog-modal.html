@@ -1,5 +1,19 @@
-<!-- Версія 2.0.4 -->
+<!-- Версія 2.0.5 -->
         <div class="changelog-item current">
+          <div class="version-pill-header">
+            <span class="version-badge">v2.0.5</span>
+            <span class="version-state">Анти-колізія назви області та вулиці для міст-тезок (Миколаїв Львівська)</span>
+            <span class="version-date">25 Листопада 2026</span>
+          </div>
+          <ul class="version-features-list">
+            <li><strong>Коректний вибір міст-тезок (<code>data/fuzzySearch.js</code>):</strong> Назва власної області в запиті (наприклад, <em>Миколаїв Львівська</em>) більше не сприймається як назва вулиці (<em>вул. Львівське шосе</em> у Поштомату №43384), тому при виборі <strong>Миколаїв (Стрийський р-н, Львівська обл.)</strong> одразу відображається повний список із 7 відділень і поштоматів.</li>
+            <li><strong>Точна ізоляція району (<code>app.js</code>):</strong> При кліку в автокомпліті район зберігається у внутрішньому контексті <code>selectedSettlement</code>, не підмішуючи села-тезки інших районів (наприклад, с. Миколаїв Радехівського р-ну).</li>
+            <li><strong>Анти-регресійний захист:</strong> Додано автоматичні тести для <code>Миколаїв Львівська</code>, <code>Миколаїв Стрийський Львівська</code>, <code>Іванків Київська</code>, <code>Городок Львівська</code>, <code>Калинівка Вінницька</code> та E2E-тест автокомпліту.</li>
+          </ul>
+        </div>
+
+        <!-- Версія 2.0.4 -->
+        <div class="changelog-item">
           <div class="version-pill-header">
             <span class="version-badge">v2.0.4</span>
             <span class="version-state">Відновлення та захист автоматичної синхронізації бази Нової пошти (CI/CD)</span>

@@ -6105,6 +6105,7 @@
       const settlement = item.settlementObj || item;
       const sName = cleanSettlementName(item.settlement || settlement.settlement || settlement.cleanName || settlement.name || item.title || item.value || '').replace(/[()]/g, '').trim();
       let sRaion = cleanRaionName(item.raion || settlement.cleanRaion || settlement.raion || '').replace(/[()]/g, '').trim();
+      let settlementRaion = sRaion;
       const sOblast = cleanOblastName(item.oblast || settlement.cleanOblast || settlement.oblast || '').replace(/[()]/g, '').trim();
 
       // Запобігаємо дублюванню району з назвою міста (напр. "Кам'янець-Подільський Кам'янець-Подільський", "Коломия Коломийський"):
@@ -6118,7 +6119,10 @@
           : sName.toLowerCase().replace(/[^а-яіїєґa-z0-9]/gi, '');
         const rStem = rCanon.slice(0, 4);
         const nStem = nCanon.slice(0, 4);
-        if (rCanon === nCanon || (rStem && nStem && rStem === nStem) || sType === 'місто') {
+        if (rCanon === nCanon || (rStem && nStem && rStem === nStem)) {
+          sRaion = '';
+          settlementRaion = '';
+        } else if (sType === 'місто') {
           sRaion = '';
         }
       }
@@ -6141,8 +6145,8 @@
       state.selectedSettlement = {
         cleanName: sName,
         name: sName,
-        cleanRaion: sRaion,
-        raion: sRaion,
+        cleanRaion: settlementRaion,
+        raion: settlementRaion,
         cleanOblast: sOblast,
         oblast: sOblast,
         type: settlement.type || item.type || 'село',
